@@ -25,8 +25,10 @@ const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 const PROFILE = (id) => `https://rocketleague.tracker.network/rocket-league/profile/steam/${id}/overview`;
 const PLAYLISTS = { d1: "Ranked Duel 1v1", d2: "Ranked Doubles 2v2", d3: "Ranked Standard 3v3" };
 const STATE_FILE = join(ROOT, "data", "tracker-state.json");
-const SPACING = 8000;   // between players, keeps us under Cloudflare rate limiting
-const ATTEMPTS = 3;
+const SPACING = 6000;   // between players, keeps us under Cloudflare rate limiting
+const ATTEMPTS = 2;
+const NAV_TIMEOUT = 40000;
+const STATE_TIMEOUT = 45000; // give Cloudflare's challenge time to resolve
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function stateReady() {
@@ -51,16 +53,37 @@ function extractInPage(names) {
   return out;
 }
 
+const blockAssets = (page) =>
+  page.route("**/*", (route) =>
+    ["image", "font", "media", "stylesheet"].includes(route.request().resourceType()) ? route.abort() : route.continue()
+  );
+
+// Load the homepage once so Cloudflare issues a clearance cookie for the context
+// before we hit profile pages. Best-effort; returns whether it cleared.
+async function warmup(ctx) {
+  const page = await ctx.newPage();
+  try {
+    await page.goto("https://rocketleague.tracker.network/", { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT });
+    await page.waitForFunction(() => !/just a moment/i.test(document.title), { timeout: STATE_TIMEOUT });
+    return true;
+  } catch { return false; }
+  finally { await page.close().catch(() => {}); }
+}
+
 async function scrapeWithRetry(ctx, id) {
   let lastErr;
   for (let a = 1; a <= ATTEMPTS; a++) {
     const page = await ctx.newPage();
     try {
-      await page.route("**/*", (route) =>
-        ["image", "font", "media", "stylesheet"].includes(route.request().resourceType()) ? route.abort() : route.continue()
-      );
-      await page.goto(PROFILE(id), { waitUntil: "commit", timeout: 30000 });
-      await page.waitForFunction(stateReady, { timeout: 30000 });
+      await blockAssets(page);
+      await page.goto(PROFILE(id), { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT });
+      try {
+        await page.waitForFunction(stateReady, { timeout: STATE_TIMEOUT });
+      } catch {
+        // one reload often clears a stubborn Cloudflare challenge
+        await page.reload({ waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT });
+        await page.waitForFunction(stateReady, { timeout: STATE_TIMEOUT });
+      }
       const data = await page.evaluate(extractInPage, PLAYLISTS);
       await page.close();
       if (data) return data;
@@ -69,7 +92,7 @@ async function scrapeWithRetry(ctx, id) {
       lastErr = e;
       await page.close().catch(() => {});
     }
-    if (a < ATTEMPTS) await sleep(8000 * a);
+    if (a < ATTEMPTS) await sleep(10000 * a);
   }
   throw lastErr;
 }
@@ -105,6 +128,9 @@ async function main() {
   const browser = await chromium.launch({ headless: true });
   const ctx = await browser.newContext({ userAgent: UA, viewport: { width: 1280, height: 800 } });
 
+  const cleared = await warmup(ctx);
+  console.log(`cloudflare warmup: ${cleared ? "cleared" : "not confirmed (continuing anyway)"}`);
+
   const rows = [];
   for (const p of players) {
     const row = { id: p.id, name: p.name, team: p.team, steamId64: p.steamId64, status: "ok", playlists: null };
@@ -114,10 +140,14 @@ async function main() {
     } catch (e) {
       row.status = `error: ${e.message.split("\n")[0].slice(0, 50)}`;
     }
-    // update scheduling state
+    // update scheduling state:
+    //  success   -> mark fresh
+    //  no-data   -> genuine miss (no tracker profile); count toward backoff
+    //  error     -> transient (Cloudflare/timeout); leave as-is so it stays due and retries next run
     const prev = state[p.id] ?? {};
     if (row.playlists) state[p.id] = { last: takenAt, fails: 0 };
-    else state[p.id] = { last: prev.last ?? null, fails: (prev.fails ?? 0) + 1 };
+    else if (row.status === "no-data") state[p.id] = { last: prev.last ?? null, fails: (prev.fails ?? 0) + 1 };
+    else state[p.id] = prev;
 
     const d2 = row.playlists?.d2;
     console.log(`  ${p.name.padEnd(14)} ${row.status.padEnd(12)} 2v2:${d2?.rating ?? "-"} (${d2?.matches ?? "-"} games)`);
