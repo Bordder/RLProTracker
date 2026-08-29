@@ -28,7 +28,7 @@ async function main() {
   for (const group of chunk(ids, 100)) {
     const url = `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=${KEY}&steamids=${group.join(",")}`;
     const data = await (await fetch(url)).json();
-    for (const p of data.response.players ?? []) {
+    for (const p of data?.response?.players ?? []) {
       if (p.gameid === RL_APPID) inGame.push(p.steamid);
     }
   }

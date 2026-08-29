@@ -7,25 +7,13 @@
 // is carried through separately as a fallback.
 
 import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SNAP_DIR = join(ROOT, "data", "snapshots");
 const HOUR = 3600e3;
 const WINDOWS = { d1: 24 * HOUR, d7: 7 * 24 * HOUR, d14: 14 * 24 * HOUR };
-
-async function loadSnapshots() {
-  let files;
-  try { files = (await readdir(SNAP_DIR)).filter((f) => f.startsWith("steam-") && f.endsWith(".json")); }
-  catch { return []; }
-  const snaps = [];
-  for (const f of files) {
-    const s = JSON.parse(await readFile(join(SNAP_DIR, f), "utf8"));
-    snaps.push({ t: Date.parse(s.takenAt), rows: s.rows });
-  }
-  return snaps.sort((a, b) => a.t - b.t);
-}
 
 // nearest snapshot at or before target time (fallback: earliest available)
 function snapAtOrBefore(snaps, target) {
@@ -36,11 +24,13 @@ function snapAtOrBefore(snaps, target) {
 
 const foreverFor = (snap, id) => snap.rows.find((r) => r.id === id)?.foreverMin ?? null;
 
-async function main() {
-  const snaps = await loadSnapshots();
-  if (snaps.length === 0) { console.error("no snapshots yet - run npm run fetch:steam first"); process.exit(1); }
-
-  const latest = snaps[snaps.length - 1];
+// Pure core (no IO). `snaps` is [{ t, rows }] in any order; the latest snapshot
+// defines the player set (Steam snapshots are complete each run). Returns
+// { now, players } with total/2wk hours and hours-per-window. Playtime is
+// monotonic on Steam, so a window diff is never negative in practice.
+export function computeSteamPlayers(snaps) {
+  const sorted = [...snaps].sort((a, b) => a.t - b.t);
+  const latest = sorted[sorted.length - 1];
   const now = latest.t;
   const players = [];
 
@@ -48,7 +38,7 @@ async function main() {
     const cur = row.foreverMin;
     const windows = {};
     for (const [key, span] of Object.entries(WINDOWS)) {
-      const past = snapAtOrBefore(snaps, now - span);
+      const past = snapAtOrBefore(sorted, now - span);
       const then = foreverFor(past, row.id);
       const haveHistory = past.t <= now - span;
       windows[key] =
@@ -64,10 +54,34 @@ async function main() {
     });
   }
 
+  return { now, players };
+}
+
+async function loadSnapshots() {
+  let files;
+  try { files = (await readdir(SNAP_DIR)).filter((f) => f.startsWith("steam-") && f.endsWith(".json")); }
+  catch { return []; }
+  const snaps = [];
+  for (const f of files) {
+    const s = JSON.parse(await readFile(join(SNAP_DIR, f), "utf8"));
+    snaps.push({ t: Date.parse(s.takenAt), rows: s.rows });
+  }
+  return snaps.sort((a, b) => a.t - b.t);
+}
+
+async function main() {
+  const snaps = await loadSnapshots();
+  if (snaps.length === 0) { console.error("no snapshots yet - run npm run fetch:steam first"); process.exit(1); }
+
+  const { now, players } = computeSteamPlayers(snaps);
+
   await mkdir(join(ROOT, "data", "derived"), { recursive: true });
   await writeFile(join(ROOT, "data", "derived", "steam-hours.json"),
     JSON.stringify({ computedAt: new Date(now).toISOString(), snapshotCount: snaps.length, players }, null, 2));
   console.log(`derived steam-hours.json  (${players.length} players, ${snaps.length} snapshots)`);
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+// Run only when invoked directly (so computeSteamPlayers can be imported for tests).
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((e) => { console.error(e); process.exit(1); });
+}

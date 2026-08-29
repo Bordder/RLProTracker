@@ -23,6 +23,7 @@ async function main() {
   try { lines = (await readFile(join(ROOT, "data", "presence", "log.jsonl"), "utf8")).trim().split("\n").filter(Boolean); }
   catch { console.error("no presence log yet - run npm run poll first"); process.exit(1); }
 
+  if (!lines.length) { console.error("presence log is empty - run npm run poll first"); process.exit(1); }
   const polls = lines.map((l) => JSON.parse(l)).sort((a, b) => Date.parse(a.t) - Date.parse(b.t));
   const now = Date.parse(polls[polls.length - 1].t);
 
