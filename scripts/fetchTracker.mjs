@@ -29,10 +29,12 @@ const ATTEMPTS = 5; // capped at proxy count in scrapePlayer; try every proxy be
 const NAV_TIMEOUT = 45000;
 const STATE_TIMEOUT = 30000; // a warm profile hydrates well under this
 const PER_PROXY_DELAY = 1000; // small gap between a worker's consecutive loads
-// How many pages scrape at once. Too many starves CPU and Vue never hydrates
-// in time (every page times out). Small pool + proxy rotation keeps each page
-// responsive while still spreading load across all proxies. Override with POOL.
-const DEFAULT_POOL = 2;
+// How many pages scrape at once. Concurrency hurts here on two fronts: it
+// starves CPU (Vue never hydrates in time) AND the free Oxylabs datacenter
+// proxies refuse connections (ERR_TUNNEL_CONNECTION_FAILED) when several
+// sessions hit them at once. Serial (1) is the most reliable, and runs are
+// infrequent enough that the extra wall-clock is fine. Override with POOL.
+const DEFAULT_POOL = 1;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Resolve as soon as the profile is decided: "ok" (playlist segments present)
