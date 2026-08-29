@@ -22,7 +22,7 @@ Currently in development and is NOT complete
 
 ## Features
 
-- Ranked playtime per player over 24 hour, 7 day, and 14 day windows.
+- Ranked playtime per player over 24 hour, 7 day, and 2 week windows.
 - Combined playtime and roster coverage per team.
 - Ranked games played and rating per playlist (1v1, 2v2, 3v3).
 - Coverage for the full roster: public playtime where available, live status polling where a profile hides its game history, and estimates for fully private profiles.
