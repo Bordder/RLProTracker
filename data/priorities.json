@@ -1,6 +1,6 @@
 {
-  "note": "Tracker update scheduling. Each run scrapes players that are due this run, capped at `perRun`. Players sharing a refresh interval are spread across runs via per-player slots so they don't all fire at once (keeps per-run load light and the hit rate high). `players` maps a player id to its target refresh interval in hours; anything unlisted uses `defaultHours`.",
-  "perRun": 10,
+  "note": "Tracker update scheduling. Each run scrapes players that are due this run, capped at `perRun`. Players sharing a refresh interval are spread across runs via per-player slots so they don't all fire at once. Scraping is serial (POOL=1) and reliable regardless of batch size, so perRun is set generously to cover more of the roster per run - important because GitHub runs the cron only sporadically. `players` maps a player id to its target refresh interval in hours; anything unlisted uses `defaultHours`.",
+  "perRun": 20,
   "defaultHours": 12,
   "players": {
     "karmine-corp-vatira": 1,
