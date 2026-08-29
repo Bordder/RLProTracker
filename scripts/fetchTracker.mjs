@@ -25,17 +25,28 @@ const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 const PROFILE = (id) => `https://rocketleague.tracker.network/rocket-league/profile/steam/${id}/overview`;
 const PLAYLISTS = { d1: "Ranked Duel 1v1", d2: "Ranked Doubles 2v2", d3: "Ranked Standard 3v3" };
 const STATE_FILE = join(ROOT, "data", "tracker-state.json");
-const SPACING = 3000;   // between players; rotation means each proxy sees ~1/N of this rate
-const ATTEMPTS = 2;
-const NAV_TIMEOUT = 40000;
-const STATE_TIMEOUT = 45000; // give Cloudflare's challenge time to resolve
+const ATTEMPTS = 3; // each attempt uses a different proxy (see scrapePlayer)
+const NAV_TIMEOUT = 45000;
+const STATE_TIMEOUT = 30000; // a warm profile hydrates well under this
+const PER_PROXY_DELAY = 1000; // small gap between a worker's consecutive loads
+// How many pages scrape at once. Too many starves CPU and Vue never hydrates
+// in time (every page times out). Small pool + proxy rotation keeps each page
+// responsive while still spreading load across all proxies. Override with POOL.
+const DEFAULT_POOL = 2;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function stateReady() {
+// Resolve as soon as the profile is decided: "ok" (playlist segments present)
+// or "err" (tracker returned a status/error, e.g. 400/404 while its collector
+// is refreshing). Returning "err" lets us fail fast and retry on another proxy
+// instead of waiting out the whole timeout.
+function stateOutcome() {
   const sp = window.__INITIAL_STATE__?.stats?.standardProfiles;
   if (!sp) return false;
-  const k = Object.keys(sp);
-  return k.length && sp[k[0]]?.segments?.some((s) => s.type === "playlist");
+  const prof = sp[Object.keys(sp)[0]];
+  if (!prof) return false;
+  if (prof.segments?.some((s) => s.type === "playlist")) return "ok";
+  if (prof.status || prof.errors?.length) return "err";
+  return false;
 }
 
 function extractInPage(names) {
@@ -60,29 +71,35 @@ const blockAssets = (page) =>
     ["image", "font", "media"].includes(route.request().resourceType()) ? route.abort() : route.continue()
   );
 
-async function scrapeWithRetry(ctx, id) {
+async function scrapeOnce(ctx, id) {
+  const page = await ctx.newPage();
+  try {
+    await blockAssets(page);
+    await page.goto(PROFILE(id), { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT });
+    // NB: waitForFunction(fn, arg, options) - the timeout MUST be the 3rd arg.
+    const handle = await page.waitForFunction(stateOutcome, null, { timeout: STATE_TIMEOUT });
+    const outcome = await handle.jsonValue();
+    if (outcome !== "ok") throw new Error("collector-refreshing"); // retry other proxy
+    return await page.evaluate(extractInPage, PLAYLISTS); // may be null
+  } finally {
+    await page.close().catch(() => {});
+  }
+}
+
+// Try each attempt on a DIFFERENT proxy so one flaky proxy (tunnel failure,
+// transient 400, slow collector) doesn't cost us the player. startIdx staggers
+// which proxy each player begins on.
+async function scrapePlayer(contexts, startIdx, id) {
   let lastErr;
-  for (let a = 1; a <= ATTEMPTS; a++) {
-    const page = await ctx.newPage();
+  const tries = Math.min(ATTEMPTS, contexts.length);
+  for (let a = 0; a < tries; a++) {
+    const ctx = contexts[(startIdx + a) % contexts.length];
     try {
-      await blockAssets(page);
-      await page.goto(PROFILE(id), { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT });
-      try {
-        await page.waitForFunction(stateReady, { timeout: STATE_TIMEOUT });
-      } catch {
-        // one reload often clears a stubborn Cloudflare challenge
-        await page.reload({ waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT });
-        await page.waitForFunction(stateReady, { timeout: STATE_TIMEOUT });
-      }
-      const data = await page.evaluate(extractInPage, PLAYLISTS);
-      await page.close();
-      if (data) return data;
+      const d = await scrapeOnce(ctx, id);
+      if (d) return d;
       lastErr = new Error("no-data");
-    } catch (e) {
-      lastErr = e;
-      await page.close().catch(() => {});
-    }
-    if (a < ATTEMPTS) await sleep(10000 * a);
+    } catch (e) { lastErr = e; }
+    if (a < tries - 1) await sleep(1500);
   }
   throw lastErr;
 }
@@ -134,31 +151,41 @@ async function main() {
     proxies.map((proxy) => browser.newContext({ ...(proxy ? { proxy } : {}), userAgent: UA, viewport: { width: 1280, height: 800 } }))
   );
 
-  const rows = [];
-  for (let idx = 0; idx < players.length; idx++) {
-    const p = players[idx];
-    const ctx = contexts[idx % contexts.length]; // round-robin across proxies
-    const row = { id: p.id, name: p.name, team: p.team, steamId64: p.steamId64, status: "ok", playlists: null };
-    try {
-      row.playlists = await scrapeWithRetry(ctx, p.steamId64);
-      if (!row.playlists) row.status = "no-data";
-    } catch (e) {
-      row.status = `error: ${e.message.split("\n")[0].slice(0, 50)}`;
-    }
-    // update scheduling state:
-    //  success   -> mark fresh
-    //  no-data   -> genuine miss (no tracker profile); count toward backoff
-    //  error     -> transient (Cloudflare/timeout); leave as-is so it stays due and retries next run
-    const prev = state[p.id] ?? {};
-    if (row.playlists) state[p.id] = { last: takenAt, fails: 0 };
-    else if (row.status === "no-data") state[p.id] = { last: prev.last ?? null, fails: (prev.fails ?? 0) + 1 };
-    else state[p.id] = prev;
+  // Worker pool pulling from a shared queue. Concurrency (POOL) is bounded so
+  // pages stay responsive; each task rotates through the proxy contexts so load
+  // spreads across all proxies regardless of pool size. A slow proxy slows only
+  // its own tasks, not the whole run.
+  const pool = process.env.POOL ? +process.env.POOL : Math.min(DEFAULT_POOL, contexts.length);
+  const rows = new Array(players.length);
+  let next = 0;
+  async function worker() {
+    while (true) {
+      const idx = next++;
+      if (idx >= players.length) break;
+      const p = players[idx];
+      const row = { id: p.id, name: p.name, team: p.team, steamId64: p.steamId64, status: "ok", playlists: null };
+      try {
+        row.playlists = await scrapePlayer(contexts, idx, p.steamId64);
+        if (!row.playlists) row.status = "no-data";
+      } catch (e) {
+        row.status = `error: ${e.message.split("\n")[0].slice(0, 50)}`;
+      }
+      // update scheduling state:
+      //  success -> fresh; no-data -> genuine miss (count toward backoff);
+      //  error   -> transient (leave as-is so it stays due and retries next run)
+      const prev = state[p.id] ?? {};
+      if (row.playlists) state[p.id] = { last: takenAt, fails: 0 };
+      else if (row.status === "no-data") state[p.id] = { last: prev.last ?? null, fails: (prev.fails ?? 0) + 1 };
+      else state[p.id] = prev;
 
-    const d2 = row.playlists?.d2;
-    console.log(`  ${p.name.padEnd(14)} ${row.status.padEnd(12)} 2v2:${d2?.rating ?? "-"} (${d2?.matches ?? "-"} games)`);
-    rows.push(row);
-    await sleep(SPACING);
+      const d2 = row.playlists?.d2;
+      console.log(`  ${p.name.padEnd(14)} ${row.status.padEnd(12)} 2v2:${d2?.rating ?? "-"} (${d2?.matches ?? "-"} games)`);
+      rows[idx] = row;
+      await sleep(PER_PROXY_DELAY);
+    }
   }
+  console.log(`pool: ${pool} concurrent`);
+  await Promise.all(Array.from({ length: pool }, () => worker()));
 
   await browser.close();
 
