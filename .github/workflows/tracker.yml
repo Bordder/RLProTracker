@@ -1,0 +1,51 @@
+name: Hourly tracker update
+
+# Collects ranked MMR and games-played per playlist from tracker.gg using a
+# headless browser (stealth) that clears Cloudflare, then commits the results.
+# Offset 30 minutes from the Steam job so their pushes don't overlap.
+
+on:
+  schedule:
+    - cron: "30 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tracker-update
+  cancel-in-progress: false
+
+jobs:
+  tracker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Collect tracker data (MMR + games, then aggregate)
+        run: npm run tracker
+
+      - name: Prune old snapshots
+        run: node scripts/pruneSnapshots.mjs
+
+      - name: Commit refreshed data
+        run: |
+          git config user.name "rl-tracker-bot"
+          git config user.email "actions@github.com"
+          git add data/tracker-snapshots data/derived
+          git diff --staged --quiet && echo "no changes" && exit 0
+          git commit -m "data: hourly tracker update [skip ci]"
+          for i in 1 2 3 4 5; do
+            git pull --rebase --autostash origin main && git push && exit 0
+            echo "push retry $i"; sleep $((RANDOM % 8 + 3))
+          done
+          echo "push failed after retries"; exit 1

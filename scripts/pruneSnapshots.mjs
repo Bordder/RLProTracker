@@ -1,33 +1,38 @@
-// Delete Steam snapshots older than 15 days so the repo doesn't grow forever.
+// Delete snapshots older than 15 days so the repo doesn't grow forever.
 // 15 days keeps enough history for the 14-day window plus margin.
-// Hourly => ~360 files at steady state.
+// Covers both the Steam and tracker snapshot directories.
 
 import { readdir, readFile, unlink } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const SNAP_DIR = join(ROOT, "data", "snapshots");
 const KEEP_MS = 15 * 24 * 3600e3;
+const DIRS = [
+  { dir: join(ROOT, "data", "snapshots"), prefix: "steam-" },
+  { dir: join(ROOT, "data", "tracker-snapshots"), prefix: "tracker-" },
+];
 
-async function main() {
+async function pruneDir(dir, prefix) {
   let files;
-  try { files = (await readdir(SNAP_DIR)).filter((f) => f.startsWith("steam-") && f.endsWith(".json")); }
+  try { files = (await readdir(dir)).filter((f) => f.startsWith(prefix) && f.endsWith(".json")); }
   catch { return; }
+  if (!files.length) return;
 
-  // find newest snapshot's time as "now" (avoids Date.now dependence / clock skew)
+  // newest snapshot's time as "now" (avoids Date.now / clock-skew dependence)
   let now = 0;
-  for (const f of files) {
-    const s = JSON.parse(await readFile(join(SNAP_DIR, f), "utf8"));
-    now = Math.max(now, Date.parse(s.takenAt));
-  }
+  for (const f of files) now = Math.max(now, Date.parse(JSON.parse(await readFile(join(dir, f), "utf8")).takenAt));
 
   let removed = 0;
   for (const f of files) {
-    const s = JSON.parse(await readFile(join(SNAP_DIR, f), "utf8"));
-    if (now - Date.parse(s.takenAt) > KEEP_MS) { await unlink(join(SNAP_DIR, f)); removed++; }
+    const t = Date.parse(JSON.parse(await readFile(join(dir, f), "utf8")).takenAt);
+    if (now - t > KEEP_MS) { await unlink(join(dir, f)); removed++; }
   }
-  console.log(`pruneSnapshots: kept ${files.length - removed}, removed ${removed}`);
+  console.log(`prune ${prefix}: kept ${files.length - removed}, removed ${removed}`);
+}
+
+async function main() {
+  for (const { dir, prefix } of DIRS) await pruneDir(dir, prefix);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });
