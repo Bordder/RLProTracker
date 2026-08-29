@@ -13,7 +13,7 @@
 // Writes data/tracker-snapshots/tracker-<ts>.json.  Usage: npm run fetch:tracker
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import { chromium } from "playwright-extra";
 import stealth from "puppeteer-extra-plugin-stealth";
@@ -116,20 +116,58 @@ function parseProxies() {
   return ports.split(",").map((pt) => ({ server: `http://${host}:${pt.trim()}`, username, password }));
 }
 
-// choose which players to scrape this run: most overdue first, capped at perRun.
-// Each player has a target refresh interval in hours (data/priorities.json).
+// Roughly how far apart runs are; used to stagger same-interval players into
+// slots. Keep in sync with the cron in .github/workflows/tracker.yml.
+const RUN_SPACING_MS = 20 * 60e3;
+
+// Give each player a deterministic slot within its interval group so players that
+// share a refresh interval don't all come due in the SAME run (a clump hammers the
+// proxies/tracker at once and drops the hit rate). Players are ranked by a stable
+// key within their interval group; the slot is that rank. Since every interval is
+// a whole number of run-spacings, a player is only "due" on runs whose slot index
+// matches, which spreads a group evenly across the interval and holds an exact
+// refresh period once warm. Returns id -> rank.
+function playerRanks(players, prio) {
+  const defaultHours = prio.defaultHours ?? 12;
+  const groups = new Map(); // intervalHours -> player ids
+  for (const p of players) {
+    const h = prio.players?.[p.id] ?? defaultHours;
+    if (!groups.has(h)) groups.set(h, []);
+    groups.get(h).push(p.id);
+  }
+  const rank = new Map();
+  for (const ids of groups.values()) {
+    ids.sort(); // stable, deterministic across runs
+    ids.forEach((id, i) => rank.set(id, i));
+  }
+  return rank;
+}
+
+// choose which players to scrape this run: those due AND in this run's slot, most
+// overdue first, capped at perRun. Each player has a target refresh interval in
+// hours (data/priorities.json) and a slot (playerRanks) that spreads same-interval
+// players across runs. Never-fetched players fill in immediately (ignore slot).
 function selectDue(players, prio, state, now) {
   const defaultHours = prio.defaultHours ?? 12;
+  const ranks = playerRanks(players, prio);
   const scored = players.map((p) => {
     let interval = (prio.players?.[p.id] ?? defaultHours) * 3600e3;
     const st = state[p.id] ?? {};
     if ((st.fails ?? 0) >= 3) interval *= 6; // back off chronically failing profiles
     const last = st.last ? Date.parse(st.last) : 0;
-    return { p, score: (now - last) / interval };
+    const slots = Math.max(1, Math.round(interval / RUN_SPACING_MS));
+    const mySlot = (ranks.get(p.id) ?? 0) % slots;
+    const curSlot = Math.floor(now / RUN_SPACING_MS) % slots;
+    const elapsed = now - last;
+    const due = last === 0 || (elapsed >= interval && mySlot === curSlot);
+    return { p, score: elapsed / interval, due };
   });
   scored.sort((a, b) => b.score - a.score);
   const perRun = process.env.LIMIT ? +process.env.LIMIT : prio.perRun ?? 10;
-  return scored.slice(0, perRun).map((x) => x.p);
+  // CI: only players that are due this run. LIMIT (local testing) ignores the due
+  // gate and just takes the most-overdue N.
+  const pool = process.env.LIMIT ? scored : scored.filter((x) => x.due);
+  return pool.slice(0, perRun).map((x) => x.p);
 }
 
 async function main() {
@@ -197,4 +235,9 @@ async function main() {
   console.log(`\ntracker snapshot: ${file}\n${ok}/${rows.length} scraped ok`);
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+// Run only when invoked directly (so the scheduler can be imported for tests).
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((e) => { console.error(e); process.exit(1); });
+}
+
+export { selectDue, playerRanks };

@@ -1,5 +1,5 @@
 {
-  "note": "Tracker update scheduling. Each run scrapes the `perRun` most-overdue players so popular pros refresh often and load stays under Cloudflare's rate limit. `players` maps a player id to its target refresh interval in hours; anything unlisted uses `defaultHours`.",
+  "note": "Tracker update scheduling. Each run scrapes players that are due this run, capped at `perRun`. Players sharing a refresh interval are spread across runs via per-player slots so they don't all fire at once (keeps per-run load light and the hit rate high). `players` maps a player id to its target refresh interval in hours; anything unlisted uses `defaultHours`.",
   "perRun": 10,
   "defaultHours": 12,
   "players": {
