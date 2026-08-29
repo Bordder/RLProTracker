@@ -5,320 +5,358 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>RL Pro Tracker</title>
 <script src="config.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;900&family=Big+Shoulders+Display:wght@500;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap">
 <style>
-  :root {
-    --bg: #0b0e14; --panel: #141925; --panel2: #1b2130; --line: #262d3d;
-    --txt: #e6e9f0; --dim: #8a93a6; --accent: #4ea1ff; --accent2: #22d3a6;
-    --warn: #f0a53a;
+  /* ---- Palette: dark "broadcast poster" world -------------------------
+     ink ground, bone type, boost-orange accent, tier colours for MMR. */
+  :root{
+    --ink:#0C0E13; --surface:#14171F; --panel2:#191d27; --bg2:#101216;
+    --bone:#F2EFE6; --slate:#8B90A0; --dim:#565E6A;
+    --accent:#FF5A1F; --accent-soft:rgba(255,90,31,.13); --accent-line:rgba(255,90,31,.5);
+    --line:#262B36; --line2:#2E3441; --live:#48C98A;
+    --t-low:#6A7482; --t-champ:#5AA0E0; --t-gc:#D98A5A; --t-ssl:#FF6A3D;
+    --display:'Big Shoulders Display','Arial Narrow',system-ui,sans-serif;
+    --body:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+    --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
   }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0; background: var(--bg); color: var(--txt);
-    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--ink)}
+  ::selection{background:var(--accent);color:var(--ink)}
+  body{
+    color:var(--bone);font-family:var(--body);font-size:14px;line-height:1.45;
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    background-image:repeating-linear-gradient(115deg,rgba(255,90,31,.016) 0 2px,transparent 2px 26px);
   }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 20px 80px; }
-  header h1 { margin: 0 0 4px; font-size: 26px; letter-spacing: -0.02em; }
-  header p { margin: 0; color: var(--dim); }
-  .meta { margin-top: 8px; font-size: 12px; color: var(--dim); }
-  .meta b { color: var(--accent2); font-weight: 600; }
+  .wrap{max-width:1220px;margin:0 auto;padding:0 22px 80px}
 
-  .toolbar { display: flex; gap: 8px; align-items: center; margin: 24px 0 12px; flex-wrap: wrap; }
-  .toolbar .label { color: var(--dim); font-size: 13px; margin-right: 4px; }
-  .seg { display: inline-flex; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
-  .seg button {
-    background: transparent; color: var(--dim); border: 0; padding: 7px 14px;
-    font: inherit; font-size: 13px; cursor: pointer;
+  /* ---- Masthead ---- */
+  .kicker{
+    display:flex;justify-content:space-between;align-items:baseline;gap:1rem;flex-wrap:wrap;
+    font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;color:var(--slate);
+    border-bottom:1px solid var(--line);padding:22px 0 14px;
   }
-  .seg button.on { background: var(--accent); color: #04121f; font-weight: 600; }
-
-  section { margin-top: 26px; }
-  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); margin: 0 0 4px; }
-  .sub { font-size: 12px; color: var(--dim); margin: 0 0 10px; }
-
-  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
-  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
-  th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--dim); font-weight: 600; }
-  tr:last-child td { border-bottom: 0; }
-  tbody tr:hover { background: var(--panel2); }
-  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
-  .rank { color: var(--dim); width: 28px; }
-  .big { color: var(--accent2); font-weight: 700; }
-  .mmr { color: var(--accent); font-weight: 600; }
-  .muted { color: var(--dim); }
-  .partial { color: var(--warn); }
-  .pill { font-size: 11px; padding: 2px 7px; border-radius: 20px; background: var(--panel2); color: var(--dim); border: 1px solid var(--line); }
-  .avatar { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
-            font-size: 11px; font-weight: 700; color: #04121f; margin-right: 9px; vertical-align: middle; }
-  .name { display: inline-flex; align-items: center; }
-  .team { color: var(--dim); font-size: 13px; }
-  .note { margin-top: 10px; font-size: 12px; color: var(--warn); }
-  .loading { color: var(--dim); padding: 40px 0; text-align: center; }
-  .tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .tablewrap table { min-width: 640px; } /* keep columns readable; wrapper scrolls on narrow screens */
-  @media (max-width: 640px) {
-    .wrap { padding: 20px 12px 60px; }
-    header h1 { font-size: 22px; }
-    th, td { padding: 8px 9px; }
-    .team { font-size: 12px; }
+  .kick-brand{color:var(--bone);font-weight:700;letter-spacing:.14em}
+  .kick-brand .dot{color:var(--accent)}
+  .kick-meta{font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;gap:8px}
+  .live-dot{width:8px;height:8px;border-radius:50%;background:var(--live);box-shadow:0 0 0 0 rgba(72,201,138,.6);animation:pulse 2.1s ease-out infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(72,201,138,.5)}70%{box-shadow:0 0 0 7px rgba(72,201,138,0)}100%{box-shadow:0 0 0 0 rgba(72,201,138,0)}}
+  .headline{
+    font-family:var(--display);font-weight:900;text-transform:uppercase;
+    font-size:clamp(2.8rem,10vw,7rem);line-height:.82;letter-spacing:-.02em;margin:.16em 0 0;
+    text-wrap:balance;
   }
+  .headline .accent{color:var(--accent)}
+  .dek{max-width:56ch;color:var(--slate);font-size:clamp(.92rem,1.2vw,1.05rem);line-height:1.55;margin:1.1rem 0 0}
+  .dek b{color:var(--bone);font-weight:700}
+
+  /* ---- Stat cards ---- */
+  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin:28px 0 8px}
+  .card{
+    background:var(--surface);border:1px solid var(--line);border-radius:12px;
+    padding:14px 16px;position:relative;overflow:hidden;
+  }
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--t-champ)}
+  .card.hot::before{background:var(--accent)}
+  .card .k{font-family:var(--display);text-transform:uppercase;letter-spacing:.13em;font-size:11px;font-weight:600;color:var(--slate)}
+  .card .v{font-family:var(--display);font-weight:800;font-size:clamp(1.7rem,2.4vw,2.3rem);line-height:1;margin-top:8px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .card.hot .v{color:var(--accent)}
+  .card .v small{font-size:.5em;color:var(--slate);font-weight:600}
+  .card .s{font-size:11.5px;color:var(--slate);margin-top:7px;letter-spacing:.01em}
+  .card .s b{color:var(--bone);font-weight:600}
+
+  /* ---- Controls: view toggle + search ---- */
+  .controls{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:26px 0 12px}
+  .seg{display:inline-flex;background:var(--surface);border:1px solid var(--line2);border-radius:999px;padding:3px}
+  .seg button{
+    appearance:none;border:0;background:transparent;cursor:pointer;border-radius:999px;
+    font-family:var(--body);font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:12.5px;
+    color:var(--slate);padding:8px 22px;transition:color .15s,background .15s;
+  }
+  .seg button:hover{color:var(--bone)}
+  .seg button[aria-selected="true"]{background:var(--accent);color:var(--ink)}
+  .search{position:relative;display:inline-flex;align-items:center}
+  .search svg{position:absolute;left:12px;width:15px;height:15px;stroke:var(--slate);pointer-events:none}
+  .search input{
+    font-family:var(--body);font-size:14px;color:var(--bone);
+    background:var(--surface);border:1px solid var(--line2);border-radius:999px;
+    padding:9px 34px 9px 34px;width:min(280px,60vw);outline:none;transition:border-color .15s;
+  }
+  .search input::placeholder{color:var(--dim)}
+  .search input:focus{border-color:var(--accent-line)}
+  .search .clr{position:absolute;right:8px;background:none;border:0;color:var(--dim);cursor:pointer;font-size:16px;line-height:1;padding:4px;display:none}
+  .search .clr:hover{color:var(--bone)}
+  .search.has .clr{display:block}
+
+  /* ---- Table / feed ---- */
+  .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+  table.feed{width:100%;border-collapse:collapse;min-width:860px}
+  .feed thead th{
+    position:sticky;top:0;z-index:2;background:var(--bg2);text-align:left;
+    font-family:var(--display);text-transform:uppercase;letter-spacing:.11em;font-size:11px;font-weight:600;color:var(--slate);
+    padding:11px 14px;height:42px;white-space:nowrap;border-bottom:1px solid var(--line2);user-select:none;
+  }
+  .feed thead th.num{text-align:right}
+  .feed thead th.sortable{cursor:pointer}
+  .feed thead th.sortable:hover{color:var(--bone)}
+  .feed thead th.c-sg{color:var(--accent)}
+  .feed thead th .ind{display:inline-block;width:9px;margin-left:4px;color:var(--accent);font-family:var(--mono)}
+  .feed thead th.s-desc .ind::after{content:"\25BC";font-size:8px}
+  .feed thead th.s-asc .ind::after{content:"\25B2";font-size:8px}
+  .feed tbody tr{border-bottom:1px solid var(--line)}
+  .feed tbody tr:last-child{border-bottom:0}
+  .feed tbody tr:hover{background:var(--panel2)}
+  .feed tbody tr.isnorank{color:var(--dim)}
+  .feed td{padding:0 14px;height:48px;vertical-align:middle;white-space:nowrap}
+  .c-rk{width:60px;padding-left:16px}
+  .rknum{font-family:var(--display);font-weight:700;font-size:22px;color:var(--dim);font-variant-numeric:tabular-nums}
+  .rknum.t1{color:var(--accent)}
+  .rknum.t2{color:#ffb184}
+  .rknum.t3{color:#c98a63}
+  .c-who{min-width:210px}
+  .av{
+    display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;
+    flex:0 0 auto;margin-right:11px;vertical-align:middle;font-family:var(--display);font-weight:700;font-size:13px;
+    background:var(--panel2);color:var(--slate);border:1px solid var(--line2);
+  }
+  .av.tm{border-radius:8px}
+  .av.has{border-color:var(--accent-line);color:var(--accent);background:var(--accent-soft)}
+  .nm{display:inline-flex;flex-direction:column;vertical-align:middle;line-height:1.2;min-width:0}
+  .nm b{font-weight:600;font-size:14.5px;color:var(--bone)}
+  .nm i{font-style:normal;font-size:11px;color:var(--slate)}
+  tr.isnorank .nm b{color:var(--slate)}
+  .c-st{width:104px}
+  .sx{font-family:var(--display);text-transform:uppercase;letter-spacing:.09em;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:5px;border:1px solid var(--line2);color:var(--slate);background:var(--bg2)}
+  .sx.sx-live{color:var(--live);border-color:rgba(72,201,138,.4);background:rgba(72,201,138,.08)}
+  .sx.sx-priv{color:#c9a24b;border-color:rgba(201,162,75,.35);background:rgba(201,162,75,.07)}
+  .sx.sx-off{color:var(--dim)}
+  .c-mmr,.c-sg,.c-g14,.c-hr{text-align:right}
+  .c-mmr{width:78px}
+  .mv{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:13.5px;font-weight:500;color:var(--slate)}
+  .mv.t-low{color:var(--t-low)} .mv.t-champ{color:var(--t-champ)} .mv.t-gc{color:var(--t-gc)} .mv.t-ssl{color:var(--t-ssl);font-weight:700}
+  .c-mmr.norank{color:var(--dim);text-align:center;font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:10.5px}
+  .c-sg{width:104px}
+  .sgv{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:700;font-size:15px;color:var(--accent)}
+  .c-g14{width:88px}
+  .g14v{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--bone);font-weight:500}
+  .pending{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;font-size:10px;font-weight:600;color:var(--slate);border:1px dashed var(--line2);border-radius:4px;padding:2px 7px}
+  .c-hr{width:84px;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--slate);font-weight:400}
+  .c-ros{width:132px;font-size:12.5px;color:var(--slate)}
+  .rk-b{font-family:var(--mono);font-weight:700;color:var(--bone)}
+  .dash{color:var(--dim);font-family:var(--mono)}
+  .empty{padding:56px 20px;text-align:center;color:var(--slate);font-family:var(--display);text-transform:uppercase;letter-spacing:.16em}
+
+  /* ---- Footer ---- */
+  .foot{margin-top:22px;display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;justify-content:space-between}
+  .legend{display:flex;gap:16px;flex-wrap:wrap}
+  .lg{display:inline-flex;align-items:center;gap:7px;font-size:11px;color:var(--slate)}
+  .lg .sw{width:11px;height:11px;border-radius:3px;flex:0 0 auto}
+  .lg .rng{font-family:var(--mono);color:var(--dim);font-size:10.5px}
+  .note{font-size:12px;color:var(--dim);max-width:460px;line-height:1.5}
+  .note b{color:var(--slate);font-weight:600}
+
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
+  @media (max-width:820px){ .stats{grid-template-columns:repeat(2,1fr)} }
+  @media (max-width:640px){
+    .wrap{padding:0 14px 60px}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .controls{gap:10px}
+    .search input{width:min(100%,70vw)}
+  }
+  @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>RL Pro Tracker</h1>
-    <p>Ranked ladder activity for professional Rocket League players.</p>
-    <div class="meta" id="meta">loading…</div>
+    <div class="kicker">
+      <span class="kick-brand">RL Pro Tracker<span class="dot">.</span></span>
+      <span class="kick-meta"><span class="live-dot" aria-hidden="true"></span><span id="updated">loading&hellip;</span></span>
+    </div>
+    <h1 class="headline">Who&rsquo;s Grinding<span class="accent">?</span></h1>
+    <p class="dek">Ranked-ladder activity for RLCS pros <b>outside</b> official tournaments &mdash; who&rsquo;s actually queuing, ranked by <b>games played</b>, with current MMR per playlist.</p>
+
+    <div class="stats" id="stats"></div>
   </header>
 
-  <div class="toolbar">
-    <span class="label">Window</span>
-    <div class="seg" id="seg">
-      <button data-w="d1">24 hours</button>
-      <button data-w="d7">7 days</button>
-      <button data-w="d14" class="on">14 days</button>
-      <button data-w="steam2wk">2wk (Steam)</button>
+  <div class="controls">
+    <div class="seg" role="tablist" aria-label="View">
+      <button id="tabPlayers" role="tab" aria-selected="true">Players</button>
+      <button id="tabTeams" role="tab" aria-selected="false">Teams</button>
+    </div>
+    <div class="search" id="searchWrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input id="search" type="search" placeholder="Search player or team&hellip;" autocomplete="off" aria-label="Search player or team" />
+      <button class="clr" id="searchClear" aria-label="Clear search">&times;</button>
     </div>
   </div>
 
-  <section id="rplayers-sec" hidden>
-    <h2>Players - ranked activity</h2>
-    <p class="sub">Season = ranked games played this season. The windowed count fills in as we collect snapshots over time. MMR is current, per playlist.</p>
-    <div class="tablewrap"><div id="rplayers"><div class="loading">loading…</div></div></div>
-    <div class="note" id="rnote"></div>
-  </section>
+  <section id="playersView" role="tabpanel"></section>
+  <section id="teamsView" role="tabpanel" hidden></section>
 
-  <section id="rteams-sec" hidden>
-    <h2>Teams - ranked activity</h2>
-    <p class="sub">Season = combined ranked games this season. The windowed count fills in over time. MMR is the team average, per playlist.</p>
-    <div class="tablewrap"><div id="rteams"></div></div>
-  </section>
-
-  <section id="players-sec">
-    <h2>Players - hours played</h2>
-    <div class="tablewrap"><div id="players"><div class="loading">loading…</div></div></div>
-    <div class="note" id="pnote"></div>
-  </section>
-
-  <section id="teams-sec">
-    <h2>Teams - combined hours</h2>
-    <div class="tablewrap"><div id="teams"><div class="loading">loading…</div></div></div>
-  </section>
+  <div class="foot">
+    <div class="legend" aria-label="MMR tiers (approx. 2v2 scale)">
+      <span class="lg"><span class="sw" style="background:var(--t-low)"></span>Sub-Champ<span class="rng">&lt;1115</span></span>
+      <span class="lg"><span class="sw" style="background:var(--t-champ)"></span>Champion<span class="rng">1115&ndash;1435</span></span>
+      <span class="lg"><span class="sw" style="background:var(--t-gc)"></span>Grand Champ<span class="rng">1435&ndash;1855</span></span>
+      <span class="lg"><span class="sw" style="background:var(--t-ssl)"></span>Supersonic Legend<span class="rng">1855+</span></span>
+    </div>
+    <p class="note" id="footNote"></p>
+  </div>
 </div>
 
 <script>
-const AVATAR_COLORS = ["#4ea1ff","#22d3a6","#f0a53a","#c07bf0","#ff6b6b","#5ad1e6"];
-const initials = (n) => n.replace(/[^A-Za-z0-9 ]/g,"").split(/\s+/).map(w=>w[0]).join("").slice(0,2).toUpperCase() || "??";
-const colorFor = (s) => AVATAR_COLORS[[...s].reduce((a,c)=>a+c.charCodeAt(0),0) % AVATAR_COLORS.length];
-const hrs = (v) => v == null ? '<span class="muted">-</span>' : v.toFixed(1).replace(/\.0$/,'') + 'h';
-const mmrCell = (v) => v == null ? '<span class="muted">-</span>' : `<span class="mmr">${v}</span>`;
-const avatarName = (n) => `<span class="name"><span class="avatar" style="background:${colorFor(n)}">${initials(n)}</span>${n}</span>`;
+(function(){
+  "use strict";
+  var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);});};
+  var nf=function(n){return n==null?null:Number(n).toLocaleString('en-US');};
+  var hf=function(n){return n==null?null:Number(n).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1});};
+  var initials=function(s){s=String(s||'').trim();if(!s)return'?';var p=s.split(/[\s\-_.]+/).filter(Boolean);return (p.length>1?(p[0][0]+p[1][0]):s.slice(0,2)).toUpperCase();};
+  var tierClass=function(v){if(v==null)return'';if(v<1115)return't-low';if(v<1435)return't-champ';if(v<1855)return't-gc';return't-ssl';};
+  var tierName=function(v){if(v==null)return'';if(v<1115)return'';if(v<1435)return'Champion';if(v<1855)return'Grand Champion';return'Supersonic Legend';};
+  var mmrCell=function(v){return v==null?'<td class="c-mmr"><span class="dash">&mdash;</span></td>':'<td class="c-mmr"><span class="mv '+tierClass(v)+'">'+nf(v)+'</span></td>';};
+  var fmt14=function(g){ if(!g||g.games==null)return'<span class="dash">&mdash;</span>'; if(g.partial||g.games===0)return'<span class="pending">pending</span>'; return'<span class="g14v">'+nf(g.games)+'</span>'; };
+  var statusChip=function(s){ if(!s)return'<span class="dash">&mdash;</span>'; var k=String(s).toLowerCase(),cls=''; if(/public|active|online|grind/.test(k))cls='sx-live'; else if(/priv|hidden|limit/.test(k))cls='sx-priv'; else if(/no-steam|unknown|error|none|idle|offline/.test(k))cls='sx-off'; var label=k.indexOf('error')===0?'steam err':s; return'<span class="sx '+cls+'">'+esc(label)+'</span>'; };
+  var rankMark=function(r){ if(!r)return'<span class="rknum">&middot;</span>'; return'<span class="rknum'+(r<=3?' t'+r:'')+'">'+String(r).padStart(2,'0')+'</span>'; };
 
-let steam = null, teams = null, tracker = null, teamTracker = null, current = "d14";
+  var DATA_BASE=window.__DATA_BASE__||"./data/derived";
+  var getJson=function(f){return fetch(DATA_BASE+'/'+f).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});};
+  var load=window.__RLDATA__
+    ? Promise.resolve([window.__RLDATA__.steam,window.__RLDATA__.teams,window.__RLDATA__.tracker,window.__RLDATA__.teamTracker])
+    : Promise.all([getJson('steam-hours.json'),getJson('team-hours.json'),getJson('tracker.json'),getJson('team-tracker.json')]);
 
-// ---- windows ----
-const labelFor = (w) => ({d1:"24h",d7:"7d",d14:"14d",steam2wk:"2wk"}[w]);
-// ranked games are windowed d1/d7/d14 only; 2wk (a Steam-hours concept) falls back to 14d.
-const rankedW = (w) => (w === "steam2wk" ? "d14" : w);
+  load.then(function(res){
+    var steam=res[0], teamH=res[1], tracker=res[2], teamT=res[3];
+    if(!steam||!teamH){ document.getElementById('playersView').innerHTML='<div class="scroll"><div class="empty">Failed to load data</div></div>'; return; }
 
-// ---- hours (Steam) ----
-function playerWindow(p, w) {
-  if (w === "steam2wk") return p.steam2wkHours;
-  return p.windows?.[w]?.hours ?? null;
-}
-function teamWindow(t, w) {
-  if (w === "steam2wk") return t.steam2wkHours;
-  return t.windows?.[w] ?? null;
-}
+    // ---- merge into unified models ----
+    var trById={}; (tracker&&tracker.players||[]).forEach(function(p){trById[p.id]=p;});
+    var players=steam.players.map(function(p){
+      var t=trById[p.id]||{};
+      return { name:p.name, team:p.team, status:p.status,
+        mmr:(t.mmr&&t.mmr.twos!=null)?t.mmr:(t.mmr||null),
+        hasMmr:!!(t.mmr&&(t.mmr.ones!=null||t.mmr.twos!=null||t.mmr.threes!=null)),
+        seasonGames:t.seasonGames?t.seasonGames.total:null,
+        games14d:t.games?t.games.total.d14:null,
+        hours2wk:p.steam2wkHours, totalHours:p.totalHours };
+    });
+    var ttByTeam={}; (teamT&&teamT.teams||[]).forEach(function(t){ttByTeam[t.team]=t;});
+    var teams=teamH.teams.map(function(t){
+      var tt=ttByTeam[t.team]||{};
+      return { team:t.team, players:t.players, tracked:t.tracked, ranked:tt.ranked||0,
+        avgMmr:tt.avgMmr||null, seasonGames:tt.seasonGames!=null?tt.seasonGames:null,
+        hours2wk:t.steam2wkHours, totalHours:t.totalHours };
+    });
 
-// ---- ranked (tracker) ----
-function playerGames(p, w) { return p.games?.total?.[rankedW(w)] ?? null; }   // {games, partial} | null
-function teamGames(t, w)   { return t.games?.[rankedW(w)] ?? null; }           // number | null
-const gamesCell = (g) => {
-  if (!g || g.games == null) return '<span class="muted">-</span>';
-  // partial + 0 means "no history yet", not "played zero" - show pending, not 0~
-  if (g.partial && g.games === 0) return '<span class="muted" title="not enough snapshot history yet - this window fills as data accumulates">-</span>';
-  const cls = g.partial ? "partial" : (g.games > 0 ? "big" : "muted");
-  const tip = g.partial ? ' title="a floor so far - window still filling as snapshots accumulate"' : '';
-  return `<span class="${cls}"${tip}>${g.games}${g.partial ? "~" : ""}</span>`;
-};
-const seasonCell = (v) => v == null ? '<span class="muted">-</span>' : `<span class="big">${v.toLocaleString()}</span>`;
+    // ---- grind rank by season games ----
+    var assignRank=function(arr,key){ arr.filter(function(x){return key(x)!=null;}).sort(function(a,b){return key(b)-key(a);}).forEach(function(x,i){x.__rank=i+1;}); };
+    assignRank(players,function(p){return p.seasonGames;});
+    assignRank(teams,function(t){return t.seasonGames;});
 
-function renderRankedPlayers() {
-  const w = current, rw = rankedW(w);
-  const rows = [...tracker.players].sort((a,b) => {
-    const ga = playerGames(a,w)?.games ?? -1, gb = playerGames(b,w)?.games ?? -1;
-    if (gb !== ga) return gb - ga;
-    const sa = a.seasonGames?.total ?? -1, sb = b.seasonGames?.total ?? -1;
-    if (sb !== sa) return sb - sa;
-    return (b.mmr?.twos ?? -1) - (a.mmr?.twos ?? -1);
+    // ---- stat cards (Grind dashboard summary) ----
+    var ranked=players.filter(function(p){return p.hasMmr;});
+    var totalGames=players.reduce(function(a,p){return a+(p.seasonGames||0);},0);
+    var top=players.filter(function(p){return p.seasonGames!=null;}).sort(function(a,b){return b.seasonGames-a.seasonGames;})[0];
+    var avg2v2=ranked.length?Math.round(ranked.reduce(function(a,p){return a+(p.mmr.twos||0);},0)/ranked.filter(function(p){return p.mmr.twos!=null;}).length):null;
+    var rankedTeams=teams.filter(function(t){return t.ranked>0;}).length;
+    var card=function(k,v,s,hot){return '<div class="card'+(hot?' hot':'')+'"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+s+'</div></div>';};
+    document.getElementById('stats').innerHTML=
+      card('Players Ranked', ranked.length+' <small>/ '+players.length+'</small>', 'pros with ranked data', false)+
+      card('Total Ranked Games', nf(totalGames), 'season total across tracked pros', false)+
+      card('Most Active', top?nf(top.seasonGames):'&mdash;', top?('<b>'+esc(top.name)+'</b> &middot; '+esc(top.team||'')):'no data yet', true)+
+      card('Avg 2v2 MMR', avg2v2!=null?nf(avg2v2):'&mdash;', avg2v2!=null?('mean of '+ranked.length+' ranked &middot; '+tierName(avg2v2)):'&mdash;', false)+
+      card('Teams', rankedTeams+' <small>/ '+teams.length+'</small>', 'with ranked players', false);
+
+    // ---- updated + footnote ----
+    var upd=(function(){var iso=(tracker&&tracker.computedAt)||steam.computedAt;var d=iso?new Date(iso):null;return (d&&!isNaN(d))?('updated '+d.toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})):'live';})();
+    document.getElementById('updated').textContent=upd;
+    document.getElementById('footNote').innerHTML='<b>'+ranked.length+' of '+players.length+'</b> pros have surfaced ranked data so far &mdash; the rest are tracked but haven’t reported ladder data yet. The recent-games window is still filling, so it reads <b>pending</b> until enough history accrues.';
+
+    // ---- sortable + searchable feed ----
+    var pv=document.getElementById('playersView'), tv=document.getElementById('teamsView');
+    var searchQ='';
+
+    function buildTable(mount, columns, items, accessors, rowFn, def, matchFn){
+      var sk=def.k, sd=def.dir;
+      var scroll=document.createElement('div'); scroll.className='scroll';
+      var tbl=document.createElement('table'); tbl.className='feed';
+      var thead=document.createElement('thead'), trh=document.createElement('tr');
+      columns.forEach(function(c){
+        var th=document.createElement('th');
+        th.className=(c.cls||'')+(c.num?' num':'')+(c.k?' sortable':'');
+        th.innerHTML='<span>'+c.label+'</span>'+(c.k?'<span class="ind"></span>':'');
+        if(c.k){ th.tabIndex=0; th.dataset.k=c.k;
+          var act=function(){ if(sk===c.k){sd=(sd==='desc'?'asc':'desc');}else{sk=c.k;sd=c.num?'desc':'asc';} paint(); };
+          th.addEventListener('click',act);
+          th.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();act();}});
+        }
+        trh.appendChild(th);
+      });
+      thead.appendChild(trh); tbl.appendChild(thead);
+      var tb=document.createElement('tbody'); tbl.appendChild(tb);
+      function paint(){
+        var arr=items.filter(function(x){return !searchQ||matchFn(x,searchQ);});
+        var acc=accessors[sk];
+        if(acc){ arr=arr.slice().sort(function(a,b){
+          var av=acc(a),bv=acc(b),an=(av==null||av===''),bn=(bv==null||bv==='');
+          if(an&&bn)return 0; if(an)return 1; if(bn)return -1;
+          if(typeof av==='string')return sd==='asc'?av.localeCompare(bv):bv.localeCompare(av);
+          return sd==='asc'?(av-bv):(bv-av);
+        }); }
+        tb.innerHTML=arr.length?arr.map(rowFn).join(''):'<tr><td colspan="'+columns.length+'" class="empty" style="height:auto">No matches</td></tr>';
+        trh.querySelectorAll('th').forEach(function(th){ th.classList.remove('s-asc','s-desc'); if(th.dataset.k===sk)th.classList.add(sd==='asc'?'s-asc':'s-desc'); });
+      }
+      scroll.appendChild(tbl); mount.innerHTML=''; mount.appendChild(scroll);
+      paint();
+      return paint;
+    }
+
+    var pCols=[{label:'#',cls:'c-rk'},{label:'Player',cls:'c-who',k:'name'},{label:'Status',cls:'c-st',k:'status'},{label:'1v1',cls:'c-mmr',k:'ones',num:true},{label:'2v2',cls:'c-mmr',k:'twos',num:true},{label:'3v3',cls:'c-mmr',k:'threes',num:true},{label:'Season',cls:'c-sg',k:'sg',num:true},{label:'14d',cls:'c-g14',k:'g14',num:true},{label:'2wk h',cls:'c-hr',k:'h2',num:true},{label:'Total h',cls:'c-hr',k:'ht',num:true}];
+    var pAcc={name:function(p){return(p.name||'').toLowerCase();},status:function(p){return p.status?String(p.status).toLowerCase():null;},ones:function(p){return p.mmr?p.mmr.ones:null;},twos:function(p){return p.mmr?p.mmr.twos:null;},threes:function(p){return p.mmr?p.mmr.threes:null;},sg:function(p){return p.seasonGames;},g14:function(p){return p.games14d?p.games14d.games:null;},h2:function(p){return p.hours2wk;},ht:function(p){return p.totalHours;}};
+    var playerRow=function(p){
+      var mmr=p.hasMmr?(mmrCell(p.mmr.ones)+mmrCell(p.mmr.twos)+mmrCell(p.mmr.threes)):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
+      return '<tr class="'+(p.hasMmr?'':'isnorank')+'">'+
+        '<td class="c-rk">'+rankMark(p.__rank)+'</td>'+
+        '<td class="c-who"><span class="av'+(p.hasMmr?' has':'')+'">'+esc(initials(p.name))+'</span><span class="nm"><b>'+esc(p.name)+'</b><i>'+esc(p.team||'—')+'</i></span></td>'+
+        '<td class="c-st">'+statusChip(p.status)+'</td>'+mmr+
+        '<td class="c-sg">'+(p.seasonGames!=null?'<span class="sgv">'+nf(p.seasonGames)+'</span>':'<span class="dash">&mdash;</span>')+'</td>'+
+        '<td class="c-g14">'+fmt14(p.games14d)+'</td>'+
+        '<td class="c-hr">'+(p.hours2wk!=null?hf(p.hours2wk):'<span class="dash">&mdash;</span>')+'</td>'+
+        '<td class="c-hr">'+(p.totalHours!=null?nf(Math.round(p.totalHours)):'<span class="dash">&mdash;</span>')+'</td></tr>';
+    };
+    var pMatch=function(p,q){return (String(p.name||'')+' '+String(p.team||'')).toLowerCase().indexOf(q)>=0;};
+
+    var tCols=[{label:'#',cls:'c-rk'},{label:'Team',cls:'c-who',k:'name'},{label:'Roster',cls:'c-ros'},{label:'Avg 1v1',cls:'c-mmr',k:'ones',num:true},{label:'Avg 2v2',cls:'c-mmr',k:'twos',num:true},{label:'Avg 3v3',cls:'c-mmr',k:'threes',num:true},{label:'Season',cls:'c-sg',k:'sg',num:true},{label:'2wk h',cls:'c-hr',k:'h2',num:true},{label:'Total h',cls:'c-hr',k:'ht',num:true}];
+    var tAcc={name:function(t){return(t.team||'').toLowerCase();},ones:function(t){return t.avgMmr?t.avgMmr.ones:null;},twos:function(t){return t.avgMmr?t.avgMmr.twos:null;},threes:function(t){return t.avgMmr?t.avgMmr.threes:null;},sg:function(t){return t.seasonGames;},h2:function(t){return t.hours2wk;},ht:function(t){return t.totalHours;}};
+    var teamRow=function(t){
+      var a=t.avgMmr||{};
+      return '<tr class="'+(t.ranked?'':'isnorank')+'">'+
+        '<td class="c-rk">'+rankMark(t.__rank)+'</td>'+
+        '<td class="c-who"><span class="av tm'+(t.ranked?' has':'')+'">'+esc(initials(t.team))+'</span><span class="nm"><b>'+esc(t.team)+'</b><i>'+(t.tracked!=null?t.tracked:0)+'/'+(t.players!=null?t.players:0)+' tracked</i></span></td>'+
+        '<td class="c-ros">'+(t.ranked?'<span class="rk-b">'+t.ranked+'</span> ranked':'<span class="dash">none ranked</span>')+'</td>'+
+        mmrCell(a.ones)+mmrCell(a.twos)+mmrCell(a.threes)+
+        '<td class="c-sg">'+(t.seasonGames!=null?'<span class="sgv">'+nf(t.seasonGames)+'</span>':'<span class="dash">&mdash;</span>')+'</td>'+
+        '<td class="c-hr">'+(t.hours2wk!=null?hf(t.hours2wk):'<span class="dash">&mdash;</span>')+'</td>'+
+        '<td class="c-hr">'+(t.totalHours!=null?nf(Math.round(t.totalHours)):'<span class="dash">&mdash;</span>')+'</td></tr>';
+    };
+    var tMatch=function(t,q){return String(t.team||'').toLowerCase().indexOf(q)>=0;};
+
+    var paintP=buildTable(pv,pCols,players,pAcc,playerRow,{k:'sg',dir:'desc'},pMatch);
+    var paintT=buildTable(tv,tCols,teams,tAcc,teamRow,{k:'sg',dir:'desc'},tMatch);
+
+    // ---- search ----
+    var input=document.getElementById('search'), wrap=document.getElementById('searchWrap');
+    input.addEventListener('input',function(){ searchQ=input.value.trim().toLowerCase(); wrap.classList.toggle('has',!!searchQ); paintP(); paintT(); });
+    document.getElementById('searchClear').addEventListener('click',function(){ input.value=''; searchQ=''; wrap.classList.remove('has'); paintP(); paintT(); input.focus(); });
+
+    // ---- view toggle ----
+    var tabP=document.getElementById('tabPlayers'), tabT=document.getElementById('tabTeams');
+    var show=function(isP){ tabP.setAttribute('aria-selected',isP?'true':'false'); tabT.setAttribute('aria-selected',isP?'false':'true'); pv.hidden=!isP; tv.hidden=isP; };
+    tabP.addEventListener('click',function(){show(true);});
+    tabT.addEventListener('click',function(){show(false);});
   });
-  let html = `<table><thead><tr>
-    <th class="rank">#</th><th>Player</th><th>Team</th>
-    <th class="num">Games ${labelFor(rw)}</th><th class="num">Season</th>
-    <th class="num">2v2</th><th class="num">1v1</th><th class="num">3v3</th>
-  </tr></thead><tbody>`;
-  rows.forEach((p,i) => {
-    html += `<tr>
-      <td class="rank num">${i+1}</td>
-      <td>${avatarName(p.name)}</td>
-      <td class="team">${p.team ?? ''}</td>
-      <td class="num">${gamesCell(playerGames(p,w))}</td>
-      <td class="num">${seasonCell(p.seasonGames?.total)}</td>
-      <td class="num">${mmrCell(p.mmr?.twos)}</td>
-      <td class="num">${mmrCell(p.mmr?.ones)}</td>
-      <td class="num">${mmrCell(p.mmr?.threes)}</td>
-    </tr>`;
-  });
-  html += `</tbody></table>`;
-  document.getElementById("rplayers").innerHTML = html;
-}
-
-function renderRankedTeams() {
-  const w = current, rw = rankedW(w);
-  const rows = [...teamTracker.teams].sort((a,b) => {
-    const ga = teamGames(a,w) ?? -1, gb = teamGames(b,w) ?? -1;
-    if (gb !== ga) return gb - ga;
-    const sa = a.seasonGames ?? -1, sb = b.seasonGames ?? -1;
-    if (sb !== sa) return sb - sa;
-    return (b.avgMmr?.twos ?? -1) - (a.avgMmr?.twos ?? -1);
-  });
-  let html = `<table><thead><tr>
-    <th class="rank">#</th><th>Team</th><th class="num">Ranked</th>
-    <th class="num">Games ${labelFor(rw)}</th><th class="num">Season</th>
-    <th class="num">Avg 2v2</th><th class="num">Avg 1v1</th><th class="num">Avg 3v3</th>
-  </tr></thead><tbody>`;
-  rows.forEach((t,i) => {
-    const g = teamGames(t,w);
-    const gv = (g == null || g === 0) ? '<span class="muted">-</span>' : `<span class="big">${g.toLocaleString()}</span>`;
-    html += `<tr>
-      <td class="rank num">${i+1}</td>
-      <td>${t.team}</td>
-      <td class="num muted">${t.ranked}/${t.players}</td>
-      <td class="num">${gv}</td>
-      <td class="num">${seasonCell(t.seasonGames)}</td>
-      <td class="num">${mmrCell(t.avgMmr?.twos)}</td>
-      <td class="num">${mmrCell(t.avgMmr?.ones)}</td>
-      <td class="num">${mmrCell(t.avgMmr?.threes)}</td>
-    </tr>`;
-  });
-  html += `</tbody></table>`;
-  document.getElementById("rteams").innerHTML = html;
-}
-
-function renderRankedNote() {
-  if (!tracker) return;
-  const rw = rankedW(current);
-  const anyPartial = tracker.players.some(p => playerGames(p, current)?.partial);
-  document.getElementById("rnote").textContent = anyPartial
-    ? `Ranked-games windows (marked ~) are still filling as snapshots accumulate (currently ${tracker.snapshotCount}); the count so far is a floor, not the full ${labelFor(rw)}.`
-    : "";
-}
-
-// ---- hours renderers (existing) ----
-function renderPlayers() {
-  const w = current;
-  const rows = [...steam.players].sort((a,b) => (playerWindow(b,w) ?? -1) - (playerWindow(a,w) ?? -1));
-  let html = `<table><thead><tr>
-    <th class="rank">#</th><th>Player</th><th>Team</th>
-    <th class="num">${labelFor(w)}</th><th class="num">2wk</th><th class="num">Total</th><th></th>
-  </tr></thead><tbody>`;
-  rows.forEach((p,i) => {
-    const tracked = p.totalHours != null;
-    html += `<tr>
-      <td class="rank num">${tracked ? i+1 : ''}</td>
-      <td>${avatarName(p.name)}</td>
-      <td class="team">${p.team ?? ''}</td>
-      <td class="num ${tracked?'big':''}">${hrs(playerWindow(p,w))}</td>
-      <td class="num">${hrs(p.steam2wkHours)}</td>
-      <td class="num muted">${p.totalHours != null ? Math.round(p.totalHours)+'h' : '-'}</td>
-      <td>${tracked ? '' : '<span class="pill">'+shortStatus(p.status)+'</span>'}</td>
-    </tr>`;
-  });
-  html += `</tbody></table>`;
-  document.getElementById("players").innerHTML = html;
-}
-
-function renderTeams() {
-  const w = current;
-  const rows = [...teams.teams].sort((a,b) => (teamWindow(b,w) ?? -1) - (teamWindow(a,w) ?? -1));
-  let html = `<table><thead><tr>
-    <th class="rank">#</th><th>Team</th><th class="num">Tracked</th>
-    <th class="num">${labelFor(w)}</th><th class="num">2wk</th><th class="num">Total</th>
-  </tr></thead><tbody>`;
-  rows.forEach((t,i) => {
-    html += `<tr>
-      <td class="rank num">${i+1}</td>
-      <td>${t.team}</td>
-      <td class="num muted">${t.tracked}/${t.players}</td>
-      <td class="num big">${hrs(teamWindow(t,w))}</td>
-      <td class="num">${hrs(t.steam2wkHours)}</td>
-      <td class="num muted">${Math.round(t.totalHours)}h</td>
-    </tr>`;
-  });
-  html += `</tbody></table>`;
-  document.getElementById("teams").innerHTML = html;
-}
-
-const STATUS_LABEL = {
-  "hidden-details": "hidden · polling",
-  "private": "private · est.",
-  "no-steam-id": "no steam id",
-  "unknown": "no data",
-};
-const shortStatus = (s) => STATUS_LABEL[s] ?? (typeof s === "string" && s.startsWith("error") ? "steam error" : (s ?? "no data"));
-
-function renderNote() {
-  const partial = current !== "steam2wk" && steam.snapshotCount < 15;
-  document.getElementById("pnote").textContent = partial
-    ? `Note: 24h/7d/14d windows fill as snapshots accumulate (currently ${steam.snapshotCount} snapshot${steam.snapshotCount>1?'s':''}). The 2wk (Steam) column is live now.`
-    : "";
-}
-
-function setWindow(w) {
-  current = w;
-  document.querySelectorAll("#seg button").forEach(b => b.classList.toggle("on", b.dataset.w === w));
-  if (tracker) { renderRankedPlayers(); renderRankedNote(); }
-  if (teamTracker) renderRankedTeams();
-  renderPlayers(); renderTeams(); renderNote();
-}
-
-document.getElementById("seg").addEventListener("click", e => {
-  const b = e.target.closest("button"); if (b) setWindow(b.dataset.w);
-});
-
-// DATA_BASE lets the deployed site pull fresh JSON at runtime (e.g. the repo's
-// raw URL) so data updates need no site rebuild. Defaults to a local relative
-// path for dev. __RLDATA__ (inlined) wins for the standalone file.
-const DATA_BASE = window.__DATA_BASE__ || "./data/derived";
-const getJson = (f) => fetch(`${DATA_BASE}/${f}`).then(r => r.ok ? r.json() : null).catch(() => null);
-
-const load = window.__RLDATA__
-  ? Promise.resolve([window.__RLDATA__.steam, window.__RLDATA__.teams, window.__RLDATA__.tracker ?? null, window.__RLDATA__.teamTracker ?? null])
-  : Promise.all([getJson("steam-hours.json"), getJson("team-hours.json"), getJson("tracker.json"), getJson("team-tracker.json")]);
-
-load.then(([s, t, tr, tt]) => {
-  if (!s || !t) throw new Error("core data unavailable");
-  steam = s; teams = t; tracker = tr; teamTracker = tt;
-
-  if (tracker && tracker.players?.length) document.getElementById("rplayers-sec").hidden = false;
-  if (teamTracker && teamTracker.teams?.length) document.getElementById("rteams-sec").hidden = false;
-
-  const hoursTracked = s.players.filter(p => p.totalHours != null).length;
-  const rankedCount = tracker?.players?.length ?? 0;
-  const parts = [
-    `<b>${hoursTracked}</b>/${s.players.length} players with hours`,
-    rankedCount ? `<b>${rankedCount}</b> with ranked data` : null,
-    `${t.teams.length} teams`,
-    `updated ${new Date((tracker?.computedAt) || s.computedAt).toLocaleString()}`,
-  ].filter(Boolean);
-  document.getElementById("meta").innerHTML = parts.join(" · ");
-
-  // default to a real ranked window when tracker data exists, else the live Steam 2wk column
-  setWindow(tracker ? "d14" : "steam2wk");
-}).catch(e => {
-  document.getElementById("players").innerHTML = `<div class="loading">Failed to load data: ${e.message}</div>`;
-});
+})();
 </script>
 </body>
 </html>
