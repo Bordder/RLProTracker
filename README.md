@@ -36,7 +36,7 @@ The project has two halves that stay decoupled:
 Data collection (scheduled)              Website (static)
   roster job (3 days) -> Steam IDs         index.html
   steam job  (daily)  -> playtime  -->     reads the JSON at runtime
-  tracker job (30 min)-> MMR + games       renders player and team tables
+  tracker job (20 min)-> MMR + games       renders player and team tables
 ```
 
 Scheduled jobs write JSON into the repository. The website fetches that JSON at load time, so new data appears without rebuilding or redeploying the site.

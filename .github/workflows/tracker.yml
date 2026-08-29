@@ -6,7 +6,7 @@ name: Tracker update
 
 on:
   schedule:
-    - cron: "0,30 * * * *" # every 30 min; each run scrapes only the due players
+    - cron: "*/20 * * * *" # every 20 min; each run scrapes only the due players
   workflow_dispatch: {}
 
 permissions:
