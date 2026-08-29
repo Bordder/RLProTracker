@@ -32,7 +32,8 @@
   .seg button.on { background: var(--accent); color: #04121f; font-weight: 600; }
 
   section { margin-top: 26px; }
-  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); margin: 0 0 10px; }
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); margin: 0 0 4px; }
+  .sub { font-size: 12px; color: var(--dim); margin: 0 0 10px; }
 
   table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
   th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
@@ -42,7 +43,9 @@
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
   .rank { color: var(--dim); width: 28px; }
   .big { color: var(--accent2); font-weight: 700; }
+  .mmr { color: var(--accent); font-weight: 600; }
   .muted { color: var(--dim); }
+  .partial { color: var(--warn); }
   .pill { font-size: 11px; padding: 2px 7px; border-radius: 20px; background: var(--panel2); color: var(--dim); border: 1px solid var(--line); }
   .avatar { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
             font-size: 11px; font-weight: 700; color: #04121f; margin-right: 9px; vertical-align: middle; }
@@ -50,6 +53,7 @@
   .team { color: var(--dim); font-size: 13px; }
   .note { margin-top: 10px; font-size: 12px; color: var(--warn); }
   .loading { color: var(--dim); padding: 40px 0; text-align: center; }
+  .tablewrap { overflow-x: auto; }
 </style>
 </head>
 <body>
@@ -70,15 +74,28 @@
     </div>
   </div>
 
+  <section id="rplayers-sec" hidden>
+    <h2>Players - ranked activity</h2>
+    <p class="sub">Ranked games played on the ladder, plus current MMR per playlist.</p>
+    <div class="tablewrap"><div id="rplayers"><div class="loading">loading…</div></div></div>
+    <div class="note" id="rnote"></div>
+  </section>
+
+  <section id="rteams-sec" hidden>
+    <h2>Teams - ranked activity</h2>
+    <p class="sub">Combined ranked games played, plus average MMR per playlist.</p>
+    <div class="tablewrap"><div id="rteams"></div></div>
+  </section>
+
   <section id="players-sec">
     <h2>Players - hours played</h2>
-    <div id="players"><div class="loading">loading…</div></div>
+    <div class="tablewrap"><div id="players"><div class="loading">loading…</div></div></div>
     <div class="note" id="pnote"></div>
   </section>
 
   <section id="teams-sec">
     <h2>Teams - combined hours</h2>
-    <div id="teams"><div class="loading">loading…</div></div>
+    <div class="tablewrap"><div id="teams"><div class="loading">loading…</div></div></div>
   </section>
 </div>
 
@@ -87,9 +104,17 @@ const AVATAR_COLORS = ["#4ea1ff","#22d3a6","#f0a53a","#c07bf0","#ff6b6b","#5ad1e
 const initials = (n) => n.replace(/[^A-Za-z0-9 ]/g,"").split(/\s+/).map(w=>w[0]).join("").slice(0,2).toUpperCase() || "??";
 const colorFor = (s) => AVATAR_COLORS[[...s].reduce((a,c)=>a+c.charCodeAt(0),0) % AVATAR_COLORS.length];
 const hrs = (v) => v == null ? '<span class="muted">-</span>' : v.toFixed(1).replace(/\.0$/,'') + 'h';
+const mmrCell = (v) => v == null ? '<span class="muted">-</span>' : `<span class="mmr">${v}</span>`;
+const avatarName = (n) => `<span class="name"><span class="avatar" style="background:${colorFor(n)}">${initials(n)}</span>${n}</span>`;
 
-let steam = null, teams = null, current = "d14";
+let steam = null, teams = null, tracker = null, teamTracker = null, current = "d14";
 
+// ---- windows ----
+const labelFor = (w) => ({d1:"24h",d7:"7d",d14:"14d",steam2wk:"2wk"}[w]);
+// ranked games are windowed d1/d7/d14 only; 2wk (a Steam-hours concept) falls back to 14d.
+const rankedW = (w) => (w === "steam2wk" ? "d14" : w);
+
+// ---- hours (Steam) ----
 function playerWindow(p, w) {
   if (w === "steam2wk") return p.steam2wkHours;
   return p.windows?.[w]?.hours ?? null;
@@ -99,6 +124,81 @@ function teamWindow(t, w) {
   return t.windows?.[w] ?? null;
 }
 
+// ---- ranked (tracker) ----
+function playerGames(p, w) { return p.games?.total?.[rankedW(w)] ?? null; }   // {games, partial} | null
+function teamGames(t, w)   { return t.games?.[rankedW(w)] ?? null; }           // number | null
+const gamesCell = (g) => {
+  if (!g || g.games == null) return '<span class="muted">-</span>';
+  const cls = g.partial ? "partial" : (g.games > 0 ? "big" : "muted");
+  const tip = g.partial ? ' title="window still filling - based on the history collected so far"' : '';
+  return `<span class="${cls}"${tip}>${g.games}${g.partial ? "~" : ""}</span>`;
+};
+
+function renderRankedPlayers() {
+  const w = current, rw = rankedW(w);
+  const rows = [...tracker.players].sort((a,b) => {
+    const ga = playerGames(a,w)?.games ?? -1, gb = playerGames(b,w)?.games ?? -1;
+    if (gb !== ga) return gb - ga;
+    return (b.mmr?.twos ?? -1) - (a.mmr?.twos ?? -1);
+  });
+  let html = `<table><thead><tr>
+    <th class="rank">#</th><th>Player</th><th>Team</th>
+    <th class="num">Games ${labelFor(rw)}</th>
+    <th class="num">2v2</th><th class="num">1v1</th><th class="num">3v3</th>
+  </tr></thead><tbody>`;
+  rows.forEach((p,i) => {
+    html += `<tr>
+      <td class="rank num">${i+1}</td>
+      <td>${avatarName(p.name)}</td>
+      <td class="team">${p.team ?? ''}</td>
+      <td class="num">${gamesCell(playerGames(p,w))}</td>
+      <td class="num">${mmrCell(p.mmr?.twos)}</td>
+      <td class="num">${mmrCell(p.mmr?.ones)}</td>
+      <td class="num">${mmrCell(p.mmr?.threes)}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  document.getElementById("rplayers").innerHTML = html;
+}
+
+function renderRankedTeams() {
+  const w = current, rw = rankedW(w);
+  const rows = [...teamTracker.teams].sort((a,b) => {
+    const ga = teamGames(a,w) ?? -1, gb = teamGames(b,w) ?? -1;
+    if (gb !== ga) return gb - ga;
+    return (b.avgMmr?.twos ?? -1) - (a.avgMmr?.twos ?? -1);
+  });
+  let html = `<table><thead><tr>
+    <th class="rank">#</th><th>Team</th><th class="num">Ranked</th>
+    <th class="num">Games ${labelFor(rw)}</th>
+    <th class="num">Avg 2v2</th><th class="num">Avg 1v1</th><th class="num">Avg 3v3</th>
+  </tr></thead><tbody>`;
+  rows.forEach((t,i) => {
+    const g = teamGames(t,w);
+    html += `<tr>
+      <td class="rank num">${i+1}</td>
+      <td>${t.team}</td>
+      <td class="num muted">${t.ranked}/${t.players}</td>
+      <td class="num ${g > 0 ? 'big' : 'muted'}">${g == null ? '-' : g}</td>
+      <td class="num">${mmrCell(t.avgMmr?.twos)}</td>
+      <td class="num">${mmrCell(t.avgMmr?.ones)}</td>
+      <td class="num">${mmrCell(t.avgMmr?.threes)}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  document.getElementById("rteams").innerHTML = html;
+}
+
+function renderRankedNote() {
+  if (!tracker) return;
+  const rw = rankedW(current);
+  const anyPartial = tracker.players.some(p => playerGames(p, current)?.partial);
+  document.getElementById("rnote").textContent = anyPartial
+    ? `Ranked-games windows (marked ~) are still filling as snapshots accumulate (currently ${tracker.snapshotCount}); the count so far is a floor, not the full ${labelFor(rw)}.`
+    : "";
+}
+
+// ---- hours renderers (existing) ----
 function renderPlayers() {
   const w = current;
   const rows = [...steam.players].sort((a,b) => (playerWindow(b,w) ?? -1) - (playerWindow(a,w) ?? -1));
@@ -110,7 +210,7 @@ function renderPlayers() {
     const tracked = p.totalHours != null;
     html += `<tr>
       <td class="rank num">${tracked ? i+1 : ''}</td>
-      <td><span class="name"><span class="avatar" style="background:${colorFor(p.name)}">${initials(p.name)}</span>${p.name}</span></td>
+      <td>${avatarName(p.name)}</td>
       <td class="team">${p.team ?? ''}</td>
       <td class="num ${tracked?'big':''}">${hrs(playerWindow(p,w))}</td>
       <td class="num">${hrs(p.steam2wkHours)}</td>
@@ -143,25 +243,26 @@ function renderTeams() {
   document.getElementById("teams").innerHTML = html;
 }
 
-const labelFor = (w) => ({d1:"24h",d7:"7d",d14:"14d",steam2wk:"2wk"}[w]);
 const STATUS_LABEL = {
   "hidden-details": "hidden · polling",
   "private": "private · est.",
   "no-steam-id": "no steam id",
   "unknown": "no data",
 };
-const shortStatus = (s) => STATUS_LABEL[s] ?? s;
+const shortStatus = (s) => STATUS_LABEL[s] ?? (typeof s === "string" && s.startsWith("error") ? "steam error" : (s ?? "no data"));
 
 function renderNote() {
   const partial = current !== "steam2wk" && steam.snapshotCount < 15;
   document.getElementById("pnote").textContent = partial
-    ? `Note: 24h/7d/14d windows fill as hourly snapshots accumulate (currently ${steam.snapshotCount} snapshot${steam.snapshotCount>1?'s':''}). The 2wk (Steam) column is live now.`
+    ? `Note: 24h/7d/14d windows fill as snapshots accumulate (currently ${steam.snapshotCount} snapshot${steam.snapshotCount>1?'s':''}). The 2wk (Steam) column is live now.`
     : "";
 }
 
 function setWindow(w) {
   current = w;
   document.querySelectorAll("#seg button").forEach(b => b.classList.toggle("on", b.dataset.w === w));
+  if (tracker) { renderRankedPlayers(); renderRankedNote(); }
+  if (teamTracker) renderRankedTeams();
   renderPlayers(); renderTeams(); renderNote();
 }
 
@@ -173,18 +274,31 @@ document.getElementById("seg").addEventListener("click", e => {
 // raw URL) so data updates need no site rebuild. Defaults to a local relative
 // path for dev. __RLDATA__ (inlined) wins for the standalone file.
 const DATA_BASE = window.__DATA_BASE__ || "./data/derived";
-const source = window.__RLDATA__
-  ? Promise.resolve([window.__RLDATA__.steam, window.__RLDATA__.teams])
-  : Promise.all([
-      fetch(`${DATA_BASE}/steam-hours.json`).then(r=>r.json()),
-      fetch(`${DATA_BASE}/team-hours.json`).then(r=>r.json()),
-    ]);
-source.then(([s,t]) => {
-  steam = s; teams = t;
-  const tracked = s.players.filter(p=>p.totalHours!=null).length;
-  document.getElementById("meta").innerHTML =
-    `<b>${tracked}</b>/${s.players.length} players tracked · ${t.teams.length} teams · updated ${new Date(s.computedAt).toLocaleString()}`;
-  setWindow("steam2wk");
+const getJson = (f) => fetch(`${DATA_BASE}/${f}`).then(r => r.ok ? r.json() : null).catch(() => null);
+
+const load = window.__RLDATA__
+  ? Promise.resolve([window.__RLDATA__.steam, window.__RLDATA__.teams, window.__RLDATA__.tracker ?? null, window.__RLDATA__.teamTracker ?? null])
+  : Promise.all([getJson("steam-hours.json"), getJson("team-hours.json"), getJson("tracker.json"), getJson("team-tracker.json")]);
+
+load.then(([s, t, tr, tt]) => {
+  if (!s || !t) throw new Error("core data unavailable");
+  steam = s; teams = t; tracker = tr; teamTracker = tt;
+
+  if (tracker && tracker.players?.length) document.getElementById("rplayers-sec").hidden = false;
+  if (teamTracker && teamTracker.teams?.length) document.getElementById("rteams-sec").hidden = false;
+
+  const hoursTracked = s.players.filter(p => p.totalHours != null).length;
+  const rankedCount = tracker?.players?.length ?? 0;
+  const parts = [
+    `<b>${hoursTracked}</b>/${s.players.length} players with hours`,
+    rankedCount ? `<b>${rankedCount}</b> with ranked data` : null,
+    `${t.teams.length} teams`,
+    `updated ${new Date((tracker?.computedAt) || s.computedAt).toLocaleString()}`,
+  ].filter(Boolean);
+  document.getElementById("meta").innerHTML = parts.join(" · ");
+
+  // default to a real ranked window when tracker data exists, else the live Steam 2wk column
+  setWindow(tracker ? "d14" : "steam2wk");
 }).catch(e => {
   document.getElementById("players").innerHTML = `<div class="loading">Failed to load data: ${e.message}</div>`;
 });
