@@ -14,7 +14,7 @@
 
 ## About
 
-RL Pro Tracker collects publicly available Rocket League statistics for professional players and presents them by player and by team. It reports ranked playtime and ladder performance over rolling 24 hour, 7 day, and 14 day windows.
+RL Pro Tracker collects publicly available Rocket League statistics for professional players and presents them by player and by team. It reports ranked playtime and ladder performance over rolling 24 hour, 7 day, and 2 week windows.
 
 All data comes from public sources (Steam Web API, Liquipedia, and tracker.gg). The project stores only game statistics for the configured list of professional players. It does not collect data about site visitors.
 
