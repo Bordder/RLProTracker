@@ -25,7 +25,7 @@ const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 const PROFILE = (id) => `https://rocketleague.tracker.network/rocket-league/profile/steam/${id}/overview`;
 const PLAYLISTS = { d1: "Ranked Duel 1v1", d2: "Ranked Doubles 2v2", d3: "Ranked Standard 3v3" };
 const STATE_FILE = join(ROOT, "data", "tracker-state.json");
-const SPACING = 6000;   // between players, keeps us under Cloudflare rate limiting
+const SPACING = 3000;   // between players; rotation means each proxy sees ~1/N of this rate
 const ATTEMPTS = 2;
 const NAV_TIMEOUT = 40000;
 const STATE_TIMEOUT = 45000; // give Cloudflare's challenge time to resolve
@@ -53,22 +53,12 @@ function extractInPage(names) {
   return out;
 }
 
+// Block only heavy media (NOT stylesheets/scripts - blocking CSS stops the app
+// from hydrating the profile data we need).
 const blockAssets = (page) =>
   page.route("**/*", (route) =>
-    ["image", "font", "media", "stylesheet"].includes(route.request().resourceType()) ? route.abort() : route.continue()
+    ["image", "font", "media"].includes(route.request().resourceType()) ? route.abort() : route.continue()
   );
-
-// Load the homepage once so Cloudflare issues a clearance cookie for the context
-// before we hit profile pages. Best-effort; returns whether it cleared.
-async function warmup(ctx) {
-  const page = await ctx.newPage();
-  try {
-    await page.goto("https://rocketleague.tracker.network/", { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT });
-    await page.waitForFunction(() => !/just a moment/i.test(document.title), { timeout: STATE_TIMEOUT });
-    return true;
-  } catch { return false; }
-  finally { await page.close().catch(() => {}); }
-}
 
 async function scrapeWithRetry(ctx, id) {
   let lastErr;
@@ -99,6 +89,16 @@ async function scrapeWithRetry(ctx, id) {
 
 const readJson = async (f, fallback) => { try { return JSON.parse(await readFile(f, "utf8")); } catch { return fallback; } };
 
+// Proxies (Oxylabs) from env, rotated across players to spread load and clear
+// Cloudflare from trusted IPs. All values come from CI secrets, never the repo.
+// Returns [null] (direct connection) when no proxy is configured.
+function parseProxies() {
+  const host = process.env.PROXY_HOST, ports = process.env.PROXY_PORTS;
+  const username = process.env.PROXY_USER, password = process.env.PROXY_PASS;
+  if (!host || !ports) return [null];
+  return ports.split(",").map((pt) => ({ server: `http://${host}:${pt.trim()}`, username, password }));
+}
+
 // choose which players to scrape this run: most overdue first, capped at perRun.
 // Each player has a target refresh interval in hours (data/priorities.json).
 function selectDue(players, prio, state, now) {
@@ -125,14 +125,19 @@ async function main() {
   const takenAt = new Date(now).toISOString();
   console.log(`selected ${players.length}/${all.length} due players`);
 
+  const proxies = parseProxies();
+  console.log(`proxies: ${proxies[0] ? proxies.length + " (rotating)" : "none (direct)"}`);
   const browser = await chromium.launch({ headless: true });
-  const ctx = await browser.newContext({ userAgent: UA, viewport: { width: 1280, height: 800 } });
 
-  const cleared = await warmup(ctx);
-  console.log(`cloudflare warmup: ${cleared ? "cleared" : "not confirmed (continuing anyway)"}`);
+  // one context per proxy (each keeps its own Cloudflare clearance cookie)
+  const contexts = await Promise.all(
+    proxies.map((proxy) => browser.newContext({ ...(proxy ? { proxy } : {}), userAgent: UA, viewport: { width: 1280, height: 800 } }))
+  );
 
   const rows = [];
-  for (const p of players) {
+  for (let idx = 0; idx < players.length; idx++) {
+    const p = players[idx];
+    const ctx = contexts[idx % contexts.length]; // round-robin across proxies
     const row = { id: p.id, name: p.name, team: p.team, steamId64: p.steamId64, status: "ok", playlists: null };
     try {
       row.playlists = await scrapeWithRetry(ctx, p.steamId64);
