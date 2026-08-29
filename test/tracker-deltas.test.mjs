@@ -52,6 +52,17 @@ test("games diff and latest MMR for a two-reading player", () => {
   assert.equal(p.games.total.d1.games, 40);
 });
 
+test("seasonGames = cumulative matchesPlayed from the latest reading", () => {
+  const { byId } = run();
+  const full = byId.get("full"); // latest: ones 14, twos 130, threes 46
+  assert.deepEqual(full.seasonGames, { ones: 14, twos: 130, threes: 46, total: 190 });
+  const no1v1 = byId.get("no1v1"); // latest: twos 90, threes 61, no 1v1
+  assert.equal(no1v1.seasonGames.ones, null);
+  assert.equal(no1v1.seasonGames.total, 151); // 90 + 61
+  const single = byId.get("single"); // latest: twos 50 only
+  assert.equal(single.seasonGames.total, 50);
+});
+
 test("season reset clamps negative games to 0", () => {
   const { byId } = run();
   const p = byId.get("reset");

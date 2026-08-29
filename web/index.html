@@ -76,14 +76,14 @@
 
   <section id="rplayers-sec" hidden>
     <h2>Players - ranked activity</h2>
-    <p class="sub">Ranked games played on the ladder, plus current MMR per playlist.</p>
+    <p class="sub">Season = ranked games played this season. The windowed count fills in as we collect snapshots over time. MMR is current, per playlist.</p>
     <div class="tablewrap"><div id="rplayers"><div class="loading">loading…</div></div></div>
     <div class="note" id="rnote"></div>
   </section>
 
   <section id="rteams-sec" hidden>
     <h2>Teams - ranked activity</h2>
-    <p class="sub">Combined ranked games played, plus average MMR per playlist.</p>
+    <p class="sub">Season = combined ranked games this season. The windowed count fills in over time. MMR is the team average, per playlist.</p>
     <div class="tablewrap"><div id="rteams"></div></div>
   </section>
 
@@ -129,21 +129,26 @@ function playerGames(p, w) { return p.games?.total?.[rankedW(w)] ?? null; }   //
 function teamGames(t, w)   { return t.games?.[rankedW(w)] ?? null; }           // number | null
 const gamesCell = (g) => {
   if (!g || g.games == null) return '<span class="muted">-</span>';
+  // partial + 0 means "no history yet", not "played zero" - show pending, not 0~
+  if (g.partial && g.games === 0) return '<span class="muted" title="not enough snapshot history yet - this window fills as data accumulates">-</span>';
   const cls = g.partial ? "partial" : (g.games > 0 ? "big" : "muted");
-  const tip = g.partial ? ' title="window still filling - based on the history collected so far"' : '';
+  const tip = g.partial ? ' title="a floor so far - window still filling as snapshots accumulate"' : '';
   return `<span class="${cls}"${tip}>${g.games}${g.partial ? "~" : ""}</span>`;
 };
+const seasonCell = (v) => v == null ? '<span class="muted">-</span>' : `<span class="big">${v.toLocaleString()}</span>`;
 
 function renderRankedPlayers() {
   const w = current, rw = rankedW(w);
   const rows = [...tracker.players].sort((a,b) => {
     const ga = playerGames(a,w)?.games ?? -1, gb = playerGames(b,w)?.games ?? -1;
     if (gb !== ga) return gb - ga;
+    const sa = a.seasonGames?.total ?? -1, sb = b.seasonGames?.total ?? -1;
+    if (sb !== sa) return sb - sa;
     return (b.mmr?.twos ?? -1) - (a.mmr?.twos ?? -1);
   });
   let html = `<table><thead><tr>
     <th class="rank">#</th><th>Player</th><th>Team</th>
-    <th class="num">Games ${labelFor(rw)}</th>
+    <th class="num">Games ${labelFor(rw)}</th><th class="num">Season</th>
     <th class="num">2v2</th><th class="num">1v1</th><th class="num">3v3</th>
   </tr></thead><tbody>`;
   rows.forEach((p,i) => {
@@ -152,6 +157,7 @@ function renderRankedPlayers() {
       <td>${avatarName(p.name)}</td>
       <td class="team">${p.team ?? ''}</td>
       <td class="num">${gamesCell(playerGames(p,w))}</td>
+      <td class="num">${seasonCell(p.seasonGames?.total)}</td>
       <td class="num">${mmrCell(p.mmr?.twos)}</td>
       <td class="num">${mmrCell(p.mmr?.ones)}</td>
       <td class="num">${mmrCell(p.mmr?.threes)}</td>
@@ -166,20 +172,24 @@ function renderRankedTeams() {
   const rows = [...teamTracker.teams].sort((a,b) => {
     const ga = teamGames(a,w) ?? -1, gb = teamGames(b,w) ?? -1;
     if (gb !== ga) return gb - ga;
+    const sa = a.seasonGames ?? -1, sb = b.seasonGames ?? -1;
+    if (sb !== sa) return sb - sa;
     return (b.avgMmr?.twos ?? -1) - (a.avgMmr?.twos ?? -1);
   });
   let html = `<table><thead><tr>
     <th class="rank">#</th><th>Team</th><th class="num">Ranked</th>
-    <th class="num">Games ${labelFor(rw)}</th>
+    <th class="num">Games ${labelFor(rw)}</th><th class="num">Season</th>
     <th class="num">Avg 2v2</th><th class="num">Avg 1v1</th><th class="num">Avg 3v3</th>
   </tr></thead><tbody>`;
   rows.forEach((t,i) => {
     const g = teamGames(t,w);
+    const gv = (g == null || g === 0) ? '<span class="muted">-</span>' : `<span class="big">${g.toLocaleString()}</span>`;
     html += `<tr>
       <td class="rank num">${i+1}</td>
       <td>${t.team}</td>
       <td class="num muted">${t.ranked}/${t.players}</td>
-      <td class="num ${g > 0 ? 'big' : 'muted'}">${g == null ? '-' : g}</td>
+      <td class="num">${gv}</td>
+      <td class="num">${seasonCell(t.seasonGames)}</td>
       <td class="num">${mmrCell(t.avgMmr?.twos)}</td>
       <td class="num">${mmrCell(t.avgMmr?.ones)}</td>
       <td class="num">${mmrCell(t.avgMmr?.threes)}</td>

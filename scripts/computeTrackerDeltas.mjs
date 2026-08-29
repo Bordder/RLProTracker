@@ -46,11 +46,16 @@ export function computeTrackerPlayers(snaps) {
     readings.sort((a, b) => a.t - b.t);
     const latest = readings[readings.length - 1];
     const mmr = {}, tier = {}, games = { ones: {}, twos: {}, threes: {}, total: {} };
+    // seasonGames = cumulative ranked matches this season (matchesPlayed from the
+    // latest reading). Available immediately from one snapshot, unlike the windowed
+    // counts which need history to accumulate.
+    const seasonGames = { ones: null, twos: null, threes: null, total: null };
 
     for (const [outKey, snapKey] of Object.entries(PL)) {
       const cur = latest.playlists?.[snapKey] ?? null;
       mmr[outKey] = cur?.rating ?? null;
       tier[outKey] = cur?.tier ?? null;
+      seasonGames[outKey] = cur?.matches ?? null;
 
       for (const [wk, span] of Object.entries(WINDOWS)) {
         const past = readingAtOrBefore(readings, now - span);
@@ -66,8 +71,10 @@ export function computeTrackerPlayers(snaps) {
       const vals = ["ones", "twos", "threes"].map((k) => games[k][wk].games).filter((v) => v != null);
       games.total[wk] = { games: vals.length ? vals.reduce((a, b) => a + b, 0) : null, partial: games.ones[wk].partial };
     }
+    const sVals = ["ones", "twos", "threes"].map((k) => seasonGames[k]).filter((v) => v != null);
+    seasonGames.total = sVals.length ? sVals.reduce((a, b) => a + b, 0) : null;
 
-    players.push({ ...meta, updatedAt: new Date(latest.t).toISOString(), mmr, tier, games });
+    players.push({ ...meta, updatedAt: new Date(latest.t).toISOString(), mmr, tier, seasonGames, games });
   }
 
   return { now, players };

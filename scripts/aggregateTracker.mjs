@@ -36,12 +36,15 @@ async function main() {
       const vals = roster.map((p) => p.games?.total?.[w]?.games).filter((v) => v != null);
       games[w] = vals.length ? vals.reduce((a, b) => a + b, 0) : null;
     }
+    const seasonVals = roster.map((p) => p.seasonGames?.total).filter((v) => v != null);
+    const seasonGames = seasonVals.length ? seasonVals.reduce((a, b) => a + b, 0) : null;
 
     teams.push({
       team,
       players: roster.length,
       ranked: roster.filter((p) => p.mmr?.twos != null).length,
       avgMmr,
+      seasonGames,
       games,
     });
   }
