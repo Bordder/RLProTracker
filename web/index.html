@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>RL Pro Tracker</title>
+<script src="config.js"></script>
+<style>
+  :root {
+    --bg: #0b0e14; --panel: #141925; --panel2: #1b2130; --line: #262d3d;
+    --txt: #e6e9f0; --dim: #8a93a6; --accent: #4ea1ff; --accent2: #22d3a6;
+    --warn: #f0a53a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--txt);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 20px 80px; }
+  header h1 { margin: 0 0 4px; font-size: 26px; letter-spacing: -0.02em; }
+  header p { margin: 0; color: var(--dim); }
+  .meta { margin-top: 8px; font-size: 12px; color: var(--dim); }
+  .meta b { color: var(--accent2); font-weight: 600; }
+
+  .toolbar { display: flex; gap: 8px; align-items: center; margin: 24px 0 12px; flex-wrap: wrap; }
+  .toolbar .label { color: var(--dim); font-size: 13px; margin-right: 4px; }
+  .seg { display: inline-flex; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .seg button {
+    background: transparent; color: var(--dim); border: 0; padding: 7px 14px;
+    font: inherit; font-size: 13px; cursor: pointer;
+  }
+  .seg button.on { background: var(--accent); color: #04121f; font-weight: 600; }
+
+  section { margin-top: 26px; }
+  h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim); margin: 0 0 10px; }
+
+  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--dim); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  tbody tr:hover { background: var(--panel2); }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .rank { color: var(--dim); width: 28px; }
+  .big { color: var(--accent2); font-weight: 700; }
+  .muted { color: var(--dim); }
+  .pill { font-size: 11px; padding: 2px 7px; border-radius: 20px; background: var(--panel2); color: var(--dim); border: 1px solid var(--line); }
+  .avatar { width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 700; color: #04121f; margin-right: 9px; vertical-align: middle; }
+  .name { display: inline-flex; align-items: center; }
+  .team { color: var(--dim); font-size: 13px; }
+  .note { margin-top: 10px; font-size: 12px; color: var(--warn); }
+  .loading { color: var(--dim); padding: 40px 0; text-align: center; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>RL Pro Tracker</h1>
+    <p>Ranked ladder activity for professional Rocket League players.</p>
+    <div class="meta" id="meta">loading…</div>
+  </header>
+
+  <div class="toolbar">
+    <span class="label">Window</span>
+    <div class="seg" id="seg">
+      <button data-w="d1">24 hours</button>
+      <button data-w="d7">7 days</button>
+      <button data-w="d14" class="on">14 days</button>
+      <button data-w="steam2wk">2wk (Steam)</button>
+    </div>
+  </div>
+
+  <section id="players-sec">
+    <h2>Players - hours played</h2>
+    <div id="players"><div class="loading">loading…</div></div>
+    <div class="note" id="pnote"></div>
+  </section>
+
+  <section id="teams-sec">
+    <h2>Teams - combined hours</h2>
+    <div id="teams"><div class="loading">loading…</div></div>
+  </section>
+</div>
+
+<script>
+const AVATAR_COLORS = ["#4ea1ff","#22d3a6","#f0a53a","#c07bf0","#ff6b6b","#5ad1e6"];
+const initials = (n) => n.replace(/[^A-Za-z0-9 ]/g,"").split(/\s+/).map(w=>w[0]).join("").slice(0,2).toUpperCase() || "??";
+const colorFor = (s) => AVATAR_COLORS[[...s].reduce((a,c)=>a+c.charCodeAt(0),0) % AVATAR_COLORS.length];
+const hrs = (v) => v == null ? '<span class="muted">-</span>' : v.toFixed(1).replace(/\.0$/,'') + 'h';
+
+let steam = null, teams = null, current = "d14";
+
+function playerWindow(p, w) {
+  if (w === "steam2wk") return p.steam2wkHours;
+  return p.windows?.[w]?.hours ?? null;
+}
+function teamWindow(t, w) {
+  if (w === "steam2wk") return t.steam2wkHours;
+  return t.windows?.[w] ?? null;
+}
+
+function renderPlayers() {
+  const w = current;
+  const rows = [...steam.players].sort((a,b) => (playerWindow(b,w) ?? -1) - (playerWindow(a,w) ?? -1));
+  let html = `<table><thead><tr>
+    <th class="rank">#</th><th>Player</th><th>Team</th>
+    <th class="num">${labelFor(w)}</th><th class="num">2wk</th><th class="num">Total</th><th></th>
+  </tr></thead><tbody>`;
+  rows.forEach((p,i) => {
+    const tracked = p.totalHours != null;
+    html += `<tr>
+      <td class="rank num">${tracked ? i+1 : ''}</td>
+      <td><span class="name"><span class="avatar" style="background:${colorFor(p.name)}">${initials(p.name)}</span>${p.name}</span></td>
+      <td class="team">${p.team ?? ''}</td>
+      <td class="num ${tracked?'big':''}">${hrs(playerWindow(p,w))}</td>
+      <td class="num">${hrs(p.steam2wkHours)}</td>
+      <td class="num muted">${p.totalHours != null ? Math.round(p.totalHours)+'h' : '-'}</td>
+      <td>${tracked ? '' : '<span class="pill">'+shortStatus(p.status)+'</span>'}</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  document.getElementById("players").innerHTML = html;
+}
+
+function renderTeams() {
+  const w = current;
+  const rows = [...teams.teams].sort((a,b) => (teamWindow(b,w) ?? -1) - (teamWindow(a,w) ?? -1));
+  let html = `<table><thead><tr>
+    <th class="rank">#</th><th>Team</th><th class="num">Tracked</th>
+    <th class="num">${labelFor(w)}</th><th class="num">2wk</th><th class="num">Total</th>
+  </tr></thead><tbody>`;
+  rows.forEach((t,i) => {
+    html += `<tr>
+      <td class="rank num">${i+1}</td>
+      <td>${t.team}</td>
+      <td class="num muted">${t.tracked}/${t.players}</td>
+      <td class="num big">${hrs(teamWindow(t,w))}</td>
+      <td class="num">${hrs(t.steam2wkHours)}</td>
+      <td class="num muted">${Math.round(t.totalHours)}h</td>
+    </tr>`;
+  });
+  html += `</tbody></table>`;
+  document.getElementById("teams").innerHTML = html;
+}
+
+const labelFor = (w) => ({d1:"24h",d7:"7d",d14:"14d",steam2wk:"2wk"}[w]);
+const STATUS_LABEL = {
+  "hidden-details": "hidden · polling",
+  "private": "private · est.",
+  "no-steam-id": "no steam id",
+  "unknown": "no data",
+};
+const shortStatus = (s) => STATUS_LABEL[s] ?? s;
+
+function renderNote() {
+  const partial = current !== "steam2wk" && steam.snapshotCount < 15;
+  document.getElementById("pnote").textContent = partial
+    ? `Note: 24h/7d/14d windows fill as hourly snapshots accumulate (currently ${steam.snapshotCount} snapshot${steam.snapshotCount>1?'s':''}). The 2wk (Steam) column is live now.`
+    : "";
+}
+
+function setWindow(w) {
+  current = w;
+  document.querySelectorAll("#seg button").forEach(b => b.classList.toggle("on", b.dataset.w === w));
+  renderPlayers(); renderTeams(); renderNote();
+}
+
+document.getElementById("seg").addEventListener("click", e => {
+  const b = e.target.closest("button"); if (b) setWindow(b.dataset.w);
+});
+
+// DATA_BASE lets the deployed site pull fresh JSON at runtime (e.g. the repo's
+// raw URL) so data updates need no site rebuild. Defaults to a local relative
+// path for dev. __RLDATA__ (inlined) wins for the standalone file.
+const DATA_BASE = window.__DATA_BASE__ || "./data/derived";
+const source = window.__RLDATA__
+  ? Promise.resolve([window.__RLDATA__.steam, window.__RLDATA__.teams])
+  : Promise.all([
+      fetch(`${DATA_BASE}/steam-hours.json`).then(r=>r.json()),
+      fetch(`${DATA_BASE}/team-hours.json`).then(r=>r.json()),
+    ]);
+source.then(([s,t]) => {
+  steam = s; teams = t;
+  const tracked = s.players.filter(p=>p.totalHours!=null).length;
+  document.getElementById("meta").innerHTML =
+    `<b>${tracked}</b>/${s.players.length} players tracked · ${t.teams.length} teams · updated ${new Date(s.computedAt).toLocaleString()}`;
+  setWindow("steam2wk");
+}).catch(e => {
+  document.getElementById("players").innerHTML = `<div class="loading">Failed to load data: ${e.message}</div>`;
+});
+</script>
+</body>
+</html>

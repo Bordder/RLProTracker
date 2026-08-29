@@ -1,0 +1,15 @@
+node_modules/
+.env
+.env.local
+.DS_Store
+
+# generated at build/serve time
+web/data/
+web/config.js
+web/preview-standalone.html
+
+# NOTE: data/snapshots and data/derived ARE committed on purpose -
+# the hourly job persists them so 24h/7d/14d deltas survive across runs.
+
+# local editor/preview config
+.claude/

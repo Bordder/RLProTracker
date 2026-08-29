@@ -1,0 +1,18 @@
+{
+  "name": "rl-pro-tracker",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Track Rocket League pros outside RLCS: ranked games, MMR, Steam hours",
+  "scripts": {
+    "fetch:roster": "node scripts/fetchRoster.mjs",
+    "fetch:steam": "node scripts/fetchSteam.mjs",
+    "snapshot": "node scripts/fetchSteam.mjs",
+    "deltas": "node scripts/computeDeltas.mjs",
+    "aggregate": "node scripts/aggregate.mjs",
+    "poll": "node scripts/pollPresence.mjs",
+    "poll:hours": "node scripts/computePresenceHours.mjs",
+    "build:site": "node scripts/buildSite.mjs",
+    "update": "node scripts/fetchSteam.mjs && node scripts/computeDeltas.mjs && node scripts/aggregate.mjs"
+  }
+}

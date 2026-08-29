@@ -1,0 +1,41 @@
+name: Roster refresh (3-day)
+
+# Rebuilds player -> SteamID mapping from Liquipedia every 3 days.
+# Rosters change rarely, so this cadence is plenty and stays far under
+# Liquipedia's rate limits (a handful of batched requests per run).
+# Edit data/teams.json when the RLCS field changes.
+
+on:
+  schedule:
+    - cron: "0 6 */3 * *" # 06:00 UTC every 3rd day
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: roster-refresh
+  cancel-in-progress: false
+
+jobs:
+  roster:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Rebuild roster from Liquipedia
+        run: npm run fetch:roster
+      - name: Commit roster
+        run: |
+          git config user.name "rl-tracker-bot"
+          git config user.email "actions@github.com"
+          git add data/roster.json
+          git diff --staged --quiet && echo "no changes" && exit 0
+          git commit -m "data: roster refresh [skip ci]"
+          for i in 1 2 3 4 5; do
+            git pull --rebase --autostash origin main && git push && exit 0
+            echo "push retry $i"; sleep $((RANDOM % 8 + 3))
+          done
+          echo "push failed after retries"; exit 1
