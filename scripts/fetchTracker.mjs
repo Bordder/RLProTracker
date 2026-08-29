@@ -240,4 +240,4 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   main().catch((e) => { console.error(e); process.exit(1); });
 }
 
-export { selectDue, playerRanks };
+export { selectDue, playerRanks, RUN_SPACING_MS };

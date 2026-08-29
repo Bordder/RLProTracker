@@ -1,0 +1,28 @@
+name: Tests
+
+# Runs the zero-dependency unit suite (npm test) on every push/PR so a
+# regression in the delta/scheduler cores is caught before it reaches the
+# scheduled data workflows. No browser needed: the tests import the pure
+# functions only (the scraper's main() is guarded behind direct invocation).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+      - name: Install dependencies
+        run: npm ci
+      - name: Run tests
+        run: npm test
