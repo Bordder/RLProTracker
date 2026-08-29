@@ -1,7 +1,9 @@
 // Turn tracker snapshots into current MMR + ranked games played per window.
-// Games per window come from diffing each playlist's cumulative matchesPlayed
-// across snapshots (negative diffs, e.g. a season reset, clamp to 0).
-// MMR/tier are the latest values.
+//
+// Snapshots are now partial (each run scrapes only the due players), so this is
+// player-centric: for each player we gather every reading across all snapshots,
+// take the latest for MMR, and diff matchesPlayed against the reading nearest
+// (now - window) for games-per-window. Negative diffs (season resets) clamp to 0.
 //
 // Playlist keys: ones (1v1), twos (2v2), threes (3v3).
 // Writes data/derived/tracker.json.  Usage: npm run tracker:deltas
@@ -28,48 +30,55 @@ async function loadSnapshots() {
   return snaps.sort((a, b) => a.t - b.t);
 }
 
-const snapAtOrBefore = (snaps, target) => {
-  let pick = null;
-  for (const s of snaps) if (s.t <= target) pick = s;
-  return pick ?? snaps[0];
-};
-const matchesFor = (snap, id, plKey) =>
-  snap.rows.find((r) => r.id === id)?.playlists?.[plKey]?.matches ?? null;
-
 async function main() {
   const snaps = await loadSnapshots();
   if (!snaps.length) { console.error("no tracker snapshots yet - run npm run fetch:tracker first"); process.exit(1); }
 
-  const latest = snaps[snaps.length - 1];
-  const now = latest.t;
-  const players = [];
+  const now = snaps[snaps.length - 1].t;
 
-  for (const row of latest.rows) {
+  // gather per-player readings (only rows that actually have playlist data)
+  const byPlayer = new Map(); // id -> { meta, readings:[{t, playlists}] }
+  for (const snap of snaps) {
+    for (const row of snap.rows) {
+      if (!row.playlists) continue;
+      if (!byPlayer.has(row.id)) byPlayer.set(row.id, { meta: { id: row.id, name: row.name, team: row.team }, readings: [] });
+      byPlayer.get(row.id).readings.push({ t: snap.t, playlists: row.playlists });
+    }
+  }
+
+  const readingAtOrBefore = (readings, target) => {
+    let pick = null;
+    for (const r of readings) if (r.t <= target) pick = r;
+    return pick ?? readings[0];
+  };
+
+  const players = [];
+  for (const { meta, readings } of byPlayer.values()) {
+    readings.sort((a, b) => a.t - b.t);
+    const latest = readings[readings.length - 1];
     const mmr = {}, tier = {}, games = { ones: {}, twos: {}, threes: {}, total: {} };
 
     for (const [outKey, snapKey] of Object.entries(PL)) {
-      const cur = row.playlists?.[snapKey] ?? null;
+      const cur = latest.playlists?.[snapKey] ?? null;
       mmr[outKey] = cur?.rating ?? null;
       tier[outKey] = cur?.tier ?? null;
 
       for (const [wk, span] of Object.entries(WINDOWS)) {
-        const past = snapAtOrBefore(snaps, now - span);
+        const past = readingAtOrBefore(readings, now - span);
         const haveHistory = past.t <= now - span;
         const curM = cur?.matches ?? null;
-        const pastM = matchesFor(past, row.id, snapKey);
-        let g = null;
-        if (curM != null && pastM != null) g = Math.max(0, curM - pastM);
+        const pastM = past.playlists?.[snapKey]?.matches ?? null;
+        const g = curM != null && pastM != null ? Math.max(0, curM - pastM) : null;
         games[outKey][wk] = { games: g, partial: !haveHistory };
       }
     }
 
-    // total ranked games per window = sum across the three playlists
     for (const wk of Object.keys(WINDOWS)) {
       const vals = ["ones", "twos", "threes"].map((k) => games[k][wk].games).filter((v) => v != null);
       games.total[wk] = { games: vals.length ? vals.reduce((a, b) => a + b, 0) : null, partial: games.ones[wk].partial };
     }
 
-    players.push({ id: row.id, name: row.name, team: row.team, status: row.status, mmr, tier, games });
+    players.push({ ...meta, updatedAt: new Date(latest.t).toISOString(), mmr, tier, games });
   }
 
   await mkdir(join(ROOT, "data", "derived"), { recursive: true });

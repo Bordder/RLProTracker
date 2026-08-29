@@ -6,7 +6,7 @@ name: Hourly tracker update
 
 on:
   schedule:
-    - cron: "30 * * * *"
+    - cron: "0,30 * * * *" # every 30 min; each run scrapes only the due players
   workflow_dispatch: {}
 
 permissions:
@@ -41,7 +41,7 @@ jobs:
         run: |
           git config user.name "rl-tracker-bot"
           git config user.email "actions@github.com"
-          git add data/tracker-snapshots data/derived
+          git add data/tracker-snapshots data/derived data/tracker-state.json
           git diff --staged --quiet && echo "no changes" && exit 0
           git commit -m "data: hourly tracker update [skip ci]"
           for i in 1 2 3 4 5; do

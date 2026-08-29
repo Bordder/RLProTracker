@@ -67,15 +67,29 @@ async function loadResolved() {
   } catch { return new Map(); }
 }
 
+async function loadOverrides() {
+  try {
+    const o = JSON.parse(await readFile(join(ROOT, "data", "overrides.json"), "utf8"));
+    return o.steamId64 ?? {};
+  } catch { return {}; }
+}
+
 async function main() {
   const { teams, season } = JSON.parse(await readFile(join(ROOT, "data", "teams.json"), "utf8"));
   const resolved = await loadResolved();
+  const overrides = await loadOverrides();
 
   // flatten roster, mark which still need fetching
   const players = [];
   for (const team of teams) {
     for (const title of team.players) {
       const id = slug(`${team.name}-${title}`);
+      const override = overrides[id];
+      if (override) {
+        // manual correction always wins; no lookup needed
+        players.push({ id, name: title, team: team.name, stage: team.stage, steamId64: override, vanity: null, liquipedia: title, status: "override" });
+        continue;
+      }
       const cached = resolved.get(id);
       players.push({
         id, name: title, team: team.name, stage: team.stage,

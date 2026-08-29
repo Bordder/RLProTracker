@@ -5,7 +5,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Bordder/RLProTracker/actions/workflows/hourly.yml"><img src="https://github.com/Bordder/RLProTracker/actions/workflows/hourly.yml/badge.svg" alt="Hourly update"></a>
+  <a href="https://github.com/Bordder/RLProTracker/actions/workflows/tracker.yml"><img src="https://github.com/Bordder/RLProTracker/actions/workflows/tracker.yml/badge.svg" alt="Tracker update"></a>
+  <a href="https://github.com/Bordder/RLProTracker/actions/workflows/steam.yml"><img src="https://github.com/Bordder/RLProTracker/actions/workflows/steam.yml/badge.svg" alt="Steam update"></a>
   <a href="https://github.com/Bordder/RLProTracker/actions/workflows/roster.yml"><img src="https://github.com/Bordder/RLProTracker/actions/workflows/roster.yml/badge.svg" alt="Roster refresh"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A520-339933?logo=node.js&logoColor=white" alt="Node 20+">
   <img src="https://img.shields.io/badge/dependencies-0-blue" alt="Zero dependencies">
@@ -23,7 +24,7 @@ Currently in development and is NOT complete
 
 - Ranked playtime per player over 24 hour, 7 day, and 14 day windows.
 - Combined playtime and roster coverage per team.
-- Ranked games played and rating per playlist (1v1, 2v2, 3v3). *(in progress)*
+- Ranked games played and rating per playlist (1v1, 2v2, 3v3).
 - Coverage for the full roster: public playtime where available, live status polling where a profile hides its game history, and estimates for fully private profiles.
 - Fully automated collection through scheduled jobs, with a static frontend that always shows the latest data.
 
@@ -125,11 +126,18 @@ Each script does one job and writes files the next one reads:
 | `scripts/fetchSteam.mjs` | `data/roster.json` | `data/snapshots/*.json` |
 | `scripts/computeDeltas.mjs` | `data/snapshots/*` | `data/derived/steam-hours.json` |
 | `scripts/aggregate.mjs` | `data/derived/steam-hours.json` | `data/derived/team-hours.json` |
+| `scripts/fetchTracker.mjs` | `data/roster.json`, `data/priorities.json` | `data/tracker-snapshots/*.json` |
+| `scripts/computeTrackerDeltas.mjs` | `data/tracker-snapshots/*` | `data/derived/tracker.json` |
+| `scripts/aggregateTracker.mjs` | `data/derived/tracker.json` | `data/derived/team-tracker.json` |
 | `scripts/pollPresence.mjs` | `data/roster.json` | `data/presence/log.jsonl` |
 | `scripts/computePresenceHours.mjs` | `data/presence/log.jsonl` | `data/derived/presence-hours.json` |
 | `scripts/buildSite.mjs` | `data/derived/*` | `web/data/`, `web/config.js` |
 
 Rolling windows are built by comparing snapshots over time, so the 24 hour and 7 day figures fill in as history accumulates.
+
+### Tuning tracker update frequency
+
+`data/priorities.json` controls how often each player's MMR and games are refreshed. Set a player id to a target interval in hours; `perRun` caps how many players each run scrapes so the job stays under tracker.gg's rate limit. Popular players can be refreshed hourly, others every several hours.
 
 ### Frontend
 
@@ -147,7 +155,7 @@ The site is a single `web/index.html` file with no build step. It reads the JSON
 | --- | --- |
 | Rosters and Steam IDs | Liquipedia |
 | Playtime | Steam Web API |
-| Ranked games and rating | tracker.gg *(planned)* |
+| Ranked games and rating | tracker.gg |
 
 Please respect each source's terms of use and rate limits.
 

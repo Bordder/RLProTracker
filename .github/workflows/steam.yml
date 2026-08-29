@@ -1,20 +1,20 @@
-name: Hourly Steam update
+name: Daily Steam update
 
-# Runs the activity pipeline every hour in the cloud (free on GitHub Actions),
-# then commits the refreshed JSON back to the repo so the site reads current data.
+# Collects Steam playtime once a day (hours change slowly), then commits the
+# refreshed JSON back to the repo so the site reads current data.
 # NOTE: scheduled runs can be delayed a few minutes under GitHub load, and
 # schedules pause if the repo sees no commits for 60 days - a manual run resumes them.
 
 on:
   schedule:
-    - cron: "0 * * * *" # top of every hour (UTC)
+    - cron: "0 5 * * *" # daily at 05:00 UTC
   workflow_dispatch: {} # allow manual runs from the Actions tab
 
 permissions:
   contents: write # needed to commit updated data back
 
 concurrency:
-  group: hourly-update
+  group: steam-update
   cancel-in-progress: false
 
 jobs:
@@ -41,7 +41,7 @@ jobs:
           git config user.email "actions@github.com"
           git add data/snapshots data/derived
           git diff --staged --quiet && echo "no changes" && exit 0
-          git commit -m "data: hourly steam update [skip ci]"
+          git commit -m "data: daily steam update [skip ci]"
           # rebase+retry so a concurrent job's push can't reject ours
           for i in 1 2 3 4 5; do
             git pull --rebase --autostash origin main && git push && exit 0
