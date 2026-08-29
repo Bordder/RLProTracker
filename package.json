@@ -17,7 +17,8 @@
     "tracker:aggregate": "node scripts/aggregateTracker.mjs",
     "tracker": "node scripts/fetchTracker.mjs && node scripts/computeTrackerDeltas.mjs && node scripts/aggregateTracker.mjs",
     "build:site": "node scripts/buildSite.mjs",
-    "update": "node scripts/fetchSteam.mjs && node scripts/computeDeltas.mjs && node scripts/aggregate.mjs"
+    "update": "node scripts/fetchSteam.mjs && node scripts/computeDeltas.mjs && node scripts/aggregate.mjs",
+    "test": "node --test"
   },
   "devDependencies": {
     "playwright": "^1.62.1",
