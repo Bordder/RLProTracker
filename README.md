@@ -17,6 +17,8 @@ RL Pro Tracker collects publicly available Rocket League statistics for professi
 
 All data comes from public sources (Steam Web API, Liquipedia, and tracker.gg). The project stores only game statistics for the configured list of professional players. It does not collect data about site visitors.
 
+Currently in development and is NOT complete
+
 ## Features
 
 - Ranked playtime per player over 24 hour, 7 day, and 14 day windows.
