@@ -12,13 +12,17 @@ on:
 permissions:
   contents: write
 
+# A new run cancels a still-running previous one. Runs normally finish in a few
+# minutes and triggers are 20 min apart, so this only fires when a run has hung -
+# self-healing instead of a stuck run blocking the queue.
 concurrency:
   group: tracker-update
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   tracker:
     runs-on: ubuntu-latest
+    timeout-minutes: 25 # hard cap so a hung browser/proxy can't run for the 6h default
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
