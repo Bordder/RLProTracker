@@ -1,6 +1,6 @@
 {
-  "computedAt": "2026-08-29T17:02:46.836Z",
-  "snapshotCount": 5,
+  "computedAt": "2026-08-29T17:24:43.879Z",
+  "snapshotCount": 6,
   "players": [
     {
       "id": "karmine-corp-atow",
@@ -326,7 +326,7 @@
       "id": "spacestation-gaming-zach",
       "name": "zach",
       "team": "Spacestation Gaming",
-      "updatedAt": "2026-08-29T03:56:58.010Z",
+      "updatedAt": "2026-08-29T17:24:43.879Z",
       "mmr": {
         "ones": 1596,
         "twos": 2590,
@@ -646,10 +646,10 @@
       "id": "karmine-corp-vatira",
       "name": "Vatira",
       "team": "Karmine Corp",
-      "updatedAt": "2026-08-29T14:40:18.664Z",
+      "updatedAt": "2026-08-29T17:24:43.879Z",
       "mmr": {
         "ones": 1576,
-        "twos": 2592,
+        "twos": 2582,
         "threes": 1412
       },
       "tier": {
@@ -659,9 +659,9 @@
       },
       "seasonGames": {
         "ones": 85,
-        "twos": 605,
+        "twos": 606,
         "threes": 1,
-        "total": 691
+        "total": 692
       },
       "games": {
         "ones": {
@@ -680,15 +680,15 @@
         },
         "twos": {
           "d1": {
-            "games": 0,
+            "games": 1,
             "partial": true
           },
           "d7": {
-            "games": 0,
+            "games": 1,
             "partial": true
           },
           "d14": {
-            "games": 0,
+            "games": 1,
             "partial": true
           }
         },
@@ -708,15 +708,15 @@
         },
         "total": {
           "d1": {
-            "games": 0,
+            "games": 1,
             "partial": true
           },
           "d7": {
-            "games": 0,
+            "games": 1,
             "partial": true
           },
           "d14": {
-            "games": 0,
+            "games": 1,
             "partial": true
           }
         }
@@ -726,7 +726,7 @@
       "id": "gentle-mates-oski",
       "name": "Oski",
       "team": "Gentle Mates",
-      "updatedAt": "2026-08-29T14:40:18.664Z",
+      "updatedAt": "2026-08-29T17:24:43.879Z",
       "mmr": {
         "ones": 1347,
         "twos": 2619,
@@ -966,10 +966,10 @@
       "id": "team-falcons-rw9",
       "name": "Rw9",
       "team": "Team Falcons",
-      "updatedAt": "2026-08-29T14:40:18.664Z",
+      "updatedAt": "2026-08-29T17:24:43.879Z",
       "mmr": {
         "ones": 1657,
-        "twos": 2541,
+        "twos": 2549,
         "threes": 1593
       },
       "tier": {
@@ -979,9 +979,9 @@
       },
       "seasonGames": {
         "ones": 77,
-        "twos": 1254,
+        "twos": 1263,
         "threes": 1,
-        "total": 1332
+        "total": 1341
       },
       "games": {
         "ones": {
@@ -1000,15 +1000,15 @@
         },
         "twos": {
           "d1": {
-            "games": 0,
+            "games": 9,
             "partial": true
           },
           "d7": {
-            "games": 0,
+            "games": 9,
             "partial": true
           },
           "d14": {
-            "games": 0,
+            "games": 9,
             "partial": true
           }
         },
@@ -1028,15 +1028,15 @@
         },
         "total": {
           "d1": {
-            "games": 0,
+            "games": 9,
             "partial": true
           },
           "d7": {
-            "games": 0,
+            "games": 9,
             "partial": true
           },
           "d14": {
-            "games": 0,
+            "games": 9,
             "partial": true
           }
         }
@@ -3782,6 +3782,966 @@
         "twos": 315,
         "threes": 1,
         "total": 316
+      },
+      "games": {
+        "ones": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "twos": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "threes": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "total": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        }
+      }
+    },
+    {
+      "id": "tsm-sphinx",
+      "name": "Sphinx",
+      "team": "TSM",
+      "updatedAt": "2026-08-29T17:24:43.879Z",
+      "mmr": {
+        "ones": 1134,
+        "twos": 1880,
+        "threes": 1320
+      },
+      "tier": {
+        "ones": "Champion III",
+        "twos": "Supersonic Legend",
+        "threes": "Champion III"
+      },
+      "seasonGames": {
+        "ones": 33,
+        "twos": 106,
+        "threes": 0,
+        "total": 139
+      },
+      "games": {
+        "ones": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "twos": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "threes": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "total": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        }
+      }
+    },
+    {
+      "id": "five-fears-tehqoz",
+      "name": "tehqoz",
+      "team": "Five Fears",
+      "updatedAt": "2026-08-29T17:24:43.879Z",
+      "mmr": {
+        "ones": 1398,
+        "twos": 2482,
+        "threes": 1494
+      },
+      "tier": {
+        "ones": "Supersonic Legend",
+        "twos": "Supersonic Legend",
+        "threes": "Grand Champion I"
+      },
+      "seasonGames": {
+        "ones": 38,
+        "twos": 1513,
+        "threes": 0,
+        "total": 1551
+      },
+      "games": {
+        "ones": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "twos": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "threes": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "total": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        }
+      }
+    },
+    {
+      "id": "five-fears-snowyy",
+      "name": "Snowyy",
+      "team": "Five Fears",
+      "updatedAt": "2026-08-29T17:24:43.879Z",
+      "mmr": {
+        "ones": 1356,
+        "twos": 2134,
+        "threes": 1807
+      },
+      "tier": {
+        "ones": "Supersonic Legend",
+        "twos": "Supersonic Legend",
+        "threes": "Grand Champion III"
+      },
+      "seasonGames": {
+        "ones": 47,
+        "twos": 456,
+        "threes": 160,
+        "total": 663
+      },
+      "games": {
+        "ones": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "twos": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "threes": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "total": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        }
+      }
+    },
+    {
+      "id": "five-fears-gunz",
+      "name": "gunz",
+      "team": "Five Fears",
+      "updatedAt": "2026-08-29T17:24:43.879Z",
+      "mmr": {
+        "ones": 1389,
+        "twos": 2189,
+        "threes": 1274
+      },
+      "tier": {
+        "ones": "Supersonic Legend",
+        "twos": "Supersonic Legend",
+        "threes": "Champion II"
+      },
+      "seasonGames": {
+        "ones": 13,
+        "twos": 678,
+        "threes": 4,
+        "total": 695
+      },
+      "games": {
+        "ones": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "twos": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "threes": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "total": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        }
+      }
+    },
+    {
+      "id": "mate-y-tapa-ajg",
+      "name": "ajg",
+      "team": "Mate y Tapa",
+      "updatedAt": "2026-08-29T17:24:43.879Z",
+      "mmr": {
+        "ones": 1178,
+        "twos": 2412,
+        "threes": 1721
+      },
+      "tier": {
+        "ones": "Grand Champion I",
+        "twos": "Supersonic Legend",
+        "threes": "Grand Champion III"
+      },
+      "seasonGames": {
+        "ones": 6,
+        "twos": 491,
+        "threes": 7,
+        "total": 504
+      },
+      "games": {
+        "ones": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "twos": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "threes": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "total": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        }
+      }
+    },
+    {
+      "id": "mate-y-tapa-dorito",
+      "name": "Dorito",
+      "team": "Mate y Tapa",
+      "updatedAt": "2026-08-29T17:24:43.879Z",
+      "mmr": {
+        "ones": 1252,
+        "twos": 2410,
+        "threes": 1640
+      },
+      "tier": {
+        "ones": "Grand Champion II",
+        "twos": "Supersonic Legend",
+        "threes": "Grand Champion II"
+      },
+      "seasonGames": {
+        "ones": 10,
+        "twos": 914,
+        "threes": 41,
+        "total": 965
+      },
+      "games": {
+        "ones": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "twos": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "threes": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "total": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        }
+      }
+    },
+    {
+      "id": "r8-esports-abdullah",
+      "name": "Abdullah",
+      "team": "R8 Esports",
+      "updatedAt": "2026-08-29T17:24:43.879Z",
+      "mmr": {
+        "ones": 1509,
+        "twos": 2354,
+        "threes": 1571
+      },
+      "tier": {
+        "ones": "Supersonic Legend",
+        "twos": "Supersonic Legend",
+        "threes": "Grand Champion II"
+      },
+      "seasonGames": {
+        "ones": 26,
+        "twos": 756,
+        "threes": 5,
+        "total": 787
+      },
+      "games": {
+        "ones": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "twos": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "threes": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "total": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        }
+      }
+    },
+    {
+      "id": "r8-esports-m7md",
+      "name": "M7md",
+      "team": "R8 Esports",
+      "updatedAt": "2026-08-29T17:24:43.879Z",
+      "mmr": {
+        "ones": 1233,
+        "twos": 2234,
+        "threes": 1457
+      },
+      "tier": {
+        "ones": "Grand Champion II",
+        "twos": "Supersonic Legend",
+        "threes": "Grand Champion I"
+      },
+      "seasonGames": {
+        "ones": 12,
+        "twos": 705,
+        "threes": 0,
+        "total": 717
+      },
+      "games": {
+        "ones": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "twos": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "threes": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "total": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        }
+      }
+    },
+    {
+      "id": "r8-esports-ghaazi",
+      "name": "Ghaazi",
+      "team": "R8 Esports",
+      "updatedAt": "2026-08-29T17:24:43.879Z",
+      "mmr": {
+        "ones": 1399,
+        "twos": 2401,
+        "threes": 1961
+      },
+      "tier": {
+        "ones": "Supersonic Legend",
+        "twos": "Supersonic Legend",
+        "threes": "Supersonic Legend"
+      },
+      "seasonGames": {
+        "ones": 8,
+        "twos": 684,
+        "threes": 127,
+        "total": 819
+      },
+      "games": {
+        "ones": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "twos": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "threes": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "total": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        }
+      }
+    },
+    {
+      "id": "bigodes-nxghtt",
+      "name": "nxghtt",
+      "team": "Bigodes",
+      "updatedAt": "2026-08-29T17:24:43.879Z",
+      "mmr": {
+        "ones": 1257,
+        "twos": 2086,
+        "threes": 1852
+      },
+      "tier": {
+        "ones": "Grand Champion II",
+        "twos": "Supersonic Legend",
+        "threes": "Grand Champion III"
+      },
+      "seasonGames": {
+        "ones": 10,
+        "twos": 347,
+        "threes": 75,
+        "total": 432
+      },
+      "games": {
+        "ones": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "twos": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "threes": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "total": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        }
+      }
+    },
+    {
+      "id": "bigodes-drufinho",
+      "name": "DRUFINHO",
+      "team": "Bigodes",
+      "updatedAt": "2026-08-29T17:24:43.879Z",
+      "mmr": {
+        "ones": 1220,
+        "twos": 2468,
+        "threes": 1781
+      },
+      "tier": {
+        "ones": "Grand Champion II",
+        "twos": "Supersonic Legend",
+        "threes": "Grand Champion III"
+      },
+      "seasonGames": {
+        "ones": 4,
+        "twos": 1524,
+        "threes": 193,
+        "total": 1721
+      },
+      "games": {
+        "ones": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "twos": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "threes": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        },
+        "total": {
+          "d1": {
+            "games": 0,
+            "partial": true
+          },
+          "d7": {
+            "games": 0,
+            "partial": true
+          },
+          "d14": {
+            "games": 0,
+            "partial": true
+          }
+        }
+      }
+    },
+    {
+      "id": "bigodes-bemmz",
+      "name": "Bemmz",
+      "team": "Bigodes",
+      "updatedAt": "2026-08-29T17:24:43.879Z",
+      "mmr": {
+        "ones": 1391,
+        "twos": 2243,
+        "threes": 1715
+      },
+      "tier": {
+        "ones": "Supersonic Legend",
+        "twos": "Supersonic Legend",
+        "threes": "Grand Champion III"
+      },
+      "seasonGames": {
+        "ones": 36,
+        "twos": 1202,
+        "threes": 127,
+        "total": 1365
       },
       "games": {
         "ones": {
