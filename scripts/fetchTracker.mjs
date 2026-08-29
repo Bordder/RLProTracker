@@ -25,7 +25,7 @@ const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 const PROFILE = (id) => `https://rocketleague.tracker.network/rocket-league/profile/steam/${id}/overview`;
 const PLAYLISTS = { d1: "Ranked Duel 1v1", d2: "Ranked Doubles 2v2", d3: "Ranked Standard 3v3" };
 const STATE_FILE = join(ROOT, "data", "tracker-state.json");
-const ATTEMPTS = 3; // each attempt uses a different proxy (see scrapePlayer)
+const ATTEMPTS = 5; // capped at proxy count in scrapePlayer; try every proxy before giving up
 const NAV_TIMEOUT = 45000;
 const STATE_TIMEOUT = 30000; // a warm profile hydrates well under this
 const PER_PROXY_DELAY = 1000; // small gap between a worker's consecutive loads
