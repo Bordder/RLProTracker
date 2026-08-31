@@ -41,6 +41,7 @@ jobs:
           PROXY_PORTS: ${{ secrets.PROXY_PORTS }}
           PROXY_USER: ${{ secrets.PROXY_USER }}
           PROXY_PASS: ${{ secrets.PROXY_PASS }}
+          PROXY_LIST: ${{ secrets.PROXY_LIST }}
         run: npm run tracker
 
       - name: Prune old snapshots
