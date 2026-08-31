@@ -207,6 +207,14 @@ async function main() {
   const takenAt = new Date(now).toISOString();
   console.log(`selected ${players.length}/${all.length} due players`);
 
+  // Nothing due (common now that intervals are tripled): skip the browser +
+  // proxy contexts entirely and write no snapshot, so the run is a true no-op
+  // (no commit, no wasted contexts).
+  if (players.length === 0) {
+    console.log("no players due this run - skipping browser/scrape");
+    return;
+  }
+
   const proxies = parseProxies();
   console.log(`proxies: ${proxies[0] ? proxies.length + " (rotating)" : "none (direct)"}`);
   const browser = await chromium.launch({ headless: true });
