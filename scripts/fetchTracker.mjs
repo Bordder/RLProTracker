@@ -35,6 +35,10 @@ const PER_PROXY_DELAY = 1000; // small gap between a worker's consecutive loads
 // sessions hit them at once. Serial (1) is the most reliable, and runs are
 // infrequent enough that the extra wall-clock is fine. Override with POOL.
 const DEFAULT_POOL = 1;
+// Adaptive "hot" refresh: a player whose ranked game count jumps is queuing now,
+// so refresh them fast (their MMR is moving) until they stop.
+const HOT_THRESHOLD = 3; // new ranked games since last scrape that flags an active session
+const COOL_AFTER = 2;    // consecutive scrapes with no new games before a hot player cools off
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Resolve as soon as the profile is decided: "ok" (playlist segments present)
@@ -181,6 +185,8 @@ function selectDue(players, prio, state, now) {
     interval *= prio.intervalMultiplier ?? 1; // global dial to trade freshness for proxy bandwidth
     const st = state[p.id] ?? {};
     if ((st.fails ?? 0) >= 3) interval *= 6; // back off chronically failing profiles
+    // Active session -> refresh fast (set/cleared in main() from the game-count delta)
+    if (st.hot) interval = Math.min(interval, (prio.hotIntervalMinutes ?? 20) * 60e3);
     const last = st.last ? Date.parse(st.last) : 0;
     const slots = Math.max(1, Math.round(interval / RUN_SPACING_MS));
     const mySlot = (ranks.get(p.id) ?? 0) % slots;
@@ -247,8 +253,20 @@ async function main() {
       //  success -> fresh; no-data -> genuine miss (count toward backoff);
       //  error   -> transient (leave as-is so it stays due and retries next run)
       const prev = state[p.id] ?? {};
-      if (row.playlists) state[p.id] = { last: takenAt, fails: 0 };
-      else if (row.status === "no-data") state[p.id] = { last: prev.last ?? null, fails: (prev.fails ?? 0) + 1 };
+      if (row.playlists) {
+        // Activity detection: total ranked matches since we last saw them. A jump
+        // of >= HOT_THRESHOLD flags an active session (fast refresh); once hot, stay
+        // hot while games keep coming, cool off after COOL_AFTER empty scrapes.
+        const pl = row.playlists;
+        const curMatches = (pl.d1?.matches ?? 0) + (pl.d2?.matches ?? 0) + (pl.d3?.matches ?? 0);
+        const newGames = prev.matches != null ? Math.max(0, curMatches - prev.matches) : 0;
+        let hot = prev.hot ?? false, idle = prev.idle ?? 0;
+        if (newGames >= HOT_THRESHOLD) { hot = true; idle = 0; }
+        else if (newGames > 0) { idle = 0; } // still trickling games - hold current state
+        else { idle = (prev.idle ?? 0) + 1; if (idle >= COOL_AFTER) hot = false; }
+        state[p.id] = { last: takenAt, fails: 0, matches: curMatches, hot, idle };
+      }
+      else if (row.status === "no-data") state[p.id] = { ...prev, last: prev.last ?? null, fails: (prev.fails ?? 0) + 1 };
       else state[p.id] = prev;
 
       const d2 = row.playlists?.d2;

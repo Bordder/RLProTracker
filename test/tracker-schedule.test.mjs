@@ -57,3 +57,13 @@ test("perRun caps the number selected", () => {
   const due = selectDue(players, prio(3), {}, now); // 20 never-fetched, perRun 3
   assert.equal(due.length, 3);
 });
+
+test("a hot player refreshes on the fast interval, not the slow base one", () => {
+  const players = roster(1); // t-00, 1h base interval
+  const now = RUN_SPACING_MS * 1000;
+  const last = iso(now - 25 * 60e3); // 25 min ago: past the 20m hot interval, short of 1h
+  // not hot -> 1h interval not elapsed -> not due
+  assert.equal(selectDue(players, prio(), { "t-00": { last, fails: 0 } }, now).length, 0);
+  // hot -> ~20m interval, 25m elapsed -> due
+  assert.equal(selectDue(players, prio(), { "t-00": { last, fails: 0, hot: true } }, now).length, 1);
+});
