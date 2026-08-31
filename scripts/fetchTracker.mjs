@@ -130,7 +130,7 @@ function parseProxies() {
       if (url) { out.push({ server: `http://${url[3]}:${url[4]}`, username: url[1], password: url[2] }); continue; }
       const p = raw.split(":");
       if (p.length >= 4) out.push({ server: `http://${p[0]}:${p[1]}`, username: p[2], password: p.slice(3).join(":") });
-      else if (p.length === 2) out.push({ server: `http://${p[0]}:${p[1]}`, username: process.env.PROXY_USER, password: process.env.PROXY_PASS });
+      else if (p.length === 2) out.push({ server: `http://${p[0]}:${p[1]}` }); // public/no-auth proxy - never attach our creds
     }
   }
   // Format B: PROXY_HOST + PROXY_PORTS (one host, many ports, shared creds) - Oxylabs setup.
