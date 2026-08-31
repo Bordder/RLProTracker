@@ -22,8 +22,8 @@ Currently in development and is NOT complete
 ## Features
 
 - Ranked playtime per player over 24 hour, 7 day, and 2 week windows.
-- Combined playtime and roster coverage per team.
-- Ranked games played and rating per playlist (1v1, 2v2, 3v3).
+- Per team: total playtime across the roster, and how many of its players we can actually track.
+- Each player's ranked games and MMR, broken down by playlist (1v1, 2v2, 3v3).
 - Coverage for the full roster: public playtime where available, live status polling where a profile hides its game history, and estimates for fully private profiles.
 - Fully automated collection through scheduled jobs, with a static frontend that always shows the latest data.
 
@@ -47,7 +47,7 @@ Scheduled jobs write JSON into the repository. The website fetches that JSON at 
 | Data scripts | Node.js, standard library only (no dependencies) |
 | Frontend | Plain HTML, CSS, and JavaScript |
 | Scheduling | GitHub Actions (cron) |
-| Hosting | Any static host (Cloudflare Pages, GitHub Pages, Netlify, etc.) |
+| Hosting | Cloudflare Pages, GitHub Pages, Netlify, or any other static host |
 
 ## Getting started
 
@@ -63,7 +63,7 @@ git clone https://github.com/Bordder/RLProTracker.git
 cd RLProTracker
 ```
 
-There are no packages to install. The scripts use only the Node.js standard library.
+Nothing to install here: the scripts run on Node's standard library alone.
 
 ### 2. Provide your Steam API key
 
@@ -96,7 +96,7 @@ You now have the site running locally against real data.
 
 ### Add or change tracked players
 
-The roster lives in `data/teams.json`. Each team lists its players by their Liquipedia page title:
+Teams and rosters live in `data/teams.json`, with each player listed by their Liquipedia page title:
 
 ```json
 {
@@ -113,7 +113,7 @@ npm run fetch:roster
 npm run update
 ```
 
-If a player shows `no-steam-link`, their Liquipedia page has no linked Steam profile. Correct the page title, or add the Steam ID manually in `data/roster.json`.
+Seeing `no-steam-link` for a player means their Liquipedia page has no Steam profile linked. Either fix the page title, or just add the Steam ID by hand in `data/roster.json`.
 
 ### The data pipeline
 
