@@ -267,12 +267,16 @@ async function main() {
       //  error   -> transient (leave as-is so it stays due and retries next run)
       const prev = state[p.id] ?? {};
       if (row.playlists) {
-        // Activity detection: total ranked matches since we last saw them. A jump
-        // of >= HOT_THRESHOLD flags an active session (fast refresh); once hot, stay
-        // hot while games keep coming, cool off after COOL_AFTER empty scrapes.
         const pl = row.playlists;
         const curMatches = (pl.d1?.matches ?? 0) + (pl.d2?.matches ?? 0) + (pl.d3?.matches ?? 0);
-        state[p.id] = { last: takenAt, fails: 0, ...nextActivity(prev, curMatches) };
+        // Hot flag: for pros whose Steam status is visible, presenceHot owns it -
+        // just carry it through. For private/undetectable pros, fall back to the
+        // game-count delta so they can still go hot when their games jump.
+        if (prev.presence && prev.presence !== "unknown") {
+          state[p.id] = { last: takenAt, fails: 0, presence: prev.presence, matches: curMatches, hot: prev.hot ?? false, idle: prev.idle ?? 0 };
+        } else {
+          state[p.id] = { last: takenAt, fails: 0, presence: prev.presence, ...nextActivity(prev, curMatches) };
+        }
       }
       else if (row.status === "no-data") state[p.id] = { ...prev, last: prev.last ?? null, fails: (prev.fails ?? 0) + 1 };
       else state[p.id] = prev;
