@@ -66,12 +66,19 @@ function extractInPage(names) {
   return out;
 }
 
-// Block only heavy media (NOT stylesheets/scripts - blocking CSS stops the app
-// from hydrating the profile data we need).
+// Third-party ad / analytics / tracking hosts - pure bandwidth waste, never
+// needed to hydrate the profile data. Blocking them (plus heavy media) cuts the
+// bytes per scrape, which matters on metered proxies.
+const BLOCK_HOSTS = /(google-analytics|googletagmanager|doubleclick|googlesyndication|google-adservices|adservice\.google|facebook\.(net|com)|connect\.facebook|hotjar|sentry|amplitude|segment\.(io|com)|mixpanel|scorecardresearch|quantserve|adnxs|adsystem|taboola|outbrain|criteo|pubmatic|rubiconproject|casalemedia|bidswitch|clarity\.ms|cloudflareinsights|fullstory|newrelic|nr-data)/i;
+// Block heavy media + ad/analytics traffic. Keep stylesheets/scripts - blocking
+// CSS stops the app from hydrating the profile data we need.
 const blockAssets = (page) =>
-  page.route("**/*", (route) =>
-    ["image", "font", "media"].includes(route.request().resourceType()) ? route.abort() : route.continue()
-  );
+  page.route("**/*", (route) => {
+    const req = route.request();
+    if (["image", "font", "media"].includes(req.resourceType())) return route.abort();
+    if (BLOCK_HOSTS.test(req.url())) return route.abort();
+    return route.continue();
+  });
 
 async function scrapeOnce(ctx, id) {
   const page = await ctx.newPage();
@@ -154,6 +161,7 @@ function selectDue(players, prio, state, now) {
   const ranks = playerRanks(players, prio);
   const scored = players.map((p) => {
     let interval = (prio.players?.[p.id] ?? defaultHours) * 3600e3;
+    interval *= prio.intervalMultiplier ?? 1; // global dial to trade freshness for proxy bandwidth
     const st = state[p.id] ?? {};
     if ((st.fails ?? 0) >= 3) interval *= 6; // back off chronically failing profiles
     const last = st.last ? Date.parse(st.last) : 0;
