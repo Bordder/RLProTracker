@@ -119,10 +119,27 @@ const readJson = async (f, fallback) => { try { return JSON.parse(await readFile
 // Cloudflare from trusted IPs. All values come from CI secrets, never the repo.
 // Returns [null] (direct connection) when no proxy is configured.
 function parseProxies() {
+  const out = [];
+  // Format A: PROXY_LIST - one proxy per line or comma. Accepts "host:port:user:pass",
+  // "host:port" (uses PROXY_USER/PASS), or "http://user:pass@host:port". Lets us mix
+  // proxies from several providers to spread bandwidth across their separate caps.
+  const list = process.env.PROXY_LIST;
+  if (list) {
+    for (const raw of list.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean)) {
+      const url = raw.match(/^https?:\/\/(?:([^:@]+):([^@]+)@)?([^:/]+):(\d+)/);
+      if (url) { out.push({ server: `http://${url[3]}:${url[4]}`, username: url[1], password: url[2] }); continue; }
+      const p = raw.split(":");
+      if (p.length >= 4) out.push({ server: `http://${p[0]}:${p[1]}`, username: p[2], password: p.slice(3).join(":") });
+      else if (p.length === 2) out.push({ server: `http://${p[0]}:${p[1]}`, username: process.env.PROXY_USER, password: process.env.PROXY_PASS });
+    }
+  }
+  // Format B: PROXY_HOST + PROXY_PORTS (one host, many ports, shared creds) - Oxylabs setup.
   const host = process.env.PROXY_HOST, ports = process.env.PROXY_PORTS;
-  const username = process.env.PROXY_USER, password = process.env.PROXY_PASS;
-  if (!host || !ports) return [null];
-  return ports.split(",").map((pt) => ({ server: `http://${host}:${pt.trim()}`, username, password }));
+  if (host && ports) {
+    const username = process.env.PROXY_USER, password = process.env.PROXY_PASS;
+    for (const pt of ports.split(",")) out.push({ server: `http://${host}:${pt.trim()}`, username, password });
+  }
+  return out.length ? out : [null];
 }
 
 // Roughly how far apart runs are; used to stagger same-interval players into
