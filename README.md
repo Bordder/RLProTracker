@@ -9,7 +9,6 @@
   <a href="https://github.com/Bordder/RLProTracker/actions/workflows/steam.yml"><img src="https://github.com/Bordder/RLProTracker/actions/workflows/steam.yml/badge.svg" alt="Steam update"></a>
   <a href="https://github.com/Bordder/RLProTracker/actions/workflows/roster.yml"><img src="https://github.com/Bordder/RLProTracker/actions/workflows/roster.yml/badge.svg" alt="Roster refresh"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A520-339933?logo=node.js&logoColor=white" alt="Node 20+">
-  <img src="https://img.shields.io/badge/dependencies-0-blue" alt="Zero dependencies">
 </p>
 
 ## About
@@ -34,9 +33,9 @@ The project has two halves that stay decoupled:
 
 ```
 Data collection (scheduled)              Website (static)
-  roster job (3 days) -> Steam IDs         index.html
-  steam job  (daily)  -> playtime  -->     reads the JSON at runtime
-  tracker job (20 min)-> MMR + games       renders player and team tables
+roster job (3 days) -> Steam IDs         index.html
+steam job  (daily)  -> playtime  -->     reads the JSON at runtime
+tracker job (20 min)-> MMR + games       renders player and team tables
 ```
 
 Scheduled jobs write JSON into the repository. The website fetches that JSON at load time, so new data appears without rebuilding or redeploying the site.
