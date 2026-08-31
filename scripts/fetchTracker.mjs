@@ -41,6 +41,19 @@ const HOT_THRESHOLD = 3; // new ranked games since last scrape that flags an act
 const COOL_AFTER = 2;    // consecutive scrapes with no new games before a hot player cools off
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// Given a player's previous activity state and their current cumulative ranked
+// match count, return the next {matches, hot, idle}. A jump of >= HOT_THRESHOLD
+// flags a live session; once hot, stay hot while games keep coming and cool off
+// after COOL_AFTER scrapes with no new games. Pure - unit-tested.
+export function nextActivity(prev, curMatches) {
+  const newGames = prev?.matches != null ? Math.max(0, curMatches - prev.matches) : 0;
+  let hot = prev?.hot ?? false, idle = prev?.idle ?? 0;
+  if (newGames >= HOT_THRESHOLD) { hot = true; idle = 0; }
+  else if (newGames > 0) { idle = 0; } // still trickling games - hold current state
+  else { idle = (prev?.idle ?? 0) + 1; if (idle >= COOL_AFTER) hot = false; }
+  return { matches: curMatches, hot, idle };
+}
+
 // Resolve as soon as the profile is decided: "ok" (playlist segments present)
 // or "err" (tracker returned a status/error, e.g. 400/404 while its collector
 // is refreshing). Returning "err" lets us fail fast and retry on another proxy
@@ -259,12 +272,7 @@ async function main() {
         // hot while games keep coming, cool off after COOL_AFTER empty scrapes.
         const pl = row.playlists;
         const curMatches = (pl.d1?.matches ?? 0) + (pl.d2?.matches ?? 0) + (pl.d3?.matches ?? 0);
-        const newGames = prev.matches != null ? Math.max(0, curMatches - prev.matches) : 0;
-        let hot = prev.hot ?? false, idle = prev.idle ?? 0;
-        if (newGames >= HOT_THRESHOLD) { hot = true; idle = 0; }
-        else if (newGames > 0) { idle = 0; } // still trickling games - hold current state
-        else { idle = (prev.idle ?? 0) + 1; if (idle >= COOL_AFTER) hot = false; }
-        state[p.id] = { last: takenAt, fails: 0, matches: curMatches, hot, idle };
+        state[p.id] = { last: takenAt, fails: 0, ...nextActivity(prev, curMatches) };
       }
       else if (row.status === "no-data") state[p.id] = { ...prev, last: prev.last ?? null, fails: (prev.fails ?? 0) + 1 };
       else state[p.id] = prev;

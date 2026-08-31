@@ -3,7 +3,7 @@
 // Run with: npm test
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { selectDue, playerRanks, RUN_SPACING_MS } from "../scripts/fetchTracker.mjs";
+import { selectDue, playerRanks, RUN_SPACING_MS, nextActivity } from "../scripts/fetchTracker.mjs";
 
 const HOUR = 3600e3;
 const ids = (players) => players.map((p) => p.id).sort();
@@ -56,6 +56,30 @@ test("perRun caps the number selected", () => {
   const now = RUN_SPACING_MS * 1000;
   const due = selectDue(players, prio(3), {}, now); // 20 never-fetched, perRun 3
   assert.equal(due.length, 3);
+});
+
+test("nextActivity: full hot/cool lifecycle over a session", () => {
+  // first scrape ever: just records the count, not hot
+  let s = nextActivity({}, 100);
+  assert.deepEqual(s, { matches: 100, hot: false, idle: 1 });
+  // plays 4 games since last scrape (>= threshold 3) -> HOT
+  s = nextActivity(s, 104);
+  assert.deepEqual(s, { matches: 104, hot: true, idle: 0 });
+  // one more game -> stays hot, idle reset
+  s = nextActivity(s, 105);
+  assert.deepEqual(s, { matches: 105, hot: true, idle: 0 });
+  // no new games (between games / stopped) -> still hot, idle 1 (grace)
+  s = nextActivity(s, 105);
+  assert.deepEqual(s, { matches: 105, hot: true, idle: 1 });
+  // still no new games -> idle hits COOL_AFTER (2) -> cools off
+  s = nextActivity(s, 105);
+  assert.deepEqual(s, { matches: 105, hot: false, idle: 2 });
+});
+
+test("nextActivity: fewer than 3 new games does not flip a cold player hot", () => {
+  const s = nextActivity({ matches: 200, hot: false, idle: 3 }, 202); // +2 games
+  assert.equal(s.hot, false);
+  assert.equal(s.idle, 0); // activity resets the idle counter though
 });
 
 test("a hot player refreshes on the fast interval, not the slow base one", () => {
