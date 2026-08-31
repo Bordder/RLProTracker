@@ -37,7 +37,7 @@ const PER_PROXY_DELAY = 1000; // small gap between a worker's consecutive loads
 const DEFAULT_POOL = 1;
 // Adaptive "hot" refresh: a player whose ranked game count jumps is queuing now,
 // so refresh them fast (their MMR is moving) until they stop.
-const HOT_THRESHOLD = 3; // new ranked games since last scrape that flags an active session
+const HOT_THRESHOLD = 2; // new ranked games since last scrape that flags an active session
 const COOL_AFTER = 2;    // consecutive scrapes with no new games before a hot player cools off
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 

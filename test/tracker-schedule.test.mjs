@@ -76,10 +76,16 @@ test("nextActivity: full hot/cool lifecycle over a session", () => {
   assert.deepEqual(s, { matches: 105, hot: false, idle: 2 });
 });
 
-test("nextActivity: fewer than 3 new games does not flip a cold player hot", () => {
+test("nextActivity: a jump of >= 2 games flips a cold player hot", () => {
   const s = nextActivity({ matches: 200, hot: false, idle: 3 }, 202); // +2 games
+  assert.equal(s.hot, true);
+  assert.equal(s.idle, 0);
+});
+
+test("nextActivity: a single new game does not flip hot (below threshold)", () => {
+  const s = nextActivity({ matches: 200, hot: false, idle: 1 }, 201); // +1 game
   assert.equal(s.hot, false);
-  assert.equal(s.idle, 0); // activity resets the idle counter though
+  assert.equal(s.idle, 0); // activity still resets the idle counter
 });
 
 test("a hot player refreshes on the fast interval, not the slow base one", () => {
