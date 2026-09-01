@@ -16,3 +16,10 @@ crons = ["*/5 * * * *"]
 GH_OWNER = "Bordder"
 GH_REPO  = "RLProTracker"
 GH_REF   = "main"
+
+# Without this, the dashboard log stream stays empty - including the invocation
+# lines that tell you whether the cron fired at all, which is the first thing
+# you want when a scheduled Worker looks dead.
+[observability.logs]
+enabled = true
+invocation_logs = true
