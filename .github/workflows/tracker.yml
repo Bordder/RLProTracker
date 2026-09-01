@@ -25,7 +25,7 @@ jobs:
     timeout-minutes: 25 # hard cap so a hung browser/proxy can't run for the 6h default
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
 
