@@ -123,11 +123,20 @@ async function scrapeOnce(ctx, id) {
 // Try each attempt on a DIFFERENT proxy so one flaky proxy (tunnel failure,
 // transient 400, slow collector) doesn't cost us the player. startIdx staggers
 // which proxy each player begins on.
-async function scrapePlayer(contexts, startIdx, id) {
+// Each context has its own cache, so every context used in a run re-downloads
+// the ~865 KB tracker app bundle. Keeping the normal path inside a small
+// working set means the bundle is fetched a few times per run instead of once
+// per proxy; the remaining proxies stay available, but only for retries, so
+// failover is unchanged while ~40% of the bandwidth disappears.
+async function scrapePlayer(contexts, startIdx, id, workingSet = contexts.length) {
   let lastErr;
+  const primary = Math.max(1, Math.min(workingSet, contexts.length));
   const tries = Math.min(ATTEMPTS, contexts.length);
   for (let a = 0; a < tries; a++) {
-    const ctx = contexts[(startIdx + a) % contexts.length];
+    // attempt 0 rotates within the working set; retries may use any proxy
+    const ctx = a === 0
+      ? contexts[startIdx % primary]
+      : contexts[(startIdx + a) % contexts.length];
     try {
       const d = await scrapeOnce(ctx, id);
       if (d) return d;
@@ -265,7 +274,7 @@ async function main() {
       const p = players[idx];
       const row = { id: p.id, name: p.name, team: p.team, steamId64: p.steamId64, status: "ok", playlists: null };
       try {
-        row.playlists = await scrapePlayer(contexts, idx, p.steamId64);
+        row.playlists = await scrapePlayer(contexts, idx, p.steamId64, pool);
         if (!row.playlists) row.status = "no-data";
       } catch (e) {
         row.status = `error: ${e.message.split("\n")[0].slice(0, 50)}`;
