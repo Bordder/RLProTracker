@@ -29,12 +29,12 @@
     "idle": 0
   },
   "gentle-mates-oski": {
-    "last": "2026-08-31T21:20:49.219Z",
+    "last": "2026-09-01T00:20:52.037Z",
     "fails": 0,
+    "presence": "out",
     "matches": 939,
     "hot": false,
-    "idle": 1,
-    "presence": "out"
+    "idle": 1
   },
   "team-vitality-zen": {
     "last": "2026-08-31T21:40:49.398Z",
@@ -63,12 +63,12 @@
     "presence": "unknown"
   },
   "team-falcons-rw9": {
-    "last": "2026-08-31T21:20:49.219Z",
+    "last": "2026-09-01T00:20:52.037Z",
     "fails": 0,
-    "matches": 1379,
+    "presence": "out",
+    "matches": 1386,
     "hot": false,
-    "idle": 1,
-    "presence": "out"
+    "idle": 1
   },
   "team-falcons-kiileerrz": {
     "last": "2026-08-31T21:03:09.608Z",
@@ -195,7 +195,9 @@
   "ninjas-in-pyjamas-oaly": {
     "last": "2026-08-31T14:20:55.301Z",
     "fails": 0,
-    "presence": "out"
+    "presence": "in",
+    "hot": true,
+    "idle": 0
   },
   "man-city-esports-ejby": {
     "last": "2026-08-31T00:40:55.312Z",
@@ -340,8 +342,8 @@
   "bigodes-bemmz": {
     "last": "2026-08-31T00:01:03.018Z",
     "fails": 0,
-    "presence": "in",
+    "presence": "out",
     "hot": true,
-    "idle": 0
+    "idle": 1
   }
 }
