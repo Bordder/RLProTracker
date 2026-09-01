@@ -15,6 +15,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
+import { appendRows, countReadings } from "./trackerHistory.mjs";
 import { chromium } from "playwright-extra";
 import stealth from "puppeteer-extra-plugin-stealth";
 
@@ -299,12 +300,16 @@ async function main() {
 
   await browser.close();
 
-  await mkdir(join(ROOT, "data", "tracker-snapshots"), { recursive: true });
-  const file = join(ROOT, "data", "tracker-snapshots", `tracker-${takenAt.replace(/[:.]/g, "-")}.json`);
-  await writeFile(file, JSON.stringify({ takenAt, rows }, null, 2));
+  // Fold this run into the rolling history instead of writing another snapshot
+  // file. See scripts/trackerHistory.mjs: one file updated in place stays small
+  // and delta-compresses, where a file per run grew the repo ~9 MB a day here.
+  const HISTORY_FILE = join(ROOT, "data", "tracker-history.json");
+  const takenAtMs = Date.parse(takenAt);
+  const history = appendRows(await readJson(HISTORY_FILE, {}), takenAtMs, rows);
+  await writeFile(HISTORY_FILE, JSON.stringify(history));
   await writeFile(STATE_FILE, JSON.stringify(state, null, 2));
   const ok = rows.filter((r) => r.playlists).length;
-  console.log(`\ntracker snapshot: ${file}\n${ok}/${rows.length} scraped ok`);
+  console.log(`\ntracker history: ${countReadings(history)} readings / ${Object.keys(history.players).length} players\n${ok}/${rows.length} scraped ok`);
 }
 
 // Run only when invoked directly (so the scheduler can be imported for tests).
