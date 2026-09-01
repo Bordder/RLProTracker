@@ -382,7 +382,7 @@
   // Drop a file at web/img/teams/<slug>.<ext> and list its extension here to
   // use a real org logo; anything not listed falls back to a tinted monogram.
   // Slugs come from teamSlug() below, e.g. "Ninjas in Pyjamas" -> ninjas-in-pyjamas.
-  var TEAM_LOGO={};   // e.g. {'team-vitality':'svg','nrg':'png'}
+  var TEAM_LOGO={'karmine-corp':'png','gentle-mates':'png','team-vitality':'png','ninjas-in-pyjamas':'png','man-city-esports':'png','nrg':'png','shopify-rebellion':'png','spacestation-gaming':'png','mibr':'png','furia':'png','twisted-minds':'png','wildcard':'png','virtuspro':'png','team-falcons':'png','tsm':'png','five-fears':'png','r8-esports':'png','fut-esports':'png'};
   var LOGO_DIR='img/teams/';
 
   var teamSlug=function(name){
@@ -542,7 +542,7 @@
       var a=t.avgMmr||{};
       return '<tr class="team-row '+(t.ranked?'':'isnorank')+'" data-team="'+esc(t.team)+'" tabindex="0" aria-expanded="false">'+
         '<td class="c-rk">'+rankMark(t.__rank)+'</td>'+
-        '<td class="c-who">'+teamMark(t.team,'tm')+'<span class="nm"><b>'+esc(t.team)+'</b><i>'+(t.tracked!=null?t.tracked:0)+'/'+(t.players!=null?t.players:0)+' tracked</i></span></td>'+
+        '<td class="c-who">'+teamMark(t.team,'tm')+'<span class="nm"><b>'+esc(t.team)+'</b></span></td>'+
         '<td class="c-rg">'+regionChip(t.region)+'</td>'+
         '<td class="c-fill"></td>'+
         mmrCell(a.ones)+mmrCell(a.twos)+mmrCell(a.threes)+

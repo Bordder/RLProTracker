@@ -3,7 +3,7 @@
 // No dependencies.  Usage:  node scripts/serve.mjs   (default port 5173)
 
 import { createServer } from "node:http";
-import { readFile, readdir, mkdir, copyFile } from "node:fs/promises";
+import { readFile, readdir, mkdir, copyFile, rename } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join, normalize, extname } from "node:path";
 
@@ -12,13 +12,35 @@ const WEB = join(ROOT, "web");
 const PORT = process.env.PORT || 5173;
 const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".css": "text/css", ".svg": "image/svg+xml" };
 
-// copy latest derived data into web/ before serving
-async function syncData() {
+// Copy latest derived data into web/ before serving.
+//
+// The page fetches its JSON files in parallel, so several requests land at once
+// and would each start a copy. Copying onto a file that another request is busy
+// reading serves a half-written body, which shows up as a JSON parse error and
+// an empty table. Two things prevent that: writes go to a temp file and are
+// renamed into place (a reader sees either the old file or the new one, never a
+// partial one), and concurrent callers share a single in-flight run.
+let syncing = null;
+
+async function copyDerived() {
   const src = join(ROOT, "data", "derived");
   const dest = join(WEB, "data", "derived");
   await mkdir(dest, { recursive: true });
-  try { for (const f of await readdir(src)) if (f.endsWith(".json")) await copyFile(join(src, f), join(dest, f)); } catch {}
+  try {
+    for (const f of await readdir(src)) {
+      if (!f.endsWith(".json")) continue;
+      const tmp = join(dest, `.${f}.tmp`);
+      await copyFile(join(src, f), tmp);
+      await rename(tmp, join(dest, f));   // atomic swap
+    }
+  } catch {}
 }
+
+function syncData() {
+  if (!syncing) syncing = copyDerived().finally(() => { syncing = null; });
+  return syncing;
+}
+
 await syncData();
 
 createServer(async (req, res) => {
