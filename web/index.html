@@ -202,11 +202,13 @@
 
   /* ---- Team marks: a real logo when one is supplied, else a tinted monogram ---- */
   .av.mk{background:var(--mk,var(--panel2));color:var(--mkfg,var(--slate));border-color:var(--mkline,var(--line2))}
-  .av.mk.logo{background:var(--panel2);padding:0;overflow:hidden}
-  /* Inset the artwork so a tall logo does not run edge to edge in the tile.
-     Square marks carry their own whitespace; portrait ones (Vitality, Falcons)
-     would otherwise sit noticeably larger than everything around them. */
-  .av.mk.logo img{width:100%;height:100%;object-fit:contain;display:block;padding:3px}
+  .av.mk.logo{padding:0;overflow:hidden;position:relative}
+  /* The monogram stays underneath as the fallback: if the logo file is missing
+     the img removes itself and the tinted initials show through, instead of a
+     broken-image icon. Inset the artwork so a tall logo does not run edge to
+     edge - square marks carry their own whitespace, portrait ones (Vitality,
+     Falcons) would otherwise sit noticeably larger than everything around them. */
+  .av.mk.logo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;padding:3px;background:var(--panel2)}
 
   /* ---- Footer extras: links, feedback, credit ---- */
   .note .deflist{margin:0 0 8px;padding-left:18px;list-style:none}
@@ -405,13 +407,12 @@
   var teamHue=function(name){ return TEAM_HUE[name]!=null?TEAM_HUE[name]:0; };
   var teamMark=function(name,extraClass){
     var cls='av '+(extraClass||'')+' mk';
-    var slug=teamSlug(name), ext=TEAM_LOGO[slug];
-    if(ext){
-      return '<span class="'+cls+' logo"><img src="'+esc(LOGO_DIR+slug+'.'+ext)+'" alt="" loading="lazy" decoding="async"></span>';
-    }
     var h=teamHue(name);
     var style='--mk:hsl('+h+' 42% 17%);--mkfg:hsl('+h+' 70% 68%);--mkline:hsl('+h+' 45% 32%)';
-    return '<span class="'+cls+'" style="'+style+'" aria-hidden="true">'+esc(initials(name))+'</span>';
+    var slug=teamSlug(name), ext=TEAM_LOGO[slug];
+    // The monogram is always rendered; a logo, when there is one, covers it.
+    return '<span class="'+cls+(ext?' logo':'')+'" style="'+style+'" aria-hidden="true">'+esc(initials(name))+
+      (ext?'<img src="'+esc(LOGO_DIR+slug+'.'+ext)+'" alt="" loading="lazy" decoding="async">':'')+'</span>';
   };
   var regionChip=function(r){ return r?'<span class="rg '+(REGION_CLASS[r]||'')+'">'+esc(r)+'</span>':'<span class="dash">&middot;</span>'; };
 
@@ -446,6 +447,16 @@
     });
 
     assignTeamHues(teams.map(function(t){return t.team;}).concat(players.map(function(p){return p.team;})));
+
+    // A logo that fails to load drops back to the monogram underneath it.
+    // Capture phase: img error events do not bubble.
+    document.addEventListener('error',function(e){
+      var img=e.target;
+      if(img&&img.tagName==='IMG'&&img.parentNode&&img.parentNode.classList.contains('logo')){
+        img.parentNode.classList.remove('logo');
+        img.parentNode.removeChild(img);
+      }
+    },true);
 
     // ---- rank by 2v2 MMR (players by their twos, teams by avg twos) ----
     var assignRank=function(arr,key){ arr.filter(function(x){return key(x)!=null;}).sort(function(a,b){return key(b)-key(a);}).forEach(function(x,i){x.__rank=i+1;}); };
