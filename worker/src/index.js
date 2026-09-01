@@ -42,7 +42,42 @@ function trackerDue(scheduledTime) {
     Math.floor((scheduledTime - TICK_MS) / TRACKER_EVERY_MS);
 }
 
+
+// Read-only health check, served at the Worker's URL. Reports whether the token
+// binding exists and whether GitHub accepts it for this repo, using a GET
+// against the workflow - it starts nothing, so exposing it publicly is safe.
+async function check(env, workflow) {
+  if (!env.GH_TOKEN) return { workflow, error: "GH_TOKEN binding missing" };
+  const url = `https://api.github.com/repos/${env.GH_OWNER}/${env.GH_REPO}` +
+    `/actions/workflows/${workflow}`;
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${env.GH_TOKEN}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "rlprotracker-cron",
+    },
+  });
+  const body = await res.text();
+  return { workflow, status: res.status, body: body.slice(0, 300) };
+}
+
 export default {
+  async fetch(request, env) {
+    const results = await Promise.all([
+      check(env, "presence.yml"),
+      check(env, "tracker.yml"),
+    ]);
+    return Response.json({
+      ok: results.every((r) => r.status === 200),
+      tokenPresent: Boolean(env.GH_TOKEN),
+      owner: env.GH_OWNER,
+      repo: env.GH_REPO,
+      ref: env.GH_REF,
+      results,
+    }, { headers: { "cache-control": "no-store" } });
+  },
+
   async scheduled(event, env, ctx) {
     const jobs = [dispatch(env, "presence.yml")];
     if (trackerDue(event.scheduledTime)) {
