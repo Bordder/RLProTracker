@@ -200,6 +200,11 @@
   table.mini .best{position:relative}
   table.mini .best::after{content:"";position:absolute;right:6px;top:50%;width:3px;height:3px;border-radius:50%;background:var(--accent);transform:translateY(-50%)}
 
+  /* ---- Team marks: a real logo when one is supplied, else a tinted monogram ---- */
+  .av.mk{background:var(--mk,var(--panel2));color:var(--mkfg,var(--slate));border-color:var(--mkline,var(--line2))}
+  .av.mk.logo{background:var(--panel2);padding:0;overflow:hidden}
+  .av.mk.logo img{width:100%;height:100%;object-fit:contain;display:block}
+
   /* ---- Footer extras: links, feedback, credit ---- */
   .note .deflist{margin:0 0 8px;padding-left:18px;list-style:none}
   .note .deflist li{position:relative;margin:0 0 5px}
@@ -372,6 +377,39 @@
     'Five Fears':'OCE'
   };
   var REGION_CLASS={EU:'rg-eu',NA:'rg-na',SAM:'rg-sam',MENA:'rg-mena',OCE:'rg-oce',APAC:'rg-apac'};
+
+  // ---- Team marks -------------------------------------------------------
+  // Drop a file at web/img/teams/<slug>.<ext> and list its extension here to
+  // use a real org logo; anything not listed falls back to a tinted monogram.
+  // Slugs come from teamSlug() below, e.g. "Ninjas in Pyjamas" -> ninjas-in-pyjamas.
+  var TEAM_LOGO={};   // e.g. {'team-vitality':'svg','nrg':'png'}
+  var LOGO_DIR='img/teams/';
+
+  var teamSlug=function(name){
+    return String(name||'').toLowerCase()
+      .replace(/[’'".]/g,'')
+      .replace(/[^a-z0-9]+/g,'-')
+      .replace(/^-+|-+$/g,'');
+  };
+  // Hues are spread evenly across the roster rather than hashed: with ~20 orgs a
+  // hash puts several within a few degrees of each other and they read as the
+  // same colour. Assigned over the sorted team list, so it is stable per season.
+  var TEAM_HUE={};
+  var assignTeamHues=function(names){
+    var uniq=names.filter(function(n){return n;}).filter(function(v,i,a){return a.indexOf(v)===i;}).sort();
+    uniq.forEach(function(n,i){ TEAM_HUE[n]=Math.round(i*360/uniq.length); });
+  };
+  var teamHue=function(name){ return TEAM_HUE[name]!=null?TEAM_HUE[name]:0; };
+  var teamMark=function(name,extraClass){
+    var cls='av '+(extraClass||'')+' mk';
+    var slug=teamSlug(name), ext=TEAM_LOGO[slug];
+    if(ext){
+      return '<span class="'+cls+' logo"><img src="'+esc(LOGO_DIR+slug+'.'+ext)+'" alt="" loading="lazy" decoding="async"></span>';
+    }
+    var h=teamHue(name);
+    var style='--mk:hsl('+h+' 42% 17%);--mkfg:hsl('+h+' 70% 68%);--mkline:hsl('+h+' 45% 32%)';
+    return '<span class="'+cls+'" style="'+style+'" aria-hidden="true">'+esc(initials(name))+'</span>';
+  };
   var regionChip=function(r){ return r?'<span class="rg '+(REGION_CLASS[r]||'')+'">'+esc(r)+'</span>':'<span class="dash">&middot;</span>'; };
 
   var DATA_BASE=window.__DATA_BASE__||"./data/derived";
@@ -403,6 +441,8 @@
         avgMmr:tt.avgMmr||null, seasonGames:tt.seasonGames!=null?tt.seasonGames:null,
         hours2wk:t.steam2wkHours, totalHours:t.totalHours };
     });
+
+    assignTeamHues(teams.map(function(t){return t.team;}).concat(players.map(function(p){return p.team;})));
 
     // ---- rank by 2v2 MMR (players by their twos, teams by avg twos) ----
     var assignRank=function(arr,key){ arr.filter(function(x){return key(x)!=null;}).sort(function(a,b){return key(b)-key(a);}).forEach(function(x,i){x.__rank=i+1;}); };
@@ -485,7 +525,7 @@
       var mmr=p.hasMmr?(mmrCell(p.mmr.ones)+mmrCell(p.mmr.twos)+mmrCell(p.mmr.threes)):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
       return '<tr class="'+(p.hasMmr?'':'isnorank')+'">'+
         '<td class="c-rk">'+rankMark(p.__rank)+'</td>'+
-        '<td class="c-who"><span class="av'+(p.hasMmr?' has':'')+'">'+esc(initials(p.name))+'</span><span class="nm"><b>'+esc(p.name)+'</b><i>'+esc(p.team||'Free agent')+'</i></span></td>'+
+        '<td class="c-who">'+teamMark(p.team)+'<span class="nm"><b>'+esc(p.name)+'</b><i>'+esc(p.team||'Free agent')+'</i></span></td>'+
         '<td class="c-rg">'+regionChip(p.region)+'</td>'+
         '<td class="c-st">'+statusChip(p.status)+'</td>'+mmr+
         '<td class="c-sg">'+(p.seasonGames!=null?'<span class="sgv">'+nf(p.seasonGames)+'</span>':'<span class="dash">&middot;</span>')+'</td>'+
@@ -502,7 +542,7 @@
       var a=t.avgMmr||{};
       return '<tr class="team-row '+(t.ranked?'':'isnorank')+'" data-team="'+esc(t.team)+'" tabindex="0" aria-expanded="false">'+
         '<td class="c-rk">'+rankMark(t.__rank)+'</td>'+
-        '<td class="c-who"><span class="av tm'+(t.ranked?' has':'')+'">'+esc(initials(t.team))+'</span><span class="nm"><b>'+esc(t.team)+'</b><i>'+(t.tracked!=null?t.tracked:0)+'/'+(t.players!=null?t.players:0)+' tracked</i></span></td>'+
+        '<td class="c-who">'+teamMark(t.team,'tm')+'<span class="nm"><b>'+esc(t.team)+'</b><i>'+(t.tracked!=null?t.tracked:0)+'/'+(t.players!=null?t.players:0)+' tracked</i></span></td>'+
         '<td class="c-rg">'+regionChip(t.region)+'</td>'+
         '<td class="c-fill"></td>'+
         mmrCell(a.ones)+mmrCell(a.twos)+mmrCell(a.threes)+
