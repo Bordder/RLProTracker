@@ -290,10 +290,10 @@
   "furia-swiftt": {
     "last": "2026-09-01T04:01:16.012Z",
     "fails": 0,
-    "presence": "in",
+    "presence": "out",
     "matches": 805,
     "hot": true,
-    "idle": 0
+    "idle": 1
   },
   "wildcard-torsos": {
     "last": "2026-08-31T07:01:07.651Z",
@@ -308,7 +308,9 @@
   "wildcard-bananahead": {
     "last": "2026-08-31T06:20:54.003Z",
     "fails": 0,
-    "presence": "out"
+    "presence": "in",
+    "hot": true,
+    "idle": 0
   },
   "tsm-kevin": {
     "last": "2026-08-31T05:41:00.683Z",
