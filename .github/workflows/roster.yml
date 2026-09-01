@@ -1,4 +1,4 @@
-name: Roster refresh (3-day)
+name: Roster refresh (daily)
 
 # Rebuilds player -> SteamID mapping from Liquipedia every 3 days.
 # Rosters change rarely, so this cadence is plenty and stays far under
@@ -7,7 +7,7 @@ name: Roster refresh (3-day)
 
 on:
   schedule:
-    - cron: "0 6 */3 * *" # 06:00 UTC every 3rd day
+    - cron: "0 6 * * *" # 06:00 UTC daily
   workflow_dispatch: {}
 
 permissions:

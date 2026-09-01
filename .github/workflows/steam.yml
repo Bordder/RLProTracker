@@ -1,4 +1,4 @@
-name: Daily Steam update
+name: Steam update (hourly)
 
 # Collects Steam playtime once a day (hours change slowly), then commits the
 # refreshed JSON back to the repo so the site reads current data.
