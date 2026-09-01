@@ -1,0 +1,84 @@
+// Check every configured proxy: is the tunnel alive, what IP does it exit from,
+// and does tracker.gg accept it? Reads the same env vars as the scraper, so it
+// tells you which endpoints are actually usable right now.
+//
+// Usage:  node scripts/checkProxies.mjs
+//   PROXY_LIST="host:port:user:pass,..."   or
+//   PROXY_HOST=... PROXY_PORTS=1,2,3 PROXY_USER=... PROXY_PASS=...
+
+import { chromium } from "playwright-extra";
+import stealth from "puppeteer-extra-plugin-stealth";
+chromium.use(stealth());
+
+const TEST_URL = "https://rocketleague.tracker.network/rocket-league/profile/steam/76561198960239428/overview";
+const IP_URL = "https://api.ipify.org?format=json";
+
+function parseProxies() {
+  const out = [];
+  const list = process.env.PROXY_LIST;
+  if (list) {
+    for (const raw of list.split(",").map((s) => s.trim()).filter(Boolean)) {
+      const url = raw.match(/^https?:\/\/([^:]+):([^@]+)@([^:]+):(\d+)$/);
+      if (url) { out.push({ server: `http://${url[3]}:${url[4]}`, username: url[1], password: url[2] }); continue; }
+      const p = raw.split(":");
+      if (p.length >= 4) out.push({ server: `http://${p[0]}:${p[1]}`, username: p[2], password: p.slice(3).join(":") });
+    }
+    return out;
+  }
+  const host = process.env.PROXY_HOST, ports = process.env.PROXY_PORTS;
+  if (host && ports) {
+    const username = process.env.PROXY_USER, password = process.env.PROXY_PASS;
+    for (const pt of ports.split(",")) out.push({ server: `http://${host}:${pt.trim()}`, username, password });
+  }
+  return out;
+}
+
+const proxies = parseProxies();
+if (!proxies.length) { console.error("No proxies configured (set PROXY_LIST or PROXY_HOST/PROXY_PORTS)."); process.exit(1); }
+
+console.log(`testing ${proxies.length} proxies\n`);
+const browser = await chromium.launch({ headless: true });
+const results = [];
+
+for (const [i, proxy] of proxies.entries()) {
+  const label = proxy.server.replace(/^http:\/\//, "");
+  const row = { label, tunnel: "?", exitIp: "-", tracker: "-", ms: 0 };
+  let ctx;
+  try {
+    ctx = await browser.newContext({ proxy, userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" });
+    const page = await ctx.newPage();
+
+    // 1. is the tunnel alive, and what IP do we exit from?
+    const t0 = Date.now();
+    try {
+      const r = await page.goto(IP_URL, { timeout: 20000 });
+      row.exitIp = JSON.parse(await r.text()).ip;
+      row.tunnel = "alive";
+    } catch (e) {
+      row.tunnel = e.message.match(/net::(\w+)/)?.[1] ?? e.message.slice(0, 30);
+      results.push(row); await ctx.close(); continue;
+    }
+    row.ms = Date.now() - t0;
+
+    // 2. does tracker.gg serve us, or does Cloudflare reject this IP?
+    try {
+      const r = await page.goto(TEST_URL, { waitUntil: "domcontentloaded", timeout: 30000 });
+      const status = r.status();
+      const ok = await page.evaluate(() => !!window.__INITIAL_STATE__?.stats?.standardProfiles);
+      row.tracker = status === 200 ? (ok ? "OK (data present)" : `200 but no data`) : `HTTP ${status}`;
+    } catch (e) {
+      row.tracker = e.message.match(/net::(\w+)/)?.[1] ?? e.message.slice(0, 30);
+    }
+  } catch (e) {
+    row.tunnel = e.message.slice(0, 40);
+  } finally { await ctx?.close(); }
+  results.push(row);
+  console.log(`  ${String(i + 1).padStart(2)}. ${label.padEnd(24)} tunnel=${row.tunnel.padEnd(22)} exit=${row.exitIp.padEnd(16)} tracker=${row.tracker}`);
+}
+
+await browser.close();
+const alive = results.filter((r) => r.tunnel === "alive");
+const usable = results.filter((r) => r.tracker.startsWith("OK"));
+console.log(`\n${alive.length}/${results.length} tunnels alive, ${usable.length}/${results.length} actually usable on tracker.gg`);
+if (alive.length && !usable.length) console.log("Tunnels work but tracker.gg rejects every IP - that is the datacenter-IP problem, not a dead subscription.");
+if (!alive.length) console.log("No tunnel opened at all - credentials, endpoint, or subscription.");
