@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
+  "engines": { "node": ">=20" },
   "description": "Dashboard of professional Rocket League players' ranked statistics and playtime",
   "scripts": {
     "fetch:roster": "node scripts/fetchRoster.mjs",

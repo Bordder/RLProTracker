@@ -8,7 +8,7 @@
   <a href="https://github.com/Bordder/RLProTracker/actions/workflows/tracker.yml"><img src="https://github.com/Bordder/RLProTracker/actions/workflows/tracker.yml/badge.svg" alt="Tracker update"></a>
   <a href="https://github.com/Bordder/RLProTracker/actions/workflows/steam.yml"><img src="https://github.com/Bordder/RLProTracker/actions/workflows/steam.yml/badge.svg" alt="Steam update"></a>
   <a href="https://github.com/Bordder/RLProTracker/actions/workflows/roster.yml"><img src="https://github.com/Bordder/RLProTracker/actions/workflows/roster.yml/badge.svg" alt="Roster refresh"></a>
-  <img src="https://img.shields.io/badge/node-%E2%89%A520-339933?logo=node.js&logoColor=white" alt="Node 20+">
+  <img src="https://img.shields.io/badge/node-%E2%89%A520%20%7C%20CI%2024-339933?logo=node.js&logoColor=white" alt="Node 20 or newer, CI runs Node 24">
 </p>
 
 ## About
@@ -53,7 +53,7 @@ Scheduled jobs write JSON into the repository. The website fetches that JSON at 
 
 ### Prerequisites
 
-- Node.js version 20 or newer
+- Node.js version 20 or newer (the workflows run Node 24, which is what CI verifies)
 - A free Steam Web API key from https://steamcommunity.com/dev/apikey
 
 ### 1. Clone the repository
