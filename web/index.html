@@ -387,6 +387,12 @@
   // Drop a file at web/img/teams/<slug>.<ext> and list its extension here to
   // use a real org logo; anything not listed falls back to a tinted monogram.
   // Slugs come from teamSlug() below, e.g. "Ninjas in Pyjamas" -> ninjas-in-pyjamas.
+  // Per-logo inset override in px (default 3, set in CSS). A few marks are
+  // supplied tight-cropped, with the artwork running to the edge of its own
+  // file: Virtus.pro's shield fills its whole bounding box, so at the shared
+  // inset it renders noticeably larger than marks that carry their own
+  // whitespace. Nudging those individually keeps optical size consistent.
+  var LOGO_INSET={'virtuspro':6};
   var TEAM_LOGO={'karmine-corp':'png','gentle-mates':'png','team-vitality':'png','ninjas-in-pyjamas':'png','man-city-esports':'png','nrg':'png','shopify-rebellion':'png','spacestation-gaming':'png','mibr':'png','furia':'png','twisted-minds':'png','wildcard':'png','virtuspro':'png','team-falcons':'png','tsm':'png','five-fears':'png','r8-esports':'png','fut-esports':'png'};
   var LOGO_DIR='img/teams/';
 
@@ -412,7 +418,8 @@
     var slug=teamSlug(name), ext=TEAM_LOGO[slug];
     // The monogram is always rendered; a logo, when there is one, covers it.
     return '<span class="'+cls+(ext?' logo':'')+'" style="'+style+'" aria-hidden="true">'+esc(initials(name))+
-      (ext?'<img src="'+esc(LOGO_DIR+slug+'.'+ext)+'" alt="" loading="lazy" decoding="async">':'')+'</span>';
+      (ext?'<img src="'+esc(LOGO_DIR+slug+'.'+ext)+'" alt="" loading="lazy" decoding="async"'+
+        (LOGO_INSET[slug]?' style="padding:'+LOGO_INSET[slug]+'px"':'')+'>':'')+'</span>';
   };
   var regionChip=function(r){ return r?'<span class="rg '+(REGION_CLASS[r]||'')+'">'+esc(r)+'</span>':'<span class="dash">&middot;</span>'; };
 
