@@ -19,7 +19,10 @@ async function dispatch(env, workflow) {
   const res = await fetch(url, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${env.GH_TOKEN}`,
+      // Trimmed: a token pasted into the dashboard or a Windows terminal often
+      // carries a trailing newline, and GitHub answers a malformed auth header
+      // with an empty-bodied 400 rather than a 401.
+      Authorization: `Bearer ${env.GH_TOKEN.trim()}`,
       Accept: "application/vnd.github+json",
       "X-GitHub-Api-Version": "2022-11-28",
       "User-Agent": "rlprotracker-cron",
@@ -48,18 +51,24 @@ function trackerDue(scheduledTime) {
 // against the workflow - it starts nothing, so exposing it publicly is safe.
 async function check(env, workflow) {
   if (!env.GH_TOKEN) return { workflow, error: "GH_TOKEN binding missing" };
+  const raw = env.GH_TOKEN;
+  const shape = {
+    length: raw.length,
+    trimmedLength: raw.trim().length,
+    prefix: raw.trim().slice(0, 11),
+  };
   const url = `https://api.github.com/repos/${env.GH_OWNER}/${env.GH_REPO}` +
     `/actions/workflows/${workflow}`;
   const res = await fetch(url, {
     headers: {
-      Authorization: `Bearer ${env.GH_TOKEN}`,
+      Authorization: `Bearer ${env.GH_TOKEN.trim()}`,
       Accept: "application/vnd.github+json",
       "X-GitHub-Api-Version": "2022-11-28",
       "User-Agent": "rlprotracker-cron",
     },
   });
   const body = await res.text();
-  return { workflow, status: res.status, body: body.slice(0, 300) };
+  return { workflow, status: res.status, body: body.slice(0, 300), shape };
 }
 
 export default {
