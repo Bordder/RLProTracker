@@ -21,12 +21,12 @@
     "presence": "out"
   },
   "gentle-mates-nass": {
-    "last": "2026-09-01T00:01:07.139Z",
+    "last": "2026-09-01T00:41:05.810Z",
     "fails": 0,
-    "presence": "in",
-    "matches": 1325,
+    "presence": "out",
+    "matches": 1327,
     "hot": true,
-    "idle": 0
+    "idle": 1
   },
   "gentle-mates-oski": {
     "last": "2026-09-01T00:20:52.037Z",
@@ -76,12 +76,12 @@
     "presence": "out"
   },
   "team-falcons-dralii": {
-    "last": "2026-08-31T23:41:00.109Z",
+    "last": "2026-09-01T00:41:05.810Z",
     "fails": 0,
+    "presence": "in",
     "matches": 797,
-    "hot": false,
-    "idle": 1,
-    "presence": "out"
+    "hot": true,
+    "idle": 0
   },
   "shopify-rebellion-firstkiller": {
     "last": "2026-08-31T15:20:54.786Z",
@@ -125,10 +125,10 @@
     "idle": 0
   },
   "gentle-mates-archie": {
-    "last": "2026-09-01T00:01:07.139Z",
+    "last": "2026-09-01T00:41:05.810Z",
     "fails": 0,
     "presence": "in",
-    "matches": 678,
+    "matches": 681,
     "hot": true,
     "idle": 0
   },
@@ -155,7 +155,9 @@
   "virtus-pro-tawk": {
     "last": "2026-08-31T14:01:15.277Z",
     "fails": 0,
-    "presence": "out"
+    "presence": "in",
+    "hot": true,
+    "idle": 0
   },
   "virtus-pro-wahvey": {
     "last": "2026-08-31T14:20:55.301Z",
@@ -175,10 +177,10 @@
     "presence": "out"
   },
   "spacestation-gaming-diaz": {
-    "last": "2026-09-01T00:01:07.139Z",
+    "last": "2026-09-01T00:41:05.810Z",
     "fails": 0,
     "presence": "in",
-    "matches": 1305,
+    "matches": 1311,
     "hot": true,
     "idle": 0
   },
@@ -193,9 +195,10 @@
     "presence": "out"
   },
   "ninjas-in-pyjamas-oaly": {
-    "last": "2026-08-31T14:20:55.301Z",
+    "last": "2026-09-01T00:41:05.810Z",
     "fails": 0,
     "presence": "in",
+    "matches": 501,
     "hot": true,
     "idle": 0
   },
@@ -225,9 +228,10 @@
     "presence": "out"
   },
   "fut-esports-cheese": {
-    "last": "2026-08-31T12:01:31.255Z",
+    "last": "2026-09-01T00:41:05.810Z",
     "fails": 0,
     "presence": "in",
+    "matches": 1294,
     "hot": true,
     "idle": 0
   },
@@ -244,10 +248,10 @@
   "mibr-aztr": {
     "last": "2026-09-01T00:01:07.139Z",
     "fails": 0,
-    "presence": "in",
+    "presence": "out",
     "matches": 734,
     "hot": true,
-    "idle": 0
+    "idle": 1
   },
   "furia-lostt": {
     "last": "2026-08-31T02:01:04.523Z",
@@ -335,15 +339,18 @@
     "presence": "out"
   },
   "bigodes-drufinho": {
-    "last": "2026-08-31T00:21:02.220Z",
+    "last": "2026-09-01T00:41:05.810Z",
     "fails": 0,
-    "presence": "out"
+    "presence": "in",
+    "matches": 1797,
+    "hot": true,
+    "idle": 0
   },
   "bigodes-bemmz": {
     "last": "2026-08-31T00:01:03.018Z",
     "fails": 0,
     "presence": "out",
-    "hot": true,
-    "idle": 1
+    "hot": false,
+    "idle": 2
   }
 }
