@@ -34,7 +34,7 @@ const PER_PROXY_DELAY = 1000; // small gap between a worker's consecutive loads
 // proxies refuse connections (ERR_TUNNEL_CONNECTION_FAILED) when several
 // sessions hit them at once. Serial (1) is the most reliable, and runs are
 // infrequent enough that the extra wall-clock is fine. Override with POOL.
-const DEFAULT_POOL = 1;
+const DEFAULT_POOL = 5;
 // Adaptive "hot" refresh: a player whose ranked game count jumps is queuing now,
 // so refresh them fast (their MMR is moving) until they stop.
 const HOT_THRESHOLD = 2; // new ranked games since last scrape that flags an active session
@@ -83,18 +83,25 @@ function extractInPage(names) {
   return out;
 }
 
-// Third-party ad / analytics / tracking hosts - pure bandwidth waste, never
-// needed to hydrate the profile data. Blocking them (plus heavy media) cuts the
-// bytes per scrape, which matters on metered proxies.
-const BLOCK_HOSTS = /(google-analytics|googletagmanager|doubleclick|googlesyndication|google-adservices|adservice\.google|facebook\.(net|com)|connect\.facebook|hotjar|sentry|amplitude|segment\.(io|com)|mixpanel|scorecardresearch|quantserve|adnxs|adsystem|taboola|outbrain|criteo|pubmatic|rubiconproject|casalemedia|bidswitch|clarity\.ms|cloudflareinsights|fullstory|newrelic|nr-data)/i;
-// Block heavy media + ad/analytics traffic. Keep stylesheets/scripts - blocking
-// CSS stops the app from hydrating the profile data we need.
+// __INITIAL_STATE__ is populated by the app bundle on trackercdn.com, so that
+// host has to stay allowed - blocking it leaves the state undefined and every
+// scrape times out. Everything beyond the tracker's own hosts is waste. Measured
+// against a real run: 35.5 MB of proxy traffic to collect 1.3 MB of documents -
+// 96% went to ad platforms (live.primis.tech alone sent 1.1 MB per page) and to
+// trackercdn.com app bundles that only exist to render a page we never look at.
+//
+// An allowlist rather than a blocklist: chasing ad domains is endless, and a new
+// one silently costs bandwidth again. Only the profile host and Cloudflare's
+// challenge endpoints are allowed through.
+const ALLOW_HOSTS = /(^|\.)(tracker\.network|trackercdn\.com|tracker\.gg|challenges\.cloudflare\.com)$/i;
+
 const blockAssets = (page) =>
   page.route("**/*", (route) => {
     const req = route.request();
     if (["image", "font", "media"].includes(req.resourceType())) return route.abort();
-    if (BLOCK_HOSTS.test(req.url())) return route.abort();
-    return route.continue();
+    let host;
+    try { host = new URL(req.url()).hostname; } catch { return route.abort(); }
+    return ALLOW_HOSTS.test(host) ? route.continue() : route.abort();
   });
 
 async function scrapeOnce(ctx, id) {
