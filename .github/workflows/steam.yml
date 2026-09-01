@@ -7,7 +7,12 @@ name: Daily Steam update
 
 on:
   schedule:
-    - cron: "0 5 * * *" # daily at 05:00 UTC
+    - cron: "0 * * * *" # hourly. Steam only refreshes playtime when a session ends, so
+                        # polling faster mostly re-reads the same numbers; hourly is enough
+                        # to catch a session the same day. It also gives computeDeltas 24
+                        # snapshots a day instead of 1, which is what makes the 24h/7d hour
+                        # windows meaningful. Unproxied and ~60 Steam calls per run, so this
+                        # costs no proxy bandwidth and uses ~1.4% of the API quota.
   workflow_dispatch: {} # allow manual runs from the Actions tab
 
 permissions:
@@ -41,7 +46,7 @@ jobs:
           git config user.email "actions@github.com"
           git add data/snapshots data/derived
           git diff --staged --quiet && echo "no changes" && exit 0
-          git commit -m "data: daily steam update [skip ci]"
+          git commit -m "data: hourly steam update [skip ci]"
           # rebase+retry so a concurrent job's push can't reject ours
           for i in 1 2 3 4 5; do
             git pull --rebase --autostash origin main && git push && exit 0
