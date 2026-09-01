@@ -23,6 +23,9 @@ await syncData();
 
 createServer(async (req, res) => {
   let path = decodeURIComponent(req.url.split("?")[0]);
+  // Re-sync on each derived-data request: the hourly jobs rewrite data/derived
+  // while the server stays up, and a startup-only copy would serve stale JSON.
+  if (path.startsWith("/data/derived/")) await syncData();
   if (path === "/") path = "/index.html";
   const file = normalize(join(WEB, path));
   if (!file.startsWith(WEB)) { res.writeHead(403); return res.end("forbidden"); }
