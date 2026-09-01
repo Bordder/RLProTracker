@@ -2,7 +2,7 @@
 // Run with: npm test
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { computeSteamPlayers } from "../scripts/computeDeltas.mjs";
+import { computeSteamPlayers, mergeLastKnown } from "../scripts/computeDeltas.mjs";
 
 const HOUR = 3600e3;
 const T0 = 1_000_000_000_000;
@@ -12,8 +12,8 @@ const T25 = T0 + 25 * HOUR; // d1 window start (now-24h) = T0+1h
 const r = (id, foreverMin, twoWeeksMin = null, status = "public") =>
   ({ id, name: id, team: "Team", status, foreverMin, twoWeeksMin });
 
-function run(snaps) {
-  const { now, players } = computeSteamPlayers(snaps);
+function run(snaps, lastKnown) {
+  const { now, players } = computeSteamPlayers(snaps, lastKnown);
   return { now, byId: new Map(players.map((p) => [p.id, p])) };
 }
 
@@ -70,4 +70,59 @@ test("shallow history flags d7/d14 partial while d1 has data", () => {
   assert.equal(p.windows.d1.partial, false);
   assert.equal(p.windows.d7.partial, true);
   assert.equal(p.windows.d14.partial, true);
+});
+
+// ---- durable last-known totals (profile opens, then closes again) ----
+
+test("mergeLastKnown records a reading and keeps the highest seen", () => {
+  const s1 = mergeLastKnown({}, T0, [r("a", 6000), r("b", null, null, "private")]);
+  assert.equal(s1.a.foreverMin, 6000);
+  assert.equal(s1.a.at, new Date(T0).toISOString());
+  assert.equal(s1.b, undefined); // nothing to record for a private profile
+
+  const s2 = mergeLastKnown(s1, T25, [r("a", 6090)]);
+  assert.equal(s2.a.foreverMin, 6090);
+  assert.equal(s2.a.at, new Date(T25).toISOString());
+
+  // a lower/equal reading must not overwrite, nor move the recorded date
+  const s3 = mergeLastKnown(s2, T25 + HOUR, [r("a", 6090)]);
+  assert.equal(s3.a.at, new Date(T25).toISOString());
+  const s4 = mergeLastKnown(s2, T25 + HOUR, [r("a", 10)]);
+  assert.equal(s4.a.foreverMin, 6090);
+});
+
+test("mergeLastKnown does not mutate the store it is given", () => {
+  const store = {};
+  mergeLastKnown(store, T0, [r("a", 6000)]);
+  assert.deepEqual(store, {});
+});
+
+test("a re-privatised player falls back to the stored total, marked frozen", () => {
+  const { byId } = run(
+    [
+      { t: T0, rows: [r("a", 6000)] },                       // public: 100h
+      { t: T25, rows: [r("a", null, null, "private")] },      // closed again
+    ],
+    { a: { foreverMin: 6000, at: new Date(T0).toISOString() } }
+  );
+  const p = byId.get("a");
+  assert.equal(p.totalHours, 100);
+  assert.equal(p.totalHoursFrozenAt, new Date(T0).toISOString());
+  assert.equal(p.steam2wkHours, null); // rolling window is never carried over
+});
+
+test("a live reading wins over the stored one and is not marked frozen", () => {
+  const { byId } = run(
+    [{ t: T0, rows: [r("a", 6000)] }, { t: T25, rows: [r("a", 6600)] }],
+    { a: { foreverMin: 6000, at: new Date(T0).toISOString() } }
+  );
+  const p = byId.get("a");
+  assert.equal(p.totalHours, 110);
+  assert.equal(p.totalHoursFrozenAt, null);
+});
+
+test("a player with no stored reading still shows blank when private", () => {
+  const { byId } = run([{ t: T25, rows: [r("a", null, null, "private")] }], {});
+  assert.equal(byId.get("a").totalHours, null);
+  assert.equal(byId.get("a").totalHoursFrozenAt, null);
 });

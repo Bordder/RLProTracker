@@ -154,6 +154,9 @@
   .g14v{font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--bone);font-weight:500}
   .pending{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;font-size:10px;font-weight:600;color:var(--slate);border:1px dashed var(--line2);border-radius:4px;padding:2px 7px}
   .c-hr{width:84px;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--slate);font-weight:400}
+  /* A total carried over from before a profile closed: real, but no longer moving. */
+  .frozen{color:var(--dim);position:relative;cursor:help}
+  .frozen::after{content:"\2731";font-size:8px;vertical-align:super;margin-left:2px;color:var(--t-gc)}
   .c-up{width:88px;text-align:right}
   .upv{font-family:var(--mono);font-size:12.5px;color:var(--slate);font-variant-numeric:tabular-nums}
   .upv.stale{color:var(--dim)}
@@ -344,6 +347,15 @@
     if(s<86400)return Math.round(s/3600)+'h ago';
     return Math.round(s/86400)+'d ago';
   };
+  // Total playtime, flagged when it is a stored reading from before the profile closed.
+  var totalHoursCell=function(p){
+    if(p.totalHours==null)return'<span class="dash">&middot;</span>';
+    var v=nf(Math.round(p.totalHours));
+    if(!p.totalFrozenAt)return v;
+    var d=new Date(p.totalFrozenAt);
+    var on=isNaN(d)?'an earlier check':d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
+    return'<span class="frozen" title="Last reading before this profile was closed, taken '+esc(on)+'. It cannot update while the profile stays private.">'+v+'</span>';
+  };
   var updatedCell=function(ms){
     if(ms==null)return'<td class="c-up"><span class="dash">&middot;</span></td>';
     var exact=new Date(ms).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
@@ -382,7 +394,7 @@
         seasonGames:t.seasonGames?t.seasonGames.total:null,
         games:t.games?t.games.total:null,
         updatedAt:(function(){var v=t.updatedAt?Date.parse(t.updatedAt):NaN;return isNaN(v)?null:v;})(),
-        hours2wk:p.steam2wkHours, totalHours:p.totalHours };
+        hours2wk:p.steam2wkHours, totalHours:p.totalHours, totalFrozenAt:p.totalHoursFrozenAt||null };
     });
     var ttByTeam={}; (teamT&&teamT.teams||[]).forEach(function(t){ttByTeam[t.team]=t;});
     var teams=teamH.teams.map(function(t){
@@ -422,6 +434,7 @@
         '<li><b>Hidden</b> keeps the profile itself open, but switches off the game details section within it. The profile still loads normally for anyone visiting; the playtime figures are simply not published.</li>'+
       '</ul>'+
       '<p>Either setting stops Steam publishing playtime, so <b>2wk h</b> and <b>Total h</b> are left blank rather than filled with a guess. Ranks and games played come from a separate source and are unaffected, which is why a player can show a full set of MMR numbers with both hours columns empty.</p>'+
+      '<p><b>Readings that stop moving.</b> Players do sometimes open a profile that was closed before. When that happens the total playtime is recorded and kept, so if they close it again the number stays on the page instead of vanishing. It is frozen at that point: real, but stuck at whatever it read on the day it was captured, and unable to move again until the profile reopens. Those totals are marked with <span class="frozen">an asterisk</span> and the date is on hover. The 2-week column is deliberately not carried over, because it measures a rolling fortnight and an old value would read as recent activity when it is nothing of the sort.</p>'+
       '<p><b>Why some players update sooner than others.</b> Collecting this data reliably costs money, and the cost climbs the more often each account is checked. For now the most-followed pros are refreshed on a shorter cycle, so their numbers sit close to live, while less popular pros are checked less often and can lag behind. The <b>Updated</b> column shows exactly when each player was last checked, so you never have to guess how current a row is. If the site builds an audience, that goes back into better infrastructure so everyone refreshes at the same rate.</p>'+
       '<p><b>Early days.</b> This is a new project and still a work in progress, so expect the occasional rough edge or a number that looks off. Regions follow each team’s competitive region rather than nationality, so a player living elsewhere still carries their team’s region. If something looks wrong, the form below is the fastest way to tell me.</p>';
 
@@ -478,7 +491,7 @@
         '<td class="c-sg">'+(p.seasonGames!=null?'<span class="sgv">'+nf(p.seasonGames)+'</span>':'<span class="dash">&middot;</span>')+'</td>'+
         '<td class="c-g14">'+fmtGames(p.games,win)+'</td>'+
         '<td class="c-hr">'+(p.hours2wk!=null?hf(p.hours2wk):'<span class="dash">&middot;</span>')+'</td>'+
-        '<td class="c-hr">'+(p.totalHours!=null?nf(Math.round(p.totalHours)):'<span class="dash">&middot;</span>')+'</td>'+
+        '<td class="c-hr">'+totalHoursCell(p)+'</td>'+
         updatedCell(p.updatedAt)+'</tr>';
     };
     var pMatch=function(p,q){return (String(p.name||'')+' '+String(p.team||'')+' '+String(p.region||'')).toLowerCase().indexOf(q)>=0;};

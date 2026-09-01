@@ -5,6 +5,14 @@
 // snapshot nearest (now - window). Needs >=2 snapshots spanning the window;
 // until history exists, windows read as partial/unknown. Steam's own 2wk field
 // is carried through separately as a fallback.
+//
+// Total playtime is also kept in a durable last-known store
+// (data/last-known-hours.json). Snapshots are pruned after 15 days, so without
+// it a player who opens their profile once and closes it again would lose that
+// reading for good. When the live value is missing we fall back to the stored
+// one and mark it frozen, so the row shows a real (if dated) number instead of
+// a blank. Only lifetime total is carried over: Steam's 2-week figure is a
+// rolling window, and a stale one would read as current activity when it isn't.
 
 import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -24,11 +32,28 @@ function snapAtOrBefore(snaps, target) {
 
 const foreverFor = (snap, id) => snap.rows.find((r) => r.id === id)?.foreverMin ?? null;
 
+// Merge the newest readings into the durable last-known store. Playtime only
+// ever grows, so a reading is kept when it beats the stored one; equal values
+// leave the recorded date alone so "as of" reflects when the number last moved.
+// Returns a new store, leaving the input untouched.
+export function mergeLastKnown(store, snapshotTime, rows) {
+  const next = { ...store };
+  for (const row of rows) {
+    if (row.foreverMin == null) continue;
+    const prev = next[row.id];
+    if (prev && prev.foreverMin >= row.foreverMin) continue;
+    next[row.id] = { foreverMin: row.foreverMin, at: new Date(snapshotTime).toISOString() };
+  }
+  return next;
+}
+
 // Pure core (no IO). `snaps` is [{ t, rows }] in any order; the latest snapshot
-// defines the player set (Steam snapshots are complete each run). Returns
-// { now, players } with total/2wk hours and hours-per-window. Playtime is
-// monotonic on Steam, so a window diff is never negative in practice.
-export function computeSteamPlayers(snaps) {
+// defines the player set (Steam snapshots are complete each run). `lastKnown`
+// maps player id -> { foreverMin, at } and supplies a frozen total when Steam
+// no longer reports one. Returns { now, players } with total/2wk hours and
+// hours-per-window. Playtime is monotonic on Steam, so a window diff is never
+// negative in practice.
+export function computeSteamPlayers(snaps, lastKnown = {}) {
   const sorted = [...snaps].sort((a, b) => a.t - b.t);
   const latest = sorted[sorted.length - 1];
   const now = latest.t;
@@ -46,9 +71,13 @@ export function computeSteamPlayers(snaps) {
           ? { hours: +((cur - then) / 60).toFixed(1), partial: !haveHistory }
           : { hours: null, partial: true };
     }
+
+    // Fall back to the stored reading only when Steam gives us nothing now.
+    const frozen = cur == null ? lastKnown[row.id] : null;
     players.push({
       id: row.id, name: row.name, team: row.team, status: row.status,
-      totalHours: cur != null ? +(cur / 60).toFixed(1) : null,
+      totalHours: cur != null ? +(cur / 60).toFixed(1) : (frozen ? +(frozen.foreverMin / 60).toFixed(1) : null),
+      totalHoursFrozenAt: frozen ? frozen.at : null,
       steam2wkHours: row.twoWeeksMin != null ? +(row.twoWeeksMin / 60).toFixed(1) : null,
       windows,
     });
@@ -69,16 +98,36 @@ async function loadSnapshots() {
   return snaps.sort((a, b) => a.t - b.t);
 }
 
+const LAST_KNOWN_FILE = join(ROOT, "data", "last-known-hours.json");
+
+async function loadLastKnown() {
+  try { return JSON.parse(await readFile(LAST_KNOWN_FILE, "utf8")).players ?? {}; }
+  catch { return {}; }
+}
+
 async function main() {
   const snaps = await loadSnapshots();
   if (snaps.length === 0) { console.error("no snapshots yet - run npm run fetch:steam first"); process.exit(1); }
 
-  const { now, players } = computeSteamPlayers(snaps);
+  const sorted = [...snaps].sort((a, b) => a.t - b.t);
+
+  // Fold every retained snapshot in, oldest first, so the store also recovers
+  // readings taken before it existed and heals if the file is ever lost.
+  // Recording happens before computing, so a reading taken this run counts now.
+  let lastKnown = await loadLastKnown();
+  for (const snap of sorted) lastKnown = mergeLastKnown(lastKnown, snap.t, snap.rows);
+  await writeFile(LAST_KNOWN_FILE, JSON.stringify(
+    { note: "Durable last-known Steam playtime per player. Survives snapshot pruning so a profile that opens once keeps its reading. Never delete entries.", updatedAt: new Date(sorted[sorted.length - 1].t).toISOString(), players: lastKnown },
+    null, 2));
+
+  const { now, players } = computeSteamPlayers(snaps, lastKnown);
 
   await mkdir(join(ROOT, "data", "derived"), { recursive: true });
   await writeFile(join(ROOT, "data", "derived", "steam-hours.json"),
     JSON.stringify({ computedAt: new Date(now).toISOString(), snapshotCount: snaps.length, players }, null, 2));
-  console.log(`derived steam-hours.json  (${players.length} players, ${snaps.length} snapshots)`);
+
+  const frozen = players.filter((p) => p.totalHoursFrozenAt).length;
+  console.log(`derived steam-hours.json  (${players.length} players, ${snaps.length} snapshots, ${frozen} using stored totals)`);
 }
 
 // Run only when invoked directly (so computeSteamPlayers can be imported for tests).
