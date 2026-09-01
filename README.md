@@ -5,9 +5,9 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Bordder/RLProTracker/actions/workflows/tracker.yml"><img src="https://github.com/Bordder/RLProTracker/actions/workflows/tracker.yml/badge.svg" alt="Tracker update"></a>
-  <a href="https://github.com/Bordder/RLProTracker/actions/workflows/steam.yml"><img src="https://github.com/Bordder/RLProTracker/actions/workflows/steam.yml/badge.svg" alt="Steam update"></a>
-  <a href="https://github.com/Bordder/RLProTracker/actions/workflows/roster.yml"><img src="https://github.com/Bordder/RLProTracker/actions/workflows/roster.yml/badge.svg" alt="Roster refresh"></a>
+  <a href="https://github.com/Bordder/RLProTracker/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/Bordder/RLProTracker/test.yml?branch=main&label=tests" alt="Tests"></a>
+  <a href="https://github.com/Bordder/RLProTracker/commits/main"><img src="https://img.shields.io/github/last-commit/Bordder/RLProTracker/main?label=data%20updated&color=339933" alt="Data last updated"></a>
+  <a href="https://github.com/Bordder/RLProTracker/actions"><img src="https://img.shields.io/github/actions/workflow/status/Bordder/RLProTracker/tracker.yml?branch=main&label=collector" alt="Collector workflow"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A520%20%7C%20CI%2024-339933?logo=node.js&logoColor=white" alt="Node 20 or newer, CI runs Node 24">
 </p>
 
