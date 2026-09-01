@@ -56,7 +56,7 @@ jobs:
           git config user.email "actions@github.com"
           git add data/tracker-history.json data/derived data/tracker-state.json
           git diff --staged --quiet && echo "no changes" && exit 0
-          git commit -m "data: tracker update [skip ci]"
+          git commit -m "[skip ci] data: tracker update"
           for i in 1 2 3 4 5; do
             git pull --rebase --autostash origin main && git push && exit 0
             echo "push retry $i"; sleep $((RANDOM % 8 + 3))
