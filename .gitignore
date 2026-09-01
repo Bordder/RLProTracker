@@ -13,3 +13,7 @@ web/preview-standalone.html
 
 # local editor/preview config
 .claude/
+
+# Cloudflare Worker local dev
+worker/.dev.vars
+worker/.wrangler/
