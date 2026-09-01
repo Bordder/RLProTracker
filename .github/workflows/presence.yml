@@ -1,0 +1,57 @@
+name: Presence poll
+
+# Records which rostered players are in Rocket League right now. Steam reports
+# the live game field for any profile that is not fully private, including ones
+# whose game HISTORY is hidden - so this is the only route to activity data for
+# players the playtime API refuses.
+#
+# Driven by an external cron hitting the workflow_dispatch API: GitHub's own
+# scheduler drops high-frequency runs (a */5 cron produced zero runs in 26
+# minutes), so the schedule below is a slow safety net rather than the primary
+# trigger. Each poll credits in-game players a few minutes of playtime, so gaps
+# undercount rather than corrupt.
+#
+# Costs nothing: one batched Steam call per run, unproxied, well inside quota.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *" # safety net; the external dispatcher drives the real cadence
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: presence
+  cancel-in-progress: true
+
+jobs:
+  poll:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Poll live presence
+        env:
+          STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+        run: npm run poll
+
+      - name: Recompute presence hours
+        run: npm run poll:hours
+
+      - name: Commit presence data
+        run: |
+          git config user.name "rl-tracker-bot"
+          git config user.email "actions@github.com"
+          git add data/presence data/derived
+          git diff --staged --quiet && echo "no changes" && exit 0
+          git commit -m "data: presence poll [skip ci]"
+          # rebase+retry so a concurrent job's push can't reject ours
+          for i in 1 2 3 4 5; do
+            git pull --rebase --autostash origin main && git push && exit 0
+            echo "push retry $i"; sleep $((RANDOM % 8 + 3))
+          done
+          echo "push failed after retries"; exit 1

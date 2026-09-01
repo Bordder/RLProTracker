@@ -11,6 +11,7 @@
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { appendSteamRows } from "./steamHistory.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const RL_APPID = 252950;
@@ -107,12 +108,15 @@ async function main() {
     rows.push(out);
   }
 
-  await mkdir(join(ROOT, "data", "snapshots"), { recursive: true });
-  const file = join(ROOT, "data", "snapshots", `steam-${takenAt.replace(/[:.]/g, "-")}.json`);
-  await writeFile(file, JSON.stringify({ takenAt, appid: RL_APPID, rows }, null, 2));
+  // Rolling history rather than a file per run: see scripts/steamHistory.mjs.
+  const HISTORY_FILE = join(ROOT, "data", "steam-history.json");
+  let prevHistory = {};
+  try { prevHistory = JSON.parse(await readFile(HISTORY_FILE, "utf8")); } catch {}
+  const history = appendSteamRows(prevHistory, Date.parse(takenAt), rows);
+  await writeFile(HISTORY_FILE, JSON.stringify(history));
 
   // console summary
-  console.log(`snapshot: ${file}`);
+  console.log(`steam history: ${Object.keys(history.players).length} players`);
   for (const r of rows) {
     const hrs = r.foreverMin != null ? (r.foreverMin / 60).toFixed(0) : "-";
     const tw = r.twoWeeksMin != null ? (r.twoWeeksMin / 60).toFixed(1) : "-";

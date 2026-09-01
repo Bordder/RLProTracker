@@ -14,32 +14,9 @@
 // Retention: every reading for the last 26 hours (so the 24h window keeps full
 // resolution), then at most one per day out to 15 days.
 
-export const HOUR = 3600e3;
-export const DAY = 24 * HOUR;
-export const FINE_MS = 26 * HOUR;   // keep everything younger than this
-export const KEEP_MS = 15 * DAY;    // drop readings older than this
-
-// Thin one player's readings. Newest-first pass so each day bucket keeps its
-// most recent reading. The newest reading is always kept, however old it is -
-// otherwise a player who stops being scraped would lose their MMR entirely.
-export function downsampleReadings(readings, now) {
-  const sorted = [...readings].filter((r) => r && r.t != null).sort((a, b) => b.t - a.t);
-  if (!sorted.length) return [];
-  const out = [];
-  const seenDay = new Set();
-  for (const r of sorted) {
-    const age = now - r.t;
-    if (age < 0) continue;                       // clock skew: ignore future readings
-    if (age > KEEP_MS) continue;
-    if (age <= FINE_MS) { out.push(r); continue; }
-    const day = Math.floor(r.t / DAY);
-    if (seenDay.has(day)) continue;
-    seenDay.add(day);
-    out.push(r);
-  }
-  if (!out.length) out.push(sorted[0]);          // always retain the latest
-  return out.sort((a, b) => a.t - b.t);
-}
+// Retention policy is shared with the Steam side - see rollingHistory.mjs.
+export { HOUR, DAY, FINE_MS, KEEP_MS, downsampleReadings, countReadings } from "./rollingHistory.mjs";
+import { downsampleReadings } from "./rollingHistory.mjs";
 
 // Fold one run's scraped rows into the history, then downsample. Rows without
 // playlist data (failed scrapes) are skipped so a failure never displaces a
@@ -79,6 +56,3 @@ export function historyToSnaps(history) {
   return [...byTime.entries()].sort((a, b) => a[0] - b[0]).map(([t, rows]) => ({ t, rows }));
 }
 
-export function countReadings(history) {
-  return Object.values(history?.players ?? {}).reduce((n, p) => n + (p.readings?.length ?? 0), 0);
-}

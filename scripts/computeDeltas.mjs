@@ -17,9 +17,11 @@
 import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
+import { historyToSteamSnaps } from "./steamHistory.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SNAP_DIR = join(ROOT, "data", "snapshots");
+const HISTORY_FILE = join(ROOT, "data", "steam-history.json");
 const HOUR = 3600e3;
 const WINDOWS = { d1: 24 * HOUR, d7: 7 * 24 * HOUR, d14: 14 * 24 * HOUR };
 
@@ -86,16 +88,23 @@ export function computeSteamPlayers(snaps, lastKnown = {}) {
   return { now, players };
 }
 
+// Readings come from the rolling history; the old per-run snapshot directory is
+// still merged when present so history from before the switch is not lost.
 async function loadSnapshots() {
-  let files;
-  try { files = (await readdir(SNAP_DIR)).filter((f) => f.startsWith("steam-") && f.endsWith(".json")); }
-  catch { return []; }
-  const snaps = [];
-  for (const f of files) {
-    const s = JSON.parse(await readFile(join(SNAP_DIR, f), "utf8"));
-    snaps.push({ t: Date.parse(s.takenAt), rows: s.rows });
-  }
-  return snaps.sort((a, b) => a.t - b.t);
+  const byTime = new Map();
+  try {
+    const hist = JSON.parse(await readFile(HISTORY_FILE, "utf8"));
+    for (const s of historyToSteamSnaps(hist)) byTime.set(s.t, s.rows);
+  } catch {}
+  try {
+    for (const f of await readdir(SNAP_DIR)) {
+      if (!f.startsWith("steam-") || !f.endsWith(".json")) continue;
+      const s = JSON.parse(await readFile(join(SNAP_DIR, f), "utf8"));
+      const t = Date.parse(s.takenAt);
+      if (!byTime.has(t)) byTime.set(t, s.rows);   // history wins on a tie
+    }
+  } catch {}
+  return [...byTime.entries()].sort((a, b) => a[0] - b[0]).map(([t, rows]) => ({ t, rows }));
 }
 
 const LAST_KNOWN_FILE = join(ROOT, "data", "last-known-hours.json");
