@@ -40,13 +40,14 @@ test("a recently-fetched player (elapsed < interval) is not due", () => {
 });
 
 test("slot gating: among due players, exactly the current-slot ranks are selected", () => {
-  const players = roster(6); // ranks 0..5, slots = round(1h / 20min) = 3 -> slot = rank % 3
+  const players = roster(6); // slots = round(1h / RUN_SPACING_MS) -> slot = rank % slots
+  const slots = Math.max(1, Math.round(HOUR / RUN_SPACING_MS));
   const now = RUN_SPACING_MS * 1000; // floor(now/RUN) = 1000; curSlot = 1000 % 3 = 1
-  const curSlot = Math.floor(now / RUN_SPACING_MS) % 3;
+  const curSlot = Math.floor(now / RUN_SPACING_MS) % slots;
   const state = Object.fromEntries(players.map((p) => [p.id, { last: iso(now - 2 * HOUR), fails: 0 }])); // elapsed 2h >= 1h
   const due = selectDue(players, prio(), state, now);
   const ranks = playerRanks(players, prio());
-  const expected = players.filter((p) => ranks.get(p.id) % 3 === curSlot).map((p) => p.id).sort();
+  const expected = players.filter((p) => ranks.get(p.id) % slots === curSlot).map((p) => p.id).sort();
   assert.deepEqual(ids(due), expected);
   assert.ok(due.length > 0 && due.length < 6); // genuinely spread, not all-or-nothing
 });

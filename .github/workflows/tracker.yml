@@ -6,7 +6,9 @@ name: Tracker update
 
 on:
   schedule:
-    - cron: "*/20 * * * *" # every 20 min; each run scrapes only the due players
+    - cron: "*/5 * * * *"  # every 5 min - a ranked match plus queue is ~6-8 min, so
+                           # this catches essentially every completed match. GitHub skips
+                           # scheduled runs under load, so asking for 5 yields ~5-10 in practice.
   workflow_dispatch: {}
 
 permissions:
