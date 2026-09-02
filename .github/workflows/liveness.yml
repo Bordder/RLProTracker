@@ -49,7 +49,7 @@ jobs:
           # time this checks, so there is a wide margin before a false alarm.
           STALE_MINUTES=10
 
-          status=$(curl -sS --max-time 20 https://198x.online/status || echo '{}')
+          status=$(curl -sS --max-time 20 https://198x.online/api/status || echo '{}')
           computed=$(printf '%s' "$status" | sed -n 's/.*"computedAt":"\([^"]*\)".*/\1/p')
 
           if [ -z "$computed" ]; then

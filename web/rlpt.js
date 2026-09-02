@@ -329,7 +329,7 @@
     // timestamp has actually moved. On failure keep the last answer and fall
     // back to judging by age alone.
     var pollStatus=function(){
-      fetch('/status',{cache:'no-store'})
+      fetch('/api/status',{cache:'no-store'})
         .then(function(r){return r.ok?r.json():null;})
         .then(function(j){
           if(!j||!j.computedAt)return;

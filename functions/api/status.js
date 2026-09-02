@@ -8,6 +8,10 @@
 // This returns just the collection timestamp, so a poll costs a few bytes
 // instead of re-downloading the whole board.
 
+// Served at /api/status. It used to be /status, but that path now belongs to
+// the human-readable status page; a static status.html is served at /status by
+// Pages' extensionless routing, which would collide with this Function.
+//
 // Freshness probe for open tabs. Reads through the GitHub API rather than
 // raw.githubusercontent.com: raw's CDN ignores query strings, so the cache
 // buster this used to rely on did nothing and this endpoint sat up to six

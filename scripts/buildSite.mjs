@@ -96,14 +96,19 @@ console.log("web/_headers -> CSP written");
 // The HTML itself is always revalidated, so stamping the script reference with a
 // hash of its contents means a changed script is fetched immediately and an
 // unchanged one still hits cache.
-const scriptPath = join(ROOT, "web", "rlpt.js");
-const scriptHash = createHash("sha256").update(await readFile(scriptPath)).digest("hex").slice(0, 8);
-const indexPath = join(ROOT, "web", "index.html");
-const indexHtml = await readFile(indexPath, "utf8");
-const stamped = indexHtml.replace(/src="rlpt\.js(?:\?v=[0-9a-f]+)?"/, `src="rlpt.js?v=${scriptHash}"`);
-if (stamped !== indexHtml) {
-  await writeFile(indexPath, stamped);
-  console.log(`web/index.html -> rlpt.js?v=${scriptHash}`);
-} else {
-  console.log(`rlpt.js?v=${scriptHash} (unchanged)`);
+for (const [page, script] of [["index.html", "rlpt.js"], ["status.html", "status.js"]]) {
+  const hash = createHash("sha256")
+    .update(await readFile(join(ROOT, "web", script)))
+    .digest("hex")
+    .slice(0, 8);
+  const pagePath = join(ROOT, "web", page);
+  const html = await readFile(pagePath, "utf8");
+  const pattern = new RegExp(`src="${script.replace(/\./g, "\\.")}(?:\\?v=[0-9a-f]+)?"`);
+  const stamped = html.replace(pattern, `src="${script}?v=${hash}"`);
+  if (stamped !== html) {
+    await writeFile(pagePath, stamped);
+    console.log(`web/${page} -> ${script}?v=${hash}`);
+  } else {
+    console.log(`${script}?v=${hash} (unchanged)`);
+  }
 }
