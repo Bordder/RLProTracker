@@ -169,16 +169,65 @@ export function proxyIndexFor(attempt, startIdx, count) {
   return (startIdx + attempt) % count;
 }
 
-async function scrapePlayer(contexts, startIdx, id) {
+// Share of the work each proxy takes, as a repeated-slot rotation.
+//
+// Equal weights are the default and give the behaviour above. Unequal weights
+// exist because "balanced" is not always what you want: two pools from
+// different providers can have very different caps, and sending the smaller
+// cap an equal share is how you exhaust it first. PROXY_WEIGHTS is a comma
+// list matching PROXY_LIST order, so "1,1,1,1,1,2,2,2,2,2,2,2,2,2,2" gives the
+// ten twice the traffic of the five.
+//
+// Slots are filled round robin rather than in blocks, so a heavier proxy's
+// extra turns are spread through the rotation instead of arriving back to back.
+export function weightedOrder(weights) {
+  const remaining = weights.map((w) => Math.max(0, Math.round(Number(w) || 0)));
+  const total = remaining.reduce((a, b) => a + b, 0);
+  if (!total) return weights.map((_, i) => i); // no usable weights: fall back to equal
+  const out = [];
+  while (out.length < total) {
+    for (let i = 0; i < remaining.length; i++) {
+      if (remaining[i] > 0) { out.push(i); remaining[i]--; }
+    }
+  }
+  return out;
+}
+
+function parseWeights(count) {
+  const raw = process.env.PROXY_WEIGHTS;
+  if (!raw) return null;
+  const w = raw.split(",").map((x) => Number(x.trim()));
+  if (w.length !== count || w.some((x) => !Number.isFinite(x) || x < 0)) {
+    console.log(`note: PROXY_WEIGHTS has ${w.length} entries for ${count} proxies - ignoring, using equal shares`);
+    return null;
+  }
+  return w;
+}
+
+// How many players each proxy actually handled, and how many of those were
+// retries it inherited from another proxy failing. Printed at the end of a run
+// so an imbalance is visible in the log rather than only on a provider's
+// billing page a month later.
+const proxyUse = [];
+const noteUse = (i, isRetry) => {
+  proxyUse[i] = proxyUse[i] || { attempts: 0, retries: 0, fails: 0 };
+  proxyUse[i].attempts++;
+  if (isRetry) proxyUse[i].retries++;
+};
+
+async function scrapePlayer(contexts, order, startIdx, id) {
   let lastErr;
   const tries = Math.min(ATTEMPTS, contexts.length);
   for (let a = 0; a < tries; a++) {
-    const ctx = contexts[proxyIndexFor(a, startIdx, contexts.length)];
+    const ctxIdx = order[(startIdx + a) % order.length];
+    const ctx = contexts[ctxIdx];
+    noteUse(ctxIdx, a > 0);
     try {
       const d = await scrapeOnce(ctx, id);
       if (d) return d;
       lastErr = new Error("no-data");
-    } catch (e) { lastErr = e; }
+      proxyUse[ctxIdx].fails++;
+    } catch (e) { lastErr = e; proxyUse[ctxIdx].fails++; }
     if (a < tries - 1) await sleep(1500);
   }
   throw lastErr;
@@ -309,6 +358,10 @@ async function main() {
   // pages stay responsive; each task rotates through the proxy contexts so load
   // spreads across all proxies regardless of pool size. A slow proxy slows only
   // its own tasks, not the whole run.
+  const weights = parseWeights(contexts.length);
+  const order = weightedOrder(weights || contexts.map(() => 1));
+  if (weights) console.log(`proxy weights: ${weights.join(",")}`);
+
   const pool = process.env.POOL ? +process.env.POOL : Math.min(DEFAULT_POOL, contexts.length);
   const rows = new Array(players.length);
   let next = 0;
@@ -319,7 +372,7 @@ async function main() {
       const p = players[idx];
       const row = { id: p.id, name: p.name, team: p.team, steamId64: p.steamId64, status: "ok", playlists: null };
       try {
-        row.playlists = await scrapePlayer(contexts, idx, p.steamId64);
+        row.playlists = await scrapePlayer(contexts, order, idx, p.steamId64);
         if (!row.playlists) row.status = "no-data";
       } catch (e) {
         row.status = `error: ${e.message.split("\n")[0].slice(0, 50)}`;
@@ -351,6 +404,16 @@ async function main() {
   }
   console.log(`pool: ${pool} concurrent`);
   await Promise.all(Array.from({ length: pool }, () => worker()));
+
+  // Per-proxy summary. Even shares are the expectation; a lopsided column here
+  // is the thing that shows up as a lopsided bill.
+  if (contexts.length > 1) {
+    const line = proxyUse
+      .map((u, i) => `${i}:${u ? u.attempts : 0}${u && u.retries ? `(+${u.retries}r)` : ""}${u && u.fails ? `!${u.fails}` : ""}`)
+      .join("  ");
+    console.log(`proxy use (index:attempts(+retries)!failures)
+  ${line}`);
+  }
 
   await browser.close();
 
