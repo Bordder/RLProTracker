@@ -70,11 +70,14 @@
   numbers and no hours at all. <a href="/how-it-works">How it works</a> goes through this
   properly.</p>
 
-  <h2><span class="n">3.</span> What does the tilde mean, as in ~14.2?</h2>
-  <p>That the number is estimated rather than measured. For players who hide their playtime, the
-  site checks every few minutes whether they are in Rocket League and adds up the time. It always
-  undercounts, because a session that starts and finishes between two checks is invisible, so
-  treat it as a floor. A plain number is Steam&rsquo;s own figure.</p>
+  <h2><span class="n">3.</span> How are the estimated hours worked out?</h2>
+  <p>Steam still shows what somebody is playing right now even when it hides how long they have
+  played. So for those profiles the site checks every few minutes and, whenever it finds them in
+  Rocket League, credits the time since the last check.</p>
+  <p>Estimates show in the <b>2wk h</b> column with a tilde in front, like <b>~14.2</b>, and a
+  dotted underline. They always come out low: a session that starts and finishes between two
+  checks is invisible, and nothing before tracking began is counted. Treat them as a floor rather
+  than a figure. A plain number in that column is Steam&rsquo;s own.</p>
 
   <h2><span class="n">4.</span> Why is there an asterisk on some totals?</h2>
   <p>That total was captured while the profile was briefly public, and has been kept since it
@@ -96,9 +99,12 @@
   competitive region rather than nationality, so a player living elsewhere still shows their
   team&rsquo;s region.</p>
 
-  <h2><span class="n">8.</span> Can I get my row removed?</h2>
-  <p>Yes. If you are a listed player, send a message and it comes down. No reason required, and
-  no argument about it.</p>
+  <h2><span class="n">8.</span> I am one of the players listed. Can you take my entry down?</h2>
+  <p>Yes, and you do not have to explain why.</p>
+  <p>Message me on Discord at <span class="handle">@_198x</span>, or use the feedback form at the
+  bottom of the tracker. Discord is better here, because anything sent through the form is
+  published publicly. Tell me which player you are and the row comes off, along with the data
+  behind it.</p>
 
   <h2><span class="n">9.</span> Something is wrong. How do I report it?</h2>
   <p>The feedback form at the bottom of the tracker is the fastest route, and it does not need an
@@ -107,8 +113,13 @@
   <span class="handle">@_198x</span>, is the private route.</p>
 
   <h2><span class="n">10.</span> Do you track visitors?</h2>
-  <p>No accounts, no cookies, no advertising. Page views are counted in a way that cannot
-  identify anyone. The <a href="/privacy">privacy policy</a> spells it out.</p>
+  <p>No. The site sets <b>no cookies at all</b>, stores nothing in your browser, has no accounts
+  to sign into and carries no advertising. Checked from the outside: nothing here sends a
+  <code>Set-Cookie</code> header, and there is nothing in local storage.</p>
+  <p>The one thing that does run is Cloudflare Web Analytics, which counts page views. It is
+  cookieless, does not fingerprint your device and cannot follow you to other sites, so it can
+  tell me that forty people looked at the board today but nothing whatsoever about who they were.
+  The <a href="/privacy">privacy policy</a> has the detail.</p>
 
   <h2><span class="n">11.</span> Is this affiliated with Rocket League or RLCS?</h2>
   <p>No. It is an independent fan project with no connection to Psyonix, Epic Games, RLCS, or any
