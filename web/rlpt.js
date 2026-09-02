@@ -252,7 +252,10 @@
     // ones silently is the worst thing it can do. Collectors run every few
     // minutes; the thresholds below are loose enough that a couple of missed
     // runs stay quiet, and tight enough that a real outage is obvious.
-    var LATE_MS=15*60e3, HALTED_MS=60*60e3;
+    // Calibrated to the collection cycle: at 2 minutes, 15 minutes of silence
+    // is seven missed runs, so the page would keep insisting it was healthy
+    // long after collection had died.
+    var LATE_MS=8*60e3, HALTED_MS=30*60e3;
 
     var ageWords=function(ms){
       var m=Math.round(ms/60000);
@@ -565,6 +568,20 @@
     // the poll rate costs upstream nothing.
     setInterval(pollStatus,60000);
     pollStatus();
+
+    // A timer alone is not enough. Browsers throttle setInterval hard in a
+    // background tab (typically to once a minute, and far less when the machine
+    // is on battery or the tab has been buried a while), so a tab switched away
+    // from and returned to can sit on numbers minutes old until the next tick
+    // happens to fire. That is what made the page look like it only ever
+    // updated on a manual reload.
+    //
+    // pageshow with persisted covers the back button: bfcache restores the DOM
+    // and the timers exactly as they were frozen, so without this a visitor
+    // navigating back sees whatever was on screen when they left.
+    document.addEventListener('visibilitychange',function(){ if(!document.hidden)pollStatus(); });
+    window.addEventListener('pageshow',function(e){ if(e.persisted)pollStatus(); });
+    window.addEventListener('online',pollStatus);
 
     var yr=document.getElementById('yr'); if(yr)yr.textContent=String(new Date().getFullYear());
   });

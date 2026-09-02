@@ -54,7 +54,9 @@ export async function onRequestGet(context) {
     const { computedAt } = await res.json();
     const body = { computedAt: computedAt ?? null };
     const headers = { "cache-control": `public, max-age=20, s-maxage=${HOT_TTL}` };
-    if (hotKey) context.waitUntil(cache.put(hotKey, Response.json(body, { headers })));
+    if (hotKey && typeof context.waitUntil === "function") {
+      context.waitUntil(cache.put(hotKey, Response.json(body, { headers })));
+    }
     return Response.json(body, { headers });
   } catch {
     return Response.json({ error: "upstream" }, { status: 502 });

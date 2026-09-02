@@ -44,9 +44,10 @@ jobs:
           set -uo pipefail
 
           # How old the data may be before this is worth acting on. Collectors
-          # run every few minutes, so 20 absorbs a couple of missed runs without
-          # crying wolf.
-          STALE_MINUTES=20
+          # run every 2 minutes, so 10 absorbs four missed runs without crying
+          # wolf. Healthy data is never more than about 3 minutes old by the
+          # time this checks, so there is a wide margin before a false alarm.
+          STALE_MINUTES=10
 
           status=$(curl -sS --max-time 20 https://198x.online/status || echo '{}')
           computed=$(printf '%s' "$status" | sed -n 's/.*"computedAt":"\([^"]*\)".*/\1/p')
