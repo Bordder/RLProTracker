@@ -24,8 +24,6 @@
   header.top{padding:26px 0 14px;border-bottom:1px solid var(--line);margin-bottom:30px;display:flex;gap:18px;align-items:baseline;flex-wrap:wrap}
   .brand{font-family:var(--display);font-weight:900;text-transform:uppercase;letter-spacing:.02em;font-size:19px;color:var(--bone);text-decoration:none}
   .brand span{color:var(--accent)}
-  header.top nav{margin-left:auto;font-size:13px}
-  header.top nav a{margin-left:14px}
   h1{font-family:var(--display);font-weight:900;text-transform:uppercase;font-size:clamp(2rem,6vw,3rem);line-height:.95;margin:0 0 4px;color:var(--bone)}
   .updated{color:var(--dim);font-size:13px;margin:0 0 26px}
   .preamble{color:var(--bone);border-left:2px solid var(--accent);padding-left:14px;margin-bottom:32px}
@@ -38,13 +36,16 @@
   code{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(--bone)}
   .tag{display:inline-block;border:1px solid var(--line);border-radius:4px;padding:1px 7px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-right:6px}
   footer.legal{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:13px}
+  footer.legal .links a{margin-right:14px}
+  footer.legal .copyright{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);font-size:11.5px;line-height:1.6}
+  footer.legal .copyright b{color:var(--slate);font-weight:600}
+  .handle{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;color:var(--slate)}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
     <a class="brand" href="/">RL Pro Tracker<span>.</span></a>
-    <nav><a href="/how-it-works">How it works</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav>
   </header>
   <h1>Terms of service</h1>
   <p class="updated">Last updated 2 September 2026</p>
@@ -63,7 +64,7 @@
   <h2><span class="n">4.</span> Age</h2>
   <p>You need to be at least 13 to use the site.</p>
 
-  <h2><span class="n">5.</span> The numbers are not gospel</h2>
+  <h2><span class="n">5.</span> Accuracy</h2>
   <p>Everything is scraped automatically from public sources that can go down, change, or simply be wrong. Figures may be stale, incomplete or missing.</p>
   <p>Playtime for players who hide their Steam details is <b>estimated by sampling</b>, marked as such on the board, and always undercounts. It is not a measurement. Do not bet on any of this, and do not treat it as a record of what someone actually played. The <a href="/how-it-works">how it works</a> page sets out what each number can and cannot tell you.</p>
 
@@ -96,9 +97,13 @@
   <p>EU law applies, and nothing in these terms takes away consumer rights you have under the mandatory law of the country you live in.</p>
 
   <h2><span class="n">13.</span> Contact</h2>
-  <p>Discord: <b>@_198x</b>. Or use the feedback form on the <a href="/">front page</a>.</p>
+  <p>Discord, at <span class="handle">@_198x</span>, or the feedback form on the tracker.</p>
 
-  <footer class="legal">RL Pro Tracker &middot; <a href="/">Back to the tracker</a> &middot; <a href="/how-it-works">How it works</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a></footer>
+  <footer class="legal">
+    <div class="links"><a href="/">Back to the tracker</a><a href="/how-it-works">How it works</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div>
+    <p class="copyright">Built and maintained by <b>Bordder</b>. &copy; 2026.<br />
+    A fan-made project, not connected to Psyonix, Epic Games or RLCS in any way. Rocket League is a trademark of Psyonix LLC. Player and team names belong to their respective owners.</p>
+  </footer>
 </div>
 </body>
 </html>
