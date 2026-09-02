@@ -13,9 +13,10 @@ const steam = JSON.parse(await readFile(join(D, "steam-hours.json"), "utf8"));
 const teams = JSON.parse(await readFile(join(D, "team-hours.json"), "utf8"));
 const tracker = await readOpt("tracker.json");         // ranked MMR + games (optional)
 const teamTracker = await readOpt("team-tracker.json"); // team ranked aggregate (optional)
+const presence = await readOpt("presence-hours.json");  // estimated hours for hidden profiles (optional)
 let html = await readFile(join(ROOT, "web", "index.html"), "utf8");
 
-const inject = `<script>window.__RLDATA__=${JSON.stringify({ steam, teams, tracker, teamTracker })};</script>`;
+const inject = `<script>window.__RLDATA__=${JSON.stringify({ steam, teams, tracker, teamTracker, presence })};</script>`;
 html = html.replace("</head>", `${inject}\n</head>`);
 
 await writeFile(join(ROOT, "web", "preview-standalone.html"), html);

@@ -163,6 +163,11 @@
   .c-ros{width:132px;font-size:12.5px;color:var(--slate)}
   .rk-b{font-family:var(--mono);font-weight:700;color:var(--bone)}
   .dash{color:var(--dim);font-family:var(--mono)}
+  /* Presence-derived hours. Deliberately unlike a measured reading: dimmer, a
+     tilde, and a dotted underline, so an estimate can never be mistaken for
+     Steam's own number. */
+  .est{color:var(--dim);border-bottom:1px dotted var(--dim);cursor:help}
+  .est::before{content:"~";opacity:.7;margin-right:1px}
   .empty{padding:56px 20px;text-align:center;color:var(--slate);font-family:var(--display);text-transform:uppercase;letter-spacing:.16em}
 
   /* ---- Footer ---- */
@@ -366,6 +371,16 @@
     var on=isNaN(d)?'an earlier check':d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
     return'<span class="frozen" title="Last reading before this profile was closed, taken '+esc(on)+'. It cannot update while the profile stays private.">'+v+'</span>';
   };
+  // The 2-week hours cell. A Steam reading renders plainly; a presence-derived
+  // estimate renders as ~N with a dotted underline and an explanation on hover,
+  // so the two can never be read as the same kind of number.
+  var hours2wkCell=function(p){
+    if(p.hours2wk!=null)return hf(p.hours2wk);
+    if(p.estHours2wk!=null){
+      return '<span class="est" title="Estimated, not measured. This profile hides its playtime, so hours are reconstructed by checking every few minutes whether the player is in Rocket League. It undercounts - any session between checks is missed - and it only covers time since tracking began.">'+hf(p.estHours2wk)+'</span>';
+    }
+    return '<span class="dash">&middot;</span>';
+  };
   var updatedCell=function(ms){
     if(ms==null)return'<td class="c-up"><span class="dash">&middot;</span></td>';
     var exact=new Date(ms).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
@@ -426,15 +441,19 @@
   var DATA_BASE=window.__DATA_BASE__||"./data/derived";
   var getJson=function(f){return fetch(DATA_BASE+'/'+f).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});};
   var load=window.__RLDATA__
-    ? Promise.resolve([window.__RLDATA__.steam,window.__RLDATA__.teams,window.__RLDATA__.tracker,window.__RLDATA__.teamTracker])
-    : Promise.all([getJson('steam-hours.json'),getJson('team-hours.json'),getJson('tracker.json'),getJson('team-tracker.json')]);
+    ? Promise.resolve([window.__RLDATA__.steam,window.__RLDATA__.teams,window.__RLDATA__.tracker,window.__RLDATA__.teamTracker,window.__RLDATA__.presence])
+    : Promise.all([getJson('steam-hours.json'),getJson('team-hours.json'),getJson('tracker.json'),getJson('team-tracker.json'),getJson('presence-hours.json')]);
 
   load.then(function(res){
-    var steam=res[0], teamH=res[1], tracker=res[2], teamT=res[3];
+    var steam=res[0], teamH=res[1], tracker=res[2], teamT=res[3], presence=res[4];
     if(!steam||!teamH){ document.getElementById('playersView').innerHTML='<div class="scroll"><div class="empty">Failed to load data</div></div>'; return; }
 
     // ---- merge into unified models ----
     var trById={}; (tracker&&tracker.players||[]).forEach(function(p){trById[p.id]=p;});
+    // Presence hours are only ever a fallback. Where Steam publishes playtime we
+    // use that; where it does not, polling who is in-game reconstructs a rough
+    // figure. d14 matches the 2-week window the Steam column shows.
+    var presById={}; (presence&&presence.players||[]).forEach(function(p){presById[p.id]=p;});
     var players=steam.players.map(function(p){
       var t=trById[p.id]||{};
       return { name:p.name, team:p.team, region:REGION[p.team]||null, status:p.status,
@@ -443,7 +462,13 @@
         seasonGames:t.seasonGames?t.seasonGames.total:null,
         games:t.games?t.games.total:null,
         updatedAt:(function(){var v=t.updatedAt?Date.parse(t.updatedAt):NaN;return isNaN(v)?null:v;})(),
-        hours2wk:p.steam2wkHours, totalHours:p.totalHours, totalFrozenAt:p.totalHoursFrozenAt||null };
+        hours2wk:p.steam2wkHours,
+        estHours2wk:(function(){
+          if(p.steam2wkHours!=null)return null; // never shadow a measured reading
+          var e=presById[p.id];
+          return (e&&e.presenceHours&&e.presenceHours.d14)?e.presenceHours.d14:null;
+        })(),
+        totalHours:p.totalHours, totalFrozenAt:p.totalHoursFrozenAt||null };
     });
     var ttByTeam={}; (teamT&&teamT.teams||[]).forEach(function(t){ttByTeam[t.team]=t;});
     var teams=teamH.teams.map(function(t){
@@ -494,7 +519,8 @@
         '<li><b>Private</b> closes the profile to the public. Nothing on it can be read from outside, playtime included.</li>'+
         '<li><b>Hidden</b> keeps the profile itself open, but switches off the game details section within it. The profile still loads normally for anyone visiting; the playtime figures are simply not published.</li>'+
       '</ul>'+
-      '<p>Either setting stops Steam publishing playtime, so <b>2wk h</b> and <b>Total h</b> are left blank rather than filled with a guess. Ranks and games played come from a separate source and are unaffected, which is why a player can show a full set of MMR numbers with both hours columns empty.</p>'+
+      '<p>Either setting stops Steam publishing playtime, so <b>Total h</b> is left blank rather than filled with a guess. Ranks and games played come from a separate source and are unaffected, which is why a player can show a full set of MMR numbers with no total hours at all.</p>'+
+      '<p><b>Estimated hours.</b> Steam still reveals what someone is playing right now even when it hides how long they have played. So for those profiles the site checks every few minutes and, when it finds them in Rocket League, credits the time since the last check. Those figures appear in <b>2wk h</b> as <span class="est">a tilde and a dotted underline</span>, and they are an undercount by nature: any session that starts and ends between two checks is invisible, and nothing before tracking began is counted. Treat them as a floor, not a measurement. A plain number in that column is Steam&rsquo;s own.</p>'+
       '<p><b>Readings that stop moving.</b> Players do sometimes open a profile that was closed before. When that happens the total playtime is recorded and kept, so if they close it again the number stays on the page instead of vanishing. It is frozen at that point: real, but stuck at whatever it read on the day it was captured, and unable to move again until the profile reopens. Those totals are marked with <span class="frozen">an asterisk</span> and the date is on hover. The 2-week column is deliberately not carried over, because it measures a rolling fortnight and an old value would read as recent activity when it is nothing of the sort.</p>'+
       '<p><b>Why some players update sooner than others.</b> Collecting this data reliably costs money, and the cost climbs the more often each account is checked. For now the most-followed pros are refreshed on a shorter cycle, so their numbers sit close to live, while less popular pros are checked less often and can lag behind. The <b>Updated</b> column shows exactly when each player was last checked, so you never have to guess how current a row is. If the site builds an audience, that goes back into better infrastructure so everyone refreshes at the same rate.</p>'+
       '<p><b>Early days.</b> This is a new project and still a work in progress, so expect the occasional rough edge or a number that looks off. Regions follow each team’s competitive region rather than nationality, so a player living elsewhere still carries their team’s region. If something looks wrong, the form below is the fastest way to tell me.</p>';
@@ -541,7 +567,7 @@
 
     var win='d1'; // recent-games window: d1 (24h, live now) / d7 / d14
     var pCols=[{label:'#',cls:'c-rk'},{label:'Player',cls:'c-who',k:'name'},{label:'Region',cls:'c-rg',k:'region'},{label:'Status',cls:'c-st',k:'status'},{label:'1v1',cls:'c-mmr',k:'ones',num:true},{label:'2v2',cls:'c-mmr',k:'twos',num:true},{label:'3v3',cls:'c-mmr',k:'threes',num:true},{label:'Games',cls:'c-sg',k:'sg',num:true,title:'Total ranked games played since the current competitive season began'},{label:WIN_LABEL[win],cls:'c-g14',k:'g14',num:true},{label:'2wk h',cls:'c-hr',k:'h2',num:true},{label:'Total h',cls:'c-hr',k:'ht',num:true},{label:'Updated',cls:'c-up',k:'up',num:true,title:'When this player’s ranked data was last refreshed'}];
-    var pAcc={name:function(p){return(p.name||'').toLowerCase();},region:function(p){return p.region||null;},status:function(p){return p.status?String(p.status).toLowerCase():null;},ones:function(p){return p.mmr?p.mmr.ones:null;},twos:function(p){return p.mmr?p.mmr.twos:null;},threes:function(p){return p.mmr?p.mmr.threes:null;},sg:function(p){return p.seasonGames;},g14:function(p){return p.games&&p.games[win]?p.games[win].games:null;},h2:function(p){return p.hours2wk;},ht:function(p){return p.totalHours;},up:function(p){return p.updatedAt;}};
+    var pAcc={name:function(p){return(p.name||'').toLowerCase();},region:function(p){return p.region||null;},status:function(p){return p.status?String(p.status).toLowerCase():null;},ones:function(p){return p.mmr?p.mmr.ones:null;},twos:function(p){return p.mmr?p.mmr.twos:null;},threes:function(p){return p.mmr?p.mmr.threes:null;},sg:function(p){return p.seasonGames;},g14:function(p){return p.games&&p.games[win]?p.games[win].games:null;},h2:function(p){return p.hours2wk!=null?p.hours2wk:p.estHours2wk;},ht:function(p){return p.totalHours;},up:function(p){return p.updatedAt;}};
     var playerRow=function(p){
       var mmr=p.hasMmr?(mmrCell(p.mmr.ones)+mmrCell(p.mmr.twos)+mmrCell(p.mmr.threes)):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
       return '<tr class="'+(p.hasMmr?'':'isnorank')+'">'+
@@ -551,7 +577,7 @@
         '<td class="c-st">'+statusChip(p.status)+'</td>'+mmr+
         '<td class="c-sg">'+(p.seasonGames!=null?'<span class="sgv">'+nf(p.seasonGames)+'</span>':'<span class="dash">&middot;</span>')+'</td>'+
         '<td class="c-g14">'+fmtGames(p.games,win)+'</td>'+
-        '<td class="c-hr">'+(p.hours2wk!=null?hf(p.hours2wk):'<span class="dash">&middot;</span>')+'</td>'+
+        '<td class="c-hr">'+hours2wkCell(p)+'</td>'+
         '<td class="c-hr">'+totalHoursCell(p)+'</td>'+
         updatedCell(p.updatedAt)+'</tr>';
     };
