@@ -42,8 +42,10 @@ test("a recently-fetched player (elapsed < interval) is not due", () => {
 test("slot gating: among due players, exactly the current-slot ranks are selected", () => {
   const players = roster(6); // slots = round(1h / RUN_SPACING_MS) -> slot = rank % slots
   const slots = Math.max(1, Math.round(HOUR / RUN_SPACING_MS));
-  const now = RUN_SPACING_MS * 1000; // floor(now/RUN) = 1000; curSlot = 1000 % 3 = 1
-  const curSlot = Math.floor(now / RUN_SPACING_MS) % slots;
+  // Land on slot 1 whatever the run spacing is, so that at least one of the six
+  // ranks matches and the selection is a genuine subset rather than empty.
+  const curSlot = 1 % slots;
+  const now = RUN_SPACING_MS * (slots * 50 + curSlot);
   const state = Object.fromEntries(players.map((p) => [p.id, { last: iso(now - 2 * HOUR), fails: 0 }])); // elapsed 2h >= 1h
   const due = selectDue(players, prio(), state, now);
   const ranks = playerRanks(players, prio());

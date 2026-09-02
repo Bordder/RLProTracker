@@ -17,7 +17,7 @@
 // that needs no special handling.
 
 const PRESENCE_CRON = "*/5 * * * *";
-const TRACKER_CRON = "*/3 * * * *";
+const TRACKER_CRON = "*/2 * * * *";
 const STEAM_CRON = "7 * * * *";
 
 async function dispatch(env, workflow) {

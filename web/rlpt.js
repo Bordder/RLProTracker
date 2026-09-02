@@ -6,7 +6,15 @@
   var initials=function(s){s=String(s||'').trim();if(!s)return'?';var p=s.split(/[\s\-_.]+/).filter(Boolean);return (p.length>1?(p[0][0]+p[1][0]):s.slice(0,2)).toUpperCase();};
   var tierClass=function(v){if(v==null)return'';if(v<1115)return't-low';if(v<1435)return't-champ';if(v<1855)return't-gc';return't-ssl';};
   var tierName=function(v){if(v==null)return'';if(v<1115)return'';if(v<1435)return'Champion';if(v<1855)return'Grand Champion';return'Supersonic Legend';};
-  var mmrCell=function(v){return v==null?'<td class="c-mmr"><span class="dash">&middot;</span></td>':'<td class="c-mmr"><span class="mv '+tierClass(v)+'">'+nf(v)+'</span></td>';};
+  // `slot` distinguishes the three playlists so the phone layout can promote
+  // 2v2 and demote the other two; on the desktop table it changes nothing.
+  var mmrCell=function(v,slot){
+    var cls='c-mmr'+(slot?' '+slot:'');
+    var lab=slot==='m1'?'1v1':slot==='m3'?'3v3':'2v2';
+    return v==null
+      ? '<td class="'+cls+'" data-l="'+lab+'"><span class="dash">&middot;</span></td>'
+      : '<td class="'+cls+'" data-l="'+lab+'"><span class="mv '+tierClass(v)+'">'+nf(v)+'</span></td>';
+  };
   var fmtGames=function(gs,win){ var g=gs?gs[win]:null; if(!g||g.games==null)return'<span class="dash">&middot;</span>'; if(g.partial)return'<span class="pending">pending</span>'; if(g.games===0)return'<span class="mv">0</span>'; return'<span class="g14v">'+nf(g.games)+'</span>'; };
   var WIN_LABEL={d1:'24h',d7:'7d',d14:'14d'};
   // Short chip labels, with the full meaning kept on hover.
@@ -127,11 +135,11 @@
   var regionChip=function(r){ return r?'<span class="rg '+(REGION_CLASS[r]||'')+'">'+esc(r)+'</span>':'<span class="dash">&middot;</span>'; };
 
   var DATA_BASE=window.__DATA_BASE__||"/data";
-  // raw.githubusercontent.com sends Cache-Control: max-age=300, so a plain fetch
-  // can hand back data five minutes old - and a tab left open would never see
-  // anything newer at all. The collector writes every ~3 minutes, so bust the
-  // cache on a 60s bucket: fresh enough to matter, coarse enough that repeat
-  // visitors within the same minute still get a cache hit.
+  // Busting on a 60s bucket keeps a tab from sitting on a stale copy: the
+  // collector writes every ~2 minutes, so a minute is fine enough to matter and
+  // coarse enough that repeat visits within the same minute still hit a cache.
+  // The query string only affects the browser and our own origin; the Function
+  // behind /data collapses the upstream read separately.
   var getJson=function(f){
     var bust='?v='+Math.floor(Date.now()/60000);
     return fetch(DATA_BASE+'/'+f+bust,{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
@@ -367,7 +375,9 @@
           if(typeof av==='string')return sd==='asc'?av.localeCompare(bv):bv.localeCompare(av);
           return sd==='asc'?(av-bv):(bv-av);
         }); }
-        tb.innerHTML=arr.length?arr.map(rowFn).join(''):'<tr><td colspan="'+columns.length+'" class="empty" style="height:auto">No matches</td></tr>';
+        // A search with no hits renders nothing at all: the absence is the
+        // answer, and a "No matches" bar reads like something went wrong.
+        tb.innerHTML=arr.length?arr.map(rowFn).join(''):'';
         trh.querySelectorAll('th').forEach(function(th){ th.classList.remove('s-asc','s-desc'); if(th.dataset.k===sk)th.classList.add(sd==='asc'?'s-asc':'s-desc'); });
       }
       scroll.appendChild(tbl); mount.innerHTML=''; mount.appendChild(scroll);
@@ -379,16 +389,21 @@
     var pCols=[{label:'#',cls:'c-rk'},{label:'Player',cls:'c-who',k:'name'},{label:'Region',cls:'c-rg',k:'region'},{label:'Status',cls:'c-st',k:'status'},{label:'1v1',cls:'c-mmr',k:'ones',num:true},{label:'2v2',cls:'c-mmr',k:'twos',num:true},{label:'3v3',cls:'c-mmr',k:'threes',num:true},{label:'Games',cls:'c-sg',k:'sg',num:true,title:'Total ranked games played since the current competitive season began'},{label:WIN_LABEL[win],cls:'c-g14',k:'g14',num:true},{label:'2wk h',cls:'c-hr',k:'h2',num:true},{label:'Total h',cls:'c-hr',k:'ht',num:true}];
     var pAcc={name:function(p){return(p.name||'').toLowerCase();},region:function(p){return p.region||null;},status:function(p){return p.status?String(p.status).toLowerCase():null;},ones:function(p){return p.mmr?p.mmr.ones:null;},twos:function(p){return p.mmr?p.mmr.twos:null;},threes:function(p){return p.mmr?p.mmr.threes:null;},sg:function(p){return p.seasonGames;},g14:function(p){return p.games&&p.games[win]?p.games[win].games:null;},h2:function(p){return p.hours2wk!=null?p.hours2wk:p.estHours2wk;},ht:function(p){return p.totalHours;}};
     var playerRow=function(p){
-      var mmr=p.hasMmr?(mmrCell(p.mmr.ones)+mmrCell(p.mmr.twos)+mmrCell(p.mmr.threes)):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
+      var mmr=p.hasMmr?(mmrCell(p.mmr.ones,'m1')+mmrCell(p.mmr.twos,'m2')+mmrCell(p.mmr.threes,'m3')):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
       return '<tr class="'+(p.hasMmr?'':'isnorank')+'">'+
         '<td class="c-rk">'+rankMark(p.__rank)+'</td>'+
         '<td class="c-who">'+teamMark(p.team)+'<span class="nm"><b>'+esc(p.name)+'</b><i>'+esc(p.team||'Free agent')+'</i></span></td>'+
-        '<td class="c-rg">'+regionChip(p.region)+'</td>'+
+        // The phone layout needs both chips in one container so they can sit
+        // flush against the right edge together; as separate grid cells they
+        // could be adjacent or right aligned, never both. The duplicate is
+        // hidden on desktop, where the two columns stay sortable in their own
+        // right.
+        '<td class="c-rg">'+regionChip(p.region)+'<span class="chip-pair">'+statusChip(p.status)+'</span></td>'+
         '<td class="c-st">'+statusChip(p.status)+'</td>'+mmr+
-        '<td class="c-sg">'+(p.seasonGames!=null?'<span class="sgv">'+nf(p.seasonGames)+'</span>':'<span class="dash">&middot;</span>')+'</td>'+
-        '<td class="c-g14">'+fmtGames(p.games,win)+'</td>'+
-        '<td class="c-hr">'+hours2wkCell(p)+'</td>'+
-        '<td class="c-hr">'+totalHoursCell(p)+'</td>'+
+        '<td class="c-sg" data-l="season">'+(p.seasonGames!=null?'<span class="sgv">'+nf(p.seasonGames)+'</span>':'<span class="dash">&middot;</span>')+'</td>'+
+        '<td class="c-g14" data-l="'+esc(WIN_LABEL[win]||win)+'">'+fmtGames(p.games,win)+'</td>'+
+        '<td class="c-hr c-hr2" data-l="2wk h">'+hours2wkCell(p)+'</td>'+
+        '<td class="c-hr c-hrt" data-l="total h">'+totalHoursCell(p)+'</td>'+
         '</tr>';
     };
     var pMatch=function(p,q){return (String(p.name||'')+' '+String(p.team||'')+' '+String(p.region||'')).toLowerCase().indexOf(q)>=0;};
@@ -413,10 +428,10 @@
         '<td class="c-who">'+teamMark(t.team,'tm')+'<span class="nm"><b>'+esc(t.team)+'</b></span></td>'+
         '<td class="c-rg">'+regionChip(t.region)+'</td>'+
         '<td class="c-fill"></td>'+
-        mmrCell(a.ones)+mmrCell(a.twos)+mmrCell(a.threes)+
-        '<td class="c-sg">'+(t.seasonGames!=null?'<span class="sgv">'+nf(t.seasonGames)+'</span>':'<span class="dash">&middot;</span>')+'</td>'+
-        '<td class="c-hr">'+teamHoursCell(t,t.hours2wk,hf)+'</td>'+
-        '<td class="c-hr">'+teamHoursCell(t,t.totalHours,function(x){return nf(Math.round(x));})+'</td></tr>';
+        mmrCell(a.ones,'m1')+mmrCell(a.twos,'m2')+mmrCell(a.threes,'m3')+
+        '<td class="c-sg" data-l="season">'+(t.seasonGames!=null?'<span class="sgv">'+nf(t.seasonGames)+'</span>':'<span class="dash">&middot;</span>')+'</td>'+
+        '<td class="c-hr c-hr2" data-l="2wk h">'+teamHoursCell(t,t.hours2wk,hf)+'</td>'+
+        '<td class="c-hr c-hrt" data-l="total h">'+teamHoursCell(t,t.totalHours,function(x){return nf(Math.round(x));})+'</td></tr>';
     };
     var tMatch=function(t,q){return (String(t.team||'')+' '+String(t.region||'')).toLowerCase().indexOf(q)>=0;};
 
@@ -542,7 +557,13 @@
 
     // Started here rather than beside renderStatus, because a refresh repaints
     // the tables and those are built further down.
-    setInterval(pollStatus,150000);
+    // Collection runs every 2 minutes, so polling every 60 seconds means a tab
+    // is never more than about a minute behind the numbers existing. At the old
+    // 150s a poll could just miss a collection and leave the page five minutes
+    // stale while everything upstream was working perfectly.
+    // The probe is a few dozen bytes and is collapsed at the edge for 20s, so
+    // the poll rate costs upstream nothing.
+    setInterval(pollStatus,60000);
     pollStatus();
 
     var yr=document.getElementById('yr'); if(yr)yr.textContent=String(new Date().getFullYear());

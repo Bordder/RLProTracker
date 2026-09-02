@@ -223,7 +223,7 @@ function parseProxies() {
 
 // Roughly how far apart runs are; used to stagger same-interval players into
 // slots. Keep in sync with the cron in .github/workflows/tracker.yml.
-const RUN_SPACING_MS = 3 * 60e3;
+const RUN_SPACING_MS = 2 * 60e3;
 
 // Give each player a deterministic slot within its interval group so players that
 // share a refresh interval don't all come due in the SAME run (a clump hammers the

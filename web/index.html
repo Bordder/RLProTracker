@@ -113,7 +113,9 @@
     padding:14px 16px;position:relative;overflow:hidden;
   }
   .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--t-champ)}
-  .card.hot::before{background:var(--accent)}
+  /* The headline stat keeps an accent number, but shares the same rule colour
+     as the rest: a differently coloured edge made it read as a different kind
+     of tile rather than the most interesting one. */
   .card .k{font-family:var(--display);text-transform:uppercase;letter-spacing:.13em;font-size:11px;font-weight:600;color:var(--slate)}
   .card .v{font-family:var(--display);font-weight:800;font-size:clamp(1.7rem,2.4vw,2.3rem);line-height:1;margin-top:8px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
   .card.hot .v{color:var(--accent)}
@@ -132,6 +134,12 @@
   .seg button:hover{color:var(--bone)}
   .seg button[aria-selected="true"]{background:var(--accent);color:var(--ink)}
   .search{position:relative;display:inline-flex;align-items:center}
+  /* type="search" draws the browser's own clear button, which sat on top of
+     ours: two crosses, and the native one did not match the site. Ours stays,
+     because it is the one styled to the design and wired to the filter. */
+  .search input::-webkit-search-cancel-button,
+  .search input::-webkit-search-decoration{-webkit-appearance:none;appearance:none;display:none}
+  .search input::-ms-clear{display:none;width:0;height:0}
   .search svg{position:absolute;left:12px;width:15px;height:15px;stroke:var(--slate);pointer-events:none}
   .search input{
     font-family:var(--body);font-size:14px;color:var(--bone);
@@ -238,6 +246,8 @@
   .note p:last-child{margin:0}
 
   /* ---- Region chip ---- */
+  /* Mobile only: the status chip rendered alongside the region one. */
+  .chip-pair{display:none}
   .rg{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:5px;border:1px solid var(--line2);color:var(--slate);background:var(--bg2);white-space:nowrap}
   /* Regions sit next to the status chips, so none of them may reuse a status
      colour: mint green means "public" and amber means "private or hidden".
@@ -311,10 +321,179 @@
   @media (max-width:820px){ .stats{grid-template-columns:repeat(2,1fr)} }
   @media (max-width:640px){
     .wrap{padding:0 14px 60px}
-    .stats{grid-template-columns:repeat(2,1fr)}
-    .controls{gap:10px}
+    /* On a phone the header was eating well over a thousand pixels before the
+       first player appeared, which on a board whose whole job is answering one
+       question is the wrong thing to spend the screen on.
+       Tiles lose their descriptions and keep label plus number, so the rows are
+       equal height; the fifth, which would otherwise sit alone on its own row,
+       becomes a one line strip. */
+    .stats{grid-template-columns:repeat(2,1fr);gap:8px;margin:16px 0 6px}
+    .card{padding:10px 12px;border-radius:10px}
+    .card .k{font-size:9.5px;letter-spacing:.1em}
+    .card .v{font-size:1.5rem;margin-top:4px}
+    .card .s{display:none}
+    .card:last-child{
+      grid-column:1/-1;display:flex;align-items:baseline;gap:8px;padding:8px 12px;
+    }
+    .card:last-child .v{font-size:1.05rem;margin:0}
+
+    /* Tabs and the window switch share a line; the search sits under them. */
+    .controls{gap:8px;margin:14px 0 8px;flex-wrap:wrap}
+    .tabs{flex:0 0 auto}
+    .search{flex:1 1 100%;order:3}
+    #searchWrap{width:100%}
+    #searchWrap input{width:100%}
+    .wrow{margin:0 0 8px;gap:8px}
+    .wrow .wlbl{display:none}
+    .dek{margin-top:10px}
+    .dstatus{margin-top:12px}
     .search input{width:min(100%,70vw)}
   }
+  /* ---- Phones: cards, not a table ------------------------------------
+     Eleven columns will never fit a phone, and the table's min-width forced a
+     sideways scroll before a single number was visible, so the answer arrived
+     off screen. Below 700px each row becomes a card built from the same markup:
+     the header row is dropped, every cell is placed by name in a grid, and each
+     carries its own label from data-l. Sorting, searching and live updates are
+     untouched, because the DOM does not change.
+
+     Grid rather than flex ordering: with flex the chips and the stat boxes
+     wrapped differently depending on how long a team name was, so no two cards
+     lined up. */
+  @media (max-width:700px){
+    .scroll{overflow-x:visible;border:0;background:none;border-radius:0}
+    table.feed{min-width:0;display:block}
+    .feed>thead{display:none}
+    .feed>tbody{display:block}
+
+    .feed>tbody>tr{
+      display:grid;height:auto;
+      /* Twelve columns so the rank can be one narrow column while the three
+         stat boxes stay exactly equal; three columns made the rank a third of
+         the card wide and pushed the name into the middle. */
+      grid-template-columns:repeat(12,minmax(0,1fr));
+      grid-template-areas:
+        "rk  who who who who who  who  rg   rg  rg  rg  rg"
+        "m1  m1  m1  m1  mm2 mm2  mm2  mm2  m3  m3  m3  m3"
+        "g14 g14 g14 sea sea sea  hr2  hr2  hr2 hrt hrt hrt";
+      gap:7px 8px;align-items:center;
+      background:var(--surface);border:1px solid var(--line);border-radius:12px;
+      padding:12px 13px;margin-bottom:9px;
+    }
+    .feed>tbody>tr.isnorank{opacity:1}
+    /* The desktop table sets a pixel width on most columns. As grid items those
+       widths win over the grid's own stretch, so the three stat boxes came out
+       88, 78 and 104 wide with uneven gaps between them - the "weird spacing".
+       Clearing the widths lets each cell fill the area the grid gave it. */
+    .feed>tbody>tr>td{
+      border:0;padding:0;height:auto;white-space:normal;
+      width:auto;min-width:0;max-width:none;
+    }
+
+    .feed>tbody>tr>td.c-rk{grid-area:rk;justify-self:start;margin-right:-6px}
+    .feed>tbody>tr>td.c-who{grid-area:who}
+    /* Both chips share one strip so they always sit together. */
+    /* Both chips ride in the region cell, right aligned as a pair. */
+    .feed>tbody>tr>td.c-rg{
+      grid-area:rg;justify-self:end;display:flex;align-items:center;gap:6px;white-space:nowrap;
+    }
+    .feed>tbody>tr>td.c-rg .chip-pair{display:inline-flex}
+    .feed>tbody>tr>td.c-st{display:none}
+    /* Slightly tighter chips on a phone so the widest status, "hours hidden",
+       still fits the right hand column without spilling past the card. */
+    .feed>tbody>tr>td .sx,.feed>tbody>tr>td .rg{font-size:9.5px;padding:3px 7px;letter-spacing:.06em}
+
+    .feed>tbody>tr>td.c-g14{grid-area:g14}
+    .feed>tbody>tr>td.c-mmr.m2{grid-area:mm2}
+    .feed>tbody>tr>td.c-sg{grid-area:sea}
+    /* The three boxes are the playlists, so the card reads as one thing rather
+       than a rank sitting between two activity numbers. Games move down to the
+       small line with the hours. */
+    .feed>tbody>tr>td.c-mmr.m1,
+    .feed>tbody>tr>td.c-mmr.m2,
+    .feed>tbody>tr>td.c-mmr.m3{
+      text-align:left;background:var(--bg2);border:1px solid var(--line);
+      border-radius:9px;padding:7px 9px 8px;
+      display:block;font-size:inherit;color:inherit;
+    }
+
+    .feed>tbody>tr>td.c-mmr.m1{grid-area:m1}
+    .feed>tbody>tr>td.c-mmr.m3{grid-area:m3}
+    .feed>tbody>tr>td.c-hr2{grid-area:hr2}
+    .feed>tbody>tr>td.c-hrt{grid-area:hrt}
+    /* Label left, value right, so the four small stats line up as two tidy
+       columns instead of floating in the middle of their grid areas with dead
+       space beside them. */
+    .feed>tbody>tr>td.c-g14,
+    .feed>tbody>tr>td.c-sg,
+    .feed>tbody>tr>td.c-hr{
+      /* Same treatment as the playlist boxes, one size down, so the card is
+         two rows of tiles rather than tiles followed by loose text. */
+      font-size:13.5px;color:var(--bone);text-align:left;
+      display:block;white-space:nowrap;min-width:0;overflow:hidden;
+      background:var(--bg2);border:1px solid var(--line);border-radius:8px;
+      padding:5px 7px 6px;
+    }
+    /* A fixed label width lines the four values up with each other rather than
+       leaving each one adrift in the middle of its own grid area. */
+    .feed>tbody>tr>td.c-g14::before,
+    .feed>tbody>tr>td.c-sg::before,
+    .feed>tbody>tr>td.c-hr::before{
+      display:block;margin:0 0 2px;font-size:9.5px;text-align:left;letter-spacing:.06em;
+      overflow:hidden;text-overflow:ellipsis;
+    }
+    /* Long placeholders like "hours hidden" would otherwise run past the card
+       edge; the full wording stays on hover. */
+    .feed>tbody>tr>td.c-hr .na,.feed>tbody>tr>td.c-hr .frozen{overflow:hidden;text-overflow:ellipsis}
+    /* A player with no ranked data has one cell spanning the three MMR slots. */
+        /* No ranked data: there are no m1/mm2/m3 cells to place, so the strip takes
+       that whole row. Sharing an area with the 24h cell stacked the two. */
+    .feed>tbody>tr>td.c-mmr.norank{grid-row:2;grid-column:1/-1;text-align:left;font-size:12px}
+
+    /* No header row, so every value carries its own label. */
+    .feed>tbody>tr>td[data-l]::before{
+      content:attr(data-l);display:block;
+      font-family:var(--display);text-transform:uppercase;letter-spacing:.07em;
+      font-size:11px;font-weight:700;color:var(--slate);margin-bottom:3px;
+    }
+
+
+    .feed>tbody>tr>td.c-mmr .mv{font-size:19px;font-weight:600}
+    .feed>tbody>tr>td.c-who .nm b{font-size:15px}
+    .feed>tbody>tr>td.c-rk .rknum{font-size:12px}
+
+    /* Team rows have a spacer where players have their recent-games box, so
+       they get their own arrangement: two stat boxes across, not three with a
+       hole in it. */
+    #teamsView .feed>tbody>tr{
+      grid-template-areas:
+        "rk  who who who who who  who  who  rg  rg  rg  rg"
+        "m1  m1  m1  m1  mm2 mm2  mm2  mm2  m3  m3  m3  m3"
+        "sea sea sea sea hr2 hr2  hr2  hr2  hrt hrt hrt hrt";
+    }
+    #teamsView .feed>tbody>tr>td.c-fill{display:none}
+    /* Keep the expand chevron on the same line as the name. */
+    #teamsView .feed>tbody>tr>td.c-who .nm b{
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    }
+    #teamsView .feed>tbody>tr>td.c-sg{grid-area:sea}
+
+    /* An expanded roster panel spans the whole card. */
+    .feed>tbody>tr.exp-row{display:block;padding:0;background:none;border:0;margin:-6px 0 10px}
+    .feed>tbody>tr.exp-row>td{display:block;width:100%}
+    /* The roster panel keeps its own small table; it must not inherit the card
+       grid, which is why every rule above addresses direct children only. */
+    table.mini{min-width:0;display:table;width:100%}
+    table.mini th,table.mini td{padding:0 8px;height:36px}
+    .mini thead{display:table-header-group}
+    .mini tbody{display:table-row-group}
+    .mini tr{display:table-row}
+    .mini th,.mini td{display:table-cell}
+    /* Six columns do not fit a phone. Total hours is the least useful of them
+       inside a roster comparison, and it is on the card above anyway. */
+    .mini th:nth-child(6),.mini td:nth-child(6){display:none}
+  }
+
   @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
 </style>
 </head>
@@ -397,6 +576,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=f8e16bce" defer></script>
+<script src="rlpt.js?v=2f8379bf" defer></script>
 </body>
 </html>
