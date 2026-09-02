@@ -1,7 +1,6 @@
 // Prepare web/ as a self-contained publish root:
 //  - copy data/derived/*.json into web/data/derived (so relative fetch works)
-//  - write web/_headers with a Content-Security-Policy whose script hashes are
-//    computed from the page itself, so the policy cannot drift out of date
+//  - write web/_headers with a Content-Security-Policy
 //  - optionally write web/config.js setting window.__DATA_BASE__ when
 //    DATA_BASE env is provided (production: point at the repo's raw JSON URL so
 //    data refreshes need no site rebuild).
@@ -9,7 +8,6 @@
 // Usage:  npm run build:site   (DATA_BASE optional)
 
 import { readdir, readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
-import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -37,29 +35,24 @@ console.log(base ? `web/config.js -> DATA_BASE=${base}` : "web/config.js -> bund
 // ---- Content-Security-Policy -------------------------------------------
 //
 // Cloudflare Pages serves headers from a _headers file in the publish root.
-// The page's JavaScript is inline, so rather than allowing 'unsafe-inline' for
-// scripts - which would defeat most of the point - we hash each inline block
-// and list the hashes. Generating this at build time means an edit to the page
-// can never silently invalidate the policy.
+//
+// The page's JavaScript lives in app.js rather than inline, which is what makes
+// this policy simple: 'self' covers it and no hashing is involved. An earlier
+// version hashed an inline script and it broke in production - the served HTML
+// hashed correctly from curl, yet browsers computed a different value and
+// blocked the script, leaving the page stuck on "LOADING". Hash-based CSP is
+// too brittle when anything in the delivery path can touch the markup.
 //
 // Styles still need 'unsafe-inline': the page sets style attributes from JS
 // (team colours, logo insets), and inline style attributes cannot be hashed.
 // That is a much smaller exposure than script injection.
-const html = await readFile(join(ROOT, "web", "index.html"), "utf8");
-const hashes = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)]
-  .map((m) => `'sha256-${createHash("sha256").update(m[1], "utf8").digest("base64")}'`);
-
-// config.js is a separate file, so 'self' covers it. connect-src has to allow
-// wherever the JSON actually lives (raw.githubusercontent.com in production)
-// plus the Worker that receives feedback.
+//
+// Cloudflare Pages injects a Web Analytics beacon from static.cloudflareinsights.com.
+// It is cookieless and does no cross-site tracking, and it is the only source of a
+// unique-visitor count, so it is allowed explicitly.
 const csp = [
   "default-src 'none'",
-  // Cloudflare Pages injects its Web Analytics beacon from this host. It is
-  // cookieless and does no cross-site tracking, and it is the only way to get a
-  // unique-visitor count - zone analytics counts requests and IPs, not people.
-  // Without these two entries the page's own CSP blocks the beacon and no
-  // analytics are collected at all.
-  `script-src 'self' https://static.cloudflareinsights.com ${hashes.join(" ")}`,
+  "script-src 'self' https://static.cloudflareinsights.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self'",
@@ -85,4 +78,4 @@ await writeFile(join(ROOT, "web", "_headers"), [
   "  Cache-Control: public, max-age=31536000, immutable",
   "",
 ].join("\n"));
-console.log(`web/_headers -> CSP with ${hashes.length} script hash(es)`);
+console.log("web/_headers -> CSP written");
