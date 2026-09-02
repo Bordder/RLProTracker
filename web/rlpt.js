@@ -395,7 +395,7 @@
   // where nobody does reads as "this team never plays", and a partial sum needs
   // saying so or it looks like the whole roster.
   var teamHoursCell=function(t,v,fmt){
-    if(!t.tracked)return'<span class="na" title="None of these players publish their hours.">no data</span>';
+    if(!t.tracked)return'<span class="na" title="Every player on this team keeps their hours private, so there is nothing to add up.">hidden</span>';
     if(v==null)return'<span class="dash">&middot;</span>';
     var body=fmt(v);
     if(t.tracked<t.players)return'<span class="part" title="'+t.tracked+' of '+t.players+' players publish hours; the rest keep them private.">'+body+'</span>';
