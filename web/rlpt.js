@@ -336,7 +336,7 @@
           var t=Date.parse(j.computedAt);
           if(isNaN(t))return;
           serverAt=t;
-          if(collectedAt==null||t>collectedAt+60e3){ refreshData(); return; }
+          if(collectedAt==null||t>collectedAt+20e3){ refreshData(); return; }
           renderStatus();
         })
         .catch(function(){});
@@ -566,22 +566,39 @@
     // stale while everything upstream was working perfectly.
     // The probe is a few dozen bytes and is collapsed at the edge for 20s, so
     // the poll rate costs upstream nothing.
-    setInterval(pollStatus,60000);
-    pollStatus();
-
-    // A timer alone is not enough. Browsers throttle setInterval hard in a
-    // background tab (typically to once a minute, and far less when the machine
-    // is on battery or the tab has been buried a while), so a tab switched away
-    // from and returned to can sit on numbers minutes old until the next tick
-    // happens to fire. That is what made the page look like it only ever
-    // updated on a manual reload.
+    // Freshness is driven by two things: a timer, and any sign the reader is
+    // actually here. The timer alone is not enough and never was. A hidden tab
+    // has its timers throttled to near nothing, a long-idle one can be frozen
+    // outright so they stop completely, and a machine returning from sleep
+    // resumes whenever it likes. Measured on the live site: a tab holding
+    // 23:12 data sat there while the server was at 23:14, and one poll fired
+    // by hand pulled everything current immediately. The fetch was never the
+    // problem; nothing was asking.
     //
-    // pageshow with persisted covers the back button: bfcache restores the DOM
-    // and the timers exactly as they were frozen, so without this a visitor
-    // navigating back sees whatever was on screen when they left.
-    document.addEventListener('visibilitychange',function(){ if(!document.hidden)pollStatus(); });
-    window.addEventListener('pageshow',function(e){ if(e.persisted)pollStatus(); });
-    window.addEventListener('online',pollStatus);
+    // visibilitychange alone was too narrow, because a reader can come back
+    // without the page ever having been hidden: another window raised over
+    // this one, a second monitor, a machine waking up. So every ordinary sign
+    // of presence counts, rate limited so it costs nothing.
+    var lastAsk=0;
+    var ensureFresh=function(force){
+      var now=Date.now();
+      if(!force&&now-lastAsk<15000)return;
+      lastAsk=now;
+      pollStatus();
+    };
+
+    setInterval(function(){ensureFresh(true);},60000);
+    ensureFresh(true);
+
+    document.addEventListener('visibilitychange',function(){ if(!document.hidden)ensureFresh(true); });
+    // persisted means bfcache handed back the DOM and the timers exactly as
+    // they were frozen; the plain case covers an ordinary restore too.
+    window.addEventListener('pageshow',function(){ ensureFresh(true); });
+    window.addEventListener('online',function(){ ensureFresh(true); });
+    window.addEventListener('focus',function(){ ensureFresh(true); });
+    ['pointerdown','keydown','wheel','touchstart','scroll'].forEach(function(ev){
+      window.addEventListener(ev,function(){ensureFresh(false);},{passive:true});
+    });
 
     var yr=document.getElementById('yr'); if(yr)yr.textContent=String(new Date().getFullYear());
   });
