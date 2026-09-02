@@ -204,11 +204,19 @@ function parseProxies() {
       else if (p.length === 2) out.push({ server: `http://${p[0]}:${p[1]}` }); // public/no-auth proxy - never attach our creds
     }
   }
-  // Format B: PROXY_HOST + PROXY_PORTS (one host, many ports, shared creds) - Oxylabs setup.
+  // Format B: PROXY_HOST + PROXY_PORTS (one host, many ports, shared creds).
+  //
+  // Only consulted when PROXY_LIST is absent. These used to be concatenated,
+  // which meant a stale secret from a previous provider quietly rejoined the
+  // rotation and every player unlucky enough to draw one of those slots spent
+  // its attempts on a dead tunnel.
   const host = process.env.PROXY_HOST, ports = process.env.PROXY_PORTS;
-  if (host && ports) {
+  if (!out.length && host && ports) {
     const username = process.env.PROXY_USER, password = process.env.PROXY_PASS;
     for (const pt of ports.split(",")) out.push({ server: `http://${host}:${pt.trim()}`, username, password });
+  }
+  if (out.length && host && ports && process.env.PROXY_LIST) {
+    console.log("note: PROXY_LIST is set, so PROXY_HOST/PROXY_PORTS are ignored");
   }
   return out.length ? out : [null];
 }

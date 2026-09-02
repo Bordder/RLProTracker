@@ -209,6 +209,11 @@
       players.length=0; Array.prototype.push.apply(players,nextPlayers);
       teams.length=0;   Array.prototype.push.apply(teams,nextTeams);
 
+      // Re-derive on every update, not just at load: a roster change can add a
+      // team while the page is open, and without this it would render with the
+      // default hue until someone reloaded.
+      assignTeamHues(teams.map(function(t){return t.team;}).concat(players.map(function(p){return p.team;})));
+
       assignRank(players,function(p){return p.mmr?p.mmr.twos:null;});
       assignRank(teams,function(t){return t.avgMmr?t.avgMmr.twos:null;});
       renderCards();
@@ -221,7 +226,6 @@
     }
 
     if(!hydrate(res)){ document.getElementById('playersView').innerHTML='<div class="scroll"><div class="empty">Failed to load data</div></div>'; return; }
-    assignTeamHues(teams.map(function(t){return t.team;}).concat(players.map(function(p){return p.team;})));
 
     // A logo that fails to load drops back to the monogram underneath it.
     // Capture phase: img error events do not bubble.
