@@ -1,5 +1,5 @@
 {
-  "note": "Tracker update scheduling. Runs are 5 minutes apart (see tracker.yml) and RUN_SPACING_MS matches. Every player is on a ~5 min interval so the whole roster refreshes each run; perRun covers all 60. Contexts cache the tracker app bundle, so scraping the full roster per run amortises it. intervalMultiplier multiplies EVERY interval - keep it at 1 unless deliberately throttling.",
+  "note": "Tracker update scheduling. Runs are 3 minutes apart (dispatched by the Cloudflare Worker in worker/, not by the cron in tracker.yml) and RUN_SPACING_MS matches. Every player is on a ~5 min interval so the whole roster refreshes each run; perRun covers all 60. intervalMultiplier multiplies EVERY interval - keep it at 1 unless deliberately throttling.",
   "perRun": 60,
   "intervalMultiplier": 1,
   "defaultHours": 1,

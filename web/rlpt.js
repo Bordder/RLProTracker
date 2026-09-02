@@ -307,7 +307,7 @@
       refreshing=true;
       Promise.all([getJson('steam-hours.json'),getJson('team-hours.json'),getJson('tracker.json'),getJson('team-tracker.json'),getJson('presence-hours.json')])
         .then(function(next){
-          if(hydrate(next)){ paintP(); paintT(); }
+          if(hydrate(next)){ paintP(); paintT(); restoreOpenTeam(); }
         })
         .catch(function(){})
         .then(function(){ refreshing=false; renderStatus(); });
@@ -452,17 +452,30 @@
     var paintT=buildTable(tv,tCols,teams,tAcc,teamRow,{k:'twos',dir:'desc'},tMatch);
 
     // ---- team drilldown: click a team to compare its roster; only one open at a time ----
+    var openTeam=null; // team name of the expanded row, so refreshes can restore it
     var toggleTeam=function(tr){
       if(!tr||!tv.contains(tr))return;
       var open=tv.querySelector('tr.exp-row');
       var same=open&&open.previousElementSibling===tr;
       if(open){ open.parentNode.removeChild(open); }
       var prev=tv.querySelector('tr.team-row.open'); if(prev){ prev.classList.remove('open'); prev.setAttribute('aria-expanded','false'); }
-      if(same)return;
+      if(same){ openTeam=null; return; }
+      openTeam=tr.getAttribute('data-team');
       tr.classList.add('open'); tr.setAttribute('aria-expanded','true');
       var exp=document.createElement('tr'); exp.className='exp-row';
       exp.innerHTML='<td colspan="'+tCols.length+'">'+teamPanel(tr.getAttribute('data-team'))+'</td>';
       tr.parentNode.insertBefore(exp,tr.nextSibling);
+    };
+
+    // Re-open after a repaint. Called on refresh, not on user interaction, so
+    // an expanded roster survives new numbers arriving underneath it.
+    var restoreOpenTeam=function(){
+      if(!openTeam)return;
+      var want=openTeam;
+      var tr=tv.querySelector('tr.team-row[data-team="'+want.replace(/"/g,'\\"')+'"]');
+      if(!tr){ openTeam=null; return; }
+      openTeam=null;      // toggleTeam sets it again
+      toggleTeam(tr);
     };
     tv.addEventListener('click',function(e){ var tr=e.target.closest?e.target.closest('tr.team-row'):null; if(tr)toggleTeam(tr); });
     tv.addEventListener('keydown',function(e){ if(e.key!=='Enter'&&e.key!==' ')return; var tr=e.target.closest?e.target.closest('tr.team-row'):null; if(tr){ e.preventDefault(); toggleTeam(tr); } });

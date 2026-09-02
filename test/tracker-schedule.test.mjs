@@ -90,11 +90,23 @@ test("nextActivity: a single new game does not flip hot (below threshold)", () =
 });
 
 test("a hot player refreshes on the fast interval, not the slow base one", () => {
+  // Checked across a full cycle of runs rather than at one instant. Players are
+  // spread over slots so that same-interval players do not all come due at
+  // once, which means "is it due right now" depends on where the clock happens
+  // to fall - and that made this test fail purely because the run spacing
+  // changed from five minutes to three.
   const players = roster(1); // t-00, 1h base interval
-  const now = RUN_SPACING_MS * 1000;
-  const last = iso(now - 25 * 60e3); // 25 min ago: past the 20m hot interval, short of 1h
-  // not hot -> 1h interval not elapsed -> not due
-  assert.equal(selectDue(players, prio(), { "t-00": { last, fails: 0 } }, now).length, 0);
-  // hot -> ~20m interval, 25m elapsed -> due
-  assert.equal(selectDue(players, prio(), { "t-00": { last, fails: 0, hot: true } }, now).length, 1);
+  const start = RUN_SPACING_MS * 1000;
+  const last = iso(start - 25 * 60e3); // 25 min ago: past the 20m hot interval, short of 1h
+  // Ten runs is 30 minutes at the current spacing: comfortably past the 20
+  // minute hot interval, comfortably short of the 1 hour base one.
+  const RUNS = Math.floor(30 * 60e3 / RUN_SPACING_MS);
+  let coldDue = 0, hotDue = 0;
+  for (let i = 0; i < RUNS; i++) {
+    const now = start + i * RUN_SPACING_MS;
+    coldDue += selectDue(players, prio(), { "t-00": { last, fails: 0 } }, now).length;
+    hotDue += selectDue(players, prio(), { "t-00": { last, fails: 0, hot: true } }, now).length;
+  }
+  assert.equal(coldDue, 0, "an hour has not elapsed, so the cold player is never due");
+  assert.ok(hotDue > 0, "the hot player comes due within a cycle");
 });
