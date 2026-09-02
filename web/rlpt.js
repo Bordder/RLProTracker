@@ -184,18 +184,11 @@
     // ---- updated + footnote ----
     var upd=(function(){var iso=(tracker&&tracker.computedAt)||steam.computedAt;var d=iso?new Date(iso):null;return (d&&!isNaN(d))?('updated '+d.toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})):'live';})();
     document.getElementById('updated').textContent=upd;
+    // The full explanation lives on /how-it-works; the board only needs enough
+    // to say where the numbers come from and where to read the rest.
     document.getElementById('footNote').innerHTML=
-      '<p><b>Three public sources.</b> Ranks and games played come from each player’s public Rocket League Tracker profile. Playtime hours come from the Steam Web API. Rosters come from Liquipedia.</p>'+
-      '<p><b>The two Steam privacy settings.</b> Both affect what this page can show, in different ways:</p>'+
-      '<ul class="deflist">'+
-        '<li><b>Private</b> closes the profile to the public. Nothing on it can be read from outside, playtime included.</li>'+
-        '<li><b>Hidden</b> keeps the profile itself open, but switches off the game details section within it. The profile still loads normally for anyone visiting; the playtime figures are simply not published.</li>'+
-      '</ul>'+
-      '<p>Either setting stops Steam publishing playtime, so <b>Total h</b> is left blank rather than filled with a guess. Ranks and games played come from a separate source and are unaffected, which is why a player can show a full set of MMR numbers with no total hours at all.</p>'+
-      '<p><b>Estimated hours.</b> Steam still reveals what someone is playing right now even when it hides how long they have played. So for those profiles the site checks every few minutes and, when it finds them in Rocket League, credits the time since the last check. Those figures appear in <b>2wk h</b> as <span class="est">a tilde and a dotted underline</span>, and they are an undercount by nature: any session that starts and ends between two checks is invisible, and nothing before tracking began is counted. Treat them as a floor, not a measurement. A plain number in that column is Steam&rsquo;s own.</p>'+
-      '<p><b>Readings that stop moving.</b> Players do sometimes open a profile that was closed before. When that happens the total playtime is recorded and kept, so if they close it again the number stays on the page instead of vanishing. It is frozen at that point: real, but stuck at whatever it read on the day it was captured, and unable to move again until the profile reopens. Those totals are marked with <span class="frozen">an asterisk</span> and the date is on hover. The 2-week column is deliberately not carried over, because it measures a rolling fortnight and an old value would read as recent activity when it is nothing of the sort.</p>'+
-      '<p><b>How current this is.</b> Every player on the board is re-checked every few minutes, all of them on the same cycle, so no row is fresher than another. The timestamp at the top of the page is the last time the numbers were collected. Ranked stats only move when a match ends, and a match plus queue runs about seven minutes, so a figure a few minutes old is as live as this data gets.</p>'+
-      '<p><b>Early days.</b> This is a new project and still a work in progress, so expect the occasional rough edge or a number that looks off. Regions follow each team’s competitive region rather than nationality, so a player living elsewhere still carries their team’s region. If something looks wrong, the form below is the fastest way to tell me.</p>';
+      '<p>Ranks and games played come from public Rocket League Tracker profiles, playtime from the Steam Web API, and rosters from Liquipedia. Players who hide their Steam details get estimated hours instead, marked with a tilde, and those always undercount.</p>'+
+      '<p><a href="/how-it-works">How it works</a> covers what each column means and where it stops being reliable. Still a new project, so expect the odd number that looks off &mdash; the form below is the fastest way to tell me.</p>';
 
     // ---- sortable + searchable feed ----
     var pv=document.getElementById('playersView'), tv=document.getElementById('teamsView');

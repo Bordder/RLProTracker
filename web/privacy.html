@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Privacy policy &middot; RL Pro Tracker</title>
-<meta name="description" content="What information RL Pro Tracker receives, what happens to it, and what you can ask us to do about it.">
+<meta name="description" content="What RL Pro Tracker collects, what it does not, and how to get anything removed.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -19,8 +19,8 @@
   }
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--ink)}
-  body{color:var(--slate);font-family:var(--body);font-size:15px;line-height:1.62;padding:0 20px 80px}
-  .wrap{max-width:760px;margin:0 auto}
+  body{color:var(--slate);font-family:var(--body);font-size:15px;line-height:1.6;padding:0 20px 80px}
+  .wrap{max-width:720px;margin:0 auto}
   header.top{padding:26px 0 14px;border-bottom:1px solid var(--line);margin-bottom:30px;display:flex;gap:18px;align-items:baseline;flex-wrap:wrap}
   .brand{font-family:var(--display);font-weight:900;text-transform:uppercase;letter-spacing:.02em;font-size:19px;color:var(--bone);text-decoration:none}
   .brand span{color:var(--accent)}
@@ -28,13 +28,15 @@
   header.top nav a{margin-left:14px}
   h1{font-family:var(--display);font-weight:900;text-transform:uppercase;font-size:clamp(2rem,6vw,3rem);line-height:.95;margin:0 0 4px;color:var(--bone)}
   .updated{color:var(--dim);font-size:13px;margin:0 0 26px}
-  .preamble{color:var(--bone);border-left:2px solid var(--accent);padding-left:14px;margin-bottom:34px}
-  h2{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:1.15rem;margin:34px 0 8px;color:var(--bone)}
+  .preamble{color:var(--bone);border-left:2px solid var(--accent);padding-left:14px;margin-bottom:32px}
+  h2{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:1.15rem;margin:32px 0 8px;color:var(--bone)}
   h2 .n{color:var(--accent);margin-right:8px}
   b,strong{color:var(--bone);font-weight:600}
   a{color:var(--accent)}
   ul{padding-left:20px}
   li{margin-bottom:5px}
+  code{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(--bone)}
+  .tag{display:inline-block;border:1px solid var(--line);border-radius:4px;padding:1px 7px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-right:6px}
   footer.legal{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:13px}
 </style>
 </head>
@@ -42,62 +44,49 @@
 <div class="wrap">
   <header class="top">
     <a class="brand" href="/">RL Pro Tracker<span>.</span></a>
-    <nav><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav>
+    <nav><a href="/how-it-works">How it works</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></nav>
   </header>
   <h1>Privacy policy</h1>
   <p class="updated">Last updated 2 September 2026</p>
 
-  <p class="preamble">Please read this carefully. It explains what information RL Pro Tracker receives, what happens to it, and what you can ask us to do about it. In practice the answer is short: the site has no accounts and sets no cookies, and the only information you give it is what you deliberately type into the feedback form.</p>
+  <p class="preamble">This site has no accounts and sets no cookies. The only thing you ever give it is what you type into the feedback form, and that gets published publicly.</p>
 
-  <h2><span class="n">1.</span> Who this applies to</h2>
-  <p>This policy covers the website at <b>198x.online</b> and nothing else. RL Pro Tracker is an independent, non-commercial project run by one person. Where this policy says &ldquo;we&rdquo;, it means the operator of that site. It is not connected to Psyonix, Epic Games, RLCS, Liquipedia, Valve, or any team or player listed on the site.</p>
-  <p>Your use of the site is also governed by the <a href="/terms">terms of service</a>.</p>
+  <h2><span class="n">1.</span> Who runs this</h2>
+  <p>RL Pro Tracker at <b>198x.online</b> is an independent fan project run by one person. It makes no money and is not connected to Psyonix, Epic Games, RLCS, Liquipedia or Valve. Use of the site is also covered by the <a href="/terms">terms</a>.</p>
 
-  <h2><span class="n">2.</span> Information you give us</h2>
-  <p>The site asks you for nothing. There is no account, no sign-up, no newsletter and no login.</p>
-  <p>The single exception is the <b>feedback form</b>. If you use it, we receive the message you write and, if you choose to fill it in, the username you type. That username is a free-text field: it is not verified, and it does not have to be a real name or identify you in any way.</p>
-  <p>Anything you submit through that form is <b>published as a public issue</b> on the project&rsquo;s GitHub repository, where it can be read and indexed by anyone. Please do not include personal, confidential or sensitive information in it. Once published, a submission is public; we can delete an issue on request but cannot undo copies made by others in the meantime.</p>
+  <h2><span class="n">2.</span> What you give us</h2>
+  <p>Nothing, unless you use the feedback form. There is no sign-up and no login.</p>
+  <p>If you do send feedback, we get your message and the username you typed, if you typed one. That field is free text and is not checked, so it does not have to be your real name.</p>
+  <p>Feedback is <b>posted publicly as a GitHub issue</b>, where anyone can read it. Do not put anything private in it. We can delete an issue if you ask, but not copies other people have already made.</p>
 
-  <h2><span class="n">3.</span> Information collected automatically</h2>
-  <p><b>Analytics.</b> We use Cloudflare Web Analytics to count page views and see whether anyone is using the site. It does not set cookies, does not fingerprint your device, and cannot follow you to other websites. It records the page requested, the referring page, and coarse technical details such as country, browser and device type. It does not build a profile of you and we cannot use it to identify you.</p>
-  <p><b>Request logs.</b> Cloudflare, which serves and protects the site, keeps short-lived logs of requests including IP addresses, as any website host does. This is necessary to deliver the site and to block abuse. We do not export, store, combine or analyse these logs, and we do not use them to identify visitors.</p>
-  <p><b>Local storage.</b> The site stores nothing on your device beyond your browser&rsquo;s ordinary cache of the page files.</p>
+  <h2><span class="n">3.</span> What gets collected automatically</h2>
+  <p>Cloudflare Web Analytics counts page views. It sets no cookies, does not fingerprint your device and cannot follow you to other sites. It sees the page you loaded, where you came from, and rough details like country and browser. It cannot identify you.</p>
+  <p>Cloudflare also keeps short-lived request logs, including IP addresses, because that is how a site gets served and protected. We do not read, export or analyse them.</p>
 
-  <h2><span class="n">4.</span> Why we process this information, and on what basis</h2>
-  <p>We process the small amount of information described above for two purposes only: to operate and secure the website, and to receive and act on feedback that you choose to send. Where UK or EU data protection law applies, our lawful basis is legitimate interests &mdash; running a website and responding to messages people deliberately send us &mdash; except for feedback content, which you provide voluntarily and which you know will be published.</p>
+  <h2><span class="n">4.</span> Who else sees it</h2>
+  <p>Nobody. We do not sell or share anything, and there are no ads. Two providers handle data because the site runs on them: <b>Cloudflare</b> hosts it, and <b>GitHub</b> stores the code and the published feedback.</p>
 
-  <h2><span class="n">5.</span> Who else receives it</h2>
-  <p>We do not sell, rent, trade or share personal information, and there is no advertising on this site.</p>
-  <p>Two service providers necessarily handle data in the course of the site working: <b>Cloudflare</b>, which hosts the site and provides the analytics described above, and <b>GitHub</b>, where feedback is published and where the project&rsquo;s code and collected data live. Both operate under their own privacy policies.</p>
+  <h2><span class="n">5.</span> Players on the board</h2>
+  <p>Everything shown is already public and is collected without logging into anything. The <a href="/how-it-works">how it works</a> page explains exactly where each number comes from.</p>
+  <p>Only RLCS players are listed, and only their competitive activity. If you are one of them and want your row gone, message me and it goes.</p>
 
-  <h2><span class="n">6.</span> Information about players shown on the site</h2>
-  <p>The site displays competitive activity for players who compete in RLCS. All of it is already public and is collected without logging into anything: rosters from Liquipedia, playtime from the public Steam Web API, and ranks and match counts from public Rocket League tracking pages.</p>
-  <p>The Steam API returns only what a player has chosen to make visible. Where a profile is private, nothing is returned and the site leaves those figures blank or clearly marks them as estimates rather than guessing. We do not collect or display anything about a player&rsquo;s identity, location or personal life, and we do not list private individuals.</p>
-  <p>If you are a player shown on the site and you want your entry removed, contact us and we will remove it. You do not need to give a reason.</p>
+  <h2><span class="n">6.</span> How long things are kept</h2>
+  <p>Published feedback stays on GitHub until deleted. Collected player data rolls over automatically and anything older than fifteen days is dropped. There is nothing else being kept.</p>
 
-  <h2><span class="n">7.</span> Keeping information</h2>
-  <p>Feedback published as a GitHub issue remains there until deleted. The collected player data is retained in rolling windows and older records are automatically discarded &mdash; snapshots and activity logs are pruned after fifteen days. We hold no other personal information to retain.</p>
+  <h2><span class="n">7.</span> Your rights</h2>
+  <p>Under the GDPR you can ask what we hold about you, have it corrected or deleted, object to it being processed, or complain to your national data protection authority.</p>
+  <p>Here that is simple: unless you have sent feedback, we hold nothing about you. If you have, point me at it and I will delete it.</p>
 
-  <h2><span class="n">8.</span> Security</h2>
-  <p>The site is served over HTTPS with a restrictive content security policy, has no user accounts to compromise, and holds no database of personal information. Credentials used to collect data are held as encrypted secrets and never appear in the published site or its source code. No system is perfectly secure, but the amount of your information at stake here is close to nothing by design.</p>
+  <h2><span class="n">8.</span> Age</h2>
+  <p>This site is not aimed at children under 13. If you think a child has put personal information in the feedback form, tell me and I will remove it.</p>
 
-  <h2><span class="n">9.</span> Age</h2>
-  <p>This site is not directed at children under 13 and we do not knowingly collect information from them. Since the site collects no personal information other than what someone types into the feedback form, there is very little that could be collected. If you believe a child has submitted personal information through the form, contact us and we will delete it.</p>
+  <h2><span class="n">9.</span> Changes</h2>
+  <p>Any update appears on this page with a new date at the top.</p>
 
-  <h2><span class="n">10.</span> International transfers</h2>
-  <p>The site is delivered from Cloudflare&rsquo;s global network and feedback is published on GitHub, both of which operate infrastructure outside the United Kingdom and the European Economic Area. By using the site or sending feedback you accept that the limited information described above is handled in this way.</p>
+  <h2><span class="n">10.</span> Contact</h2>
+  <p>Discord is the direct route: <b>@_198x</b>. You can also use the feedback form on the <a href="/">front page</a> or open an issue on <a href="https://github.com/Bordder/RLProTracker" rel="noopener">GitHub</a>, but both of those are public, so use Discord for anything about your own data.</p>
 
-  <h2><span class="n">11.</span> Your rights</h2>
-  <p>Depending on where you live, you may have the right to ask what personal information we hold about you, to have it corrected or deleted, to object to or restrict its processing, and to receive a copy of it. You also have the right to complain to a data protection authority &mdash; in the United Kingdom, the Information Commissioner&rsquo;s Office.</p>
-  <p>In practice, exercising these rights here is simple: unless you have sent feedback, we hold nothing about you at all. If you have, tell us which submission is yours and we will delete it.</p>
-
-  <h2><span class="n">12.</span> Changes to this policy</h2>
-  <p>If this policy changes, the revised version will be posted on this page with a new date at the top. Continuing to use the site after a change means you accept the updated policy.</p>
-
-  <h2><span class="n">13.</span> Contact</h2>
-  <p>Use the feedback form on the <a href="/">front page</a>, or open an issue on <a href="https://github.com/Bordder/RLProTracker" rel="noopener">GitHub</a>. Note that both routes are public; say only that you wish to make a privacy request and we will arrange a private channel.</p>
-
-  <footer class="legal">RL Pro Tracker &middot; <a href="/">Back to the tracker</a> &middot; <a href="/privacy">Privacy policy</a> &middot; <a href="/terms">Terms of service</a></footer>
+  <footer class="legal">RL Pro Tracker &middot; <a href="/">Back to the tracker</a> &middot; <a href="/how-it-works">How it works</a> &middot; <a href="/privacy">Privacy</a> &middot; <a href="/terms">Terms</a></footer>
 </div>
 </body>
 </html>
