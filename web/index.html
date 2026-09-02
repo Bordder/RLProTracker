@@ -4,6 +4,10 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>RL Pro Tracker</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0C0E13">
 <script src="config.js"></script>
 <!-- Fonts are self-hosted. Loading them from fonts.googleapis.com sent every
      visitor's IP address to Google before the page had rendered - the site's
@@ -401,7 +405,7 @@
     if(ms==null)return'<td class="c-up"><span class="dash">&middot;</span></td>';
     var exact=new Date(ms).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
     var stale=(Date.now()-ms)>STALE_MS;
-    return'<td class="c-up"><span class="upv'+(stale?' stale':'')+'" title="Ranked data last refreshed '+esc(exact)+'">'+esc(relTime(ms))+'</span></td>';
+    return'<td class="c-up"><span class="upv'+(stale?' stale':'')+'" data-ts="'+ms+'" title="Ranked data last refreshed '+esc(exact)+'">'+esc(relTime(ms))+'</span></td>';
   };
 
   // Region by team's RLCS competitive region (may differ from a player's nationality).
@@ -455,7 +459,15 @@
   var regionChip=function(r){ return r?'<span class="rg '+(REGION_CLASS[r]||'')+'">'+esc(r)+'</span>':'<span class="dash">&middot;</span>'; };
 
   var DATA_BASE=window.__DATA_BASE__||"./data/derived";
-  var getJson=function(f){return fetch(DATA_BASE+'/'+f).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});};
+  // raw.githubusercontent.com sends Cache-Control: max-age=300, so a plain fetch
+  // can hand back data five minutes old - and a tab left open would never see
+  // anything newer at all. The collector writes every ~3 minutes, so bust the
+  // cache on a 60s bucket: fresh enough to matter, coarse enough that repeat
+  // visitors within the same minute still get a cache hit.
+  var getJson=function(f){
+    var bust='?v='+Math.floor(Date.now()/60000);
+    return fetch(DATA_BASE+'/'+f+bust,{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
+  };
   var load=window.__RLDATA__
     ? Promise.resolve([window.__RLDATA__.steam,window.__RLDATA__.teams,window.__RLDATA__.tracker,window.__RLDATA__.teamTracker,window.__RLDATA__.presence])
     : Promise.all([getJson('steam-hours.json'),getJson('team-hours.json'),getJson('tracker.json'),getJson('team-tracker.json'),getJson('presence-hours.json')]);
@@ -721,6 +733,19 @@
           .then(function(){ fbBtn.disabled=false; });
       });
     }
+    // "3m ago" would otherwise stay "3m ago" for as long as the tab is open,
+    // which reads as fresher than the data is. Re-derive the labels from the
+    // timestamps every 30s; this touches text only, never the data.
+    setInterval(function(){
+      var now=Date.now();
+      [].forEach.call(document.querySelectorAll('.upv[data-ts]'),function(el){
+        var ts=+el.getAttribute('data-ts');
+        if(!ts)return;
+        el.textContent=relTime(ts);
+        el.classList.toggle('stale',(now-ts)>STALE_MS);
+      });
+    },30000);
+
     var yr=document.getElementById('yr'); if(yr)yr.textContent=String(new Date().getFullYear());
   });
 })();
