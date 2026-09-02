@@ -67,7 +67,7 @@ await writeFile(join(ROOT, "web", "_headers"), [
   `  Content-Security-Policy: ${csp}`,
   "  X-Content-Type-Options: nosniff",
   "  Referrer-Policy: no-referrer",
-  "  Permissions-Policy: geolocation=(), microphone=(), camera=(), interest-cohort=()",
+  "  Permissions-Policy: geolocation=(), microphone=(), camera=()",
   "",
   "# Data JSON is rewritten every few minutes; never let a CDN or browser pin it.",
   "/data/derived/*",
