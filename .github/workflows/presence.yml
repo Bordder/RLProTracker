@@ -15,7 +15,7 @@ name: Presence poll
 
 on:
   schedule:
-    - cron: "*/30 * * * *" # safety net; the external dispatcher drives the real cadence
+    - cron: "*/10 * * * *" # safety net; the Cloudflare Worker drives the real cadence
   workflow_dispatch: {}
 
 permissions:

@@ -6,7 +6,7 @@ name: Tracker update
 
 on:
   schedule:
-    - cron: "*/30 * * * *" # safety net only; the Cloudflare Worker (worker/) drives the
+    - cron: "*/5 * * * *"  # safety net; the Cloudflare Worker (worker/) drives the
                            # real cadence via workflow_dispatch. GitHub drops most
                            # high-frequency scheduled runs on public repos anyway, and a
                            # */5 here just adds collisions with the dispatcher.
