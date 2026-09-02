@@ -236,6 +236,11 @@
   .note .deflist li{position:relative;margin:0 0 5px}
   .note .deflist li::before{content:"";position:absolute;left:-14px;top:.62em;width:5px;height:1px;background:var(--dim)}
   .foot-links{display:flex;gap:18px;flex-wrap:wrap;margin:22px 0 0}
+  /* Links inside body copy were falling back to the browser default blue, which
+     is close to unreadable on this background. Bold bone text with a warm
+     underline instead. */
+  .note a,.fb .lead a{color:var(--bone);font-weight:600;text-decoration:underline;text-decoration-color:var(--accent-line);text-underline-offset:2px}
+  .note a:hover,.fb .lead a:hover{color:var(--accent);text-decoration-color:var(--accent)}
   .foot-links a{color:var(--slate);font-size:12.5px;text-decoration:none;border-bottom:1px solid var(--line2);padding-bottom:1px}
   .foot-links a:hover{color:var(--accent);border-color:var(--accent-line)}
   .fb{margin-top:24px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;max-width:520px}
@@ -337,6 +342,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=bf6db8f2" defer></script>
+<script src="rlpt.js?v=55e8cc05" defer></script>
 </body>
 </html>

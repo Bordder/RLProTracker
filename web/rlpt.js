@@ -184,11 +184,10 @@
     // ---- updated + footnote ----
     var upd=(function(){var iso=(tracker&&tracker.computedAt)||steam.computedAt;var d=iso?new Date(iso):null;return (d&&!isNaN(d))?('updated '+d.toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})):'live';})();
     document.getElementById('updated').textContent=upd;
-    // The full explanation lives on /how-it-works; the board only needs enough
-    // to say where the numbers come from and where to read the rest.
+    // The explanation itself lives on /how-it-works. Keeping a copy here as well
+    // meant maintaining the same text twice and pushing the form further down.
     document.getElementById('footNote').innerHTML=
-      '<p>Ranks and games played come from public Rocket League Tracker profiles, playtime from the Steam Web API, and rosters from Liquipedia. Players who hide their Steam details get estimated hours instead, marked with a tilde, and those always undercount.</p>'+
-      '<p><a href="/how-it-works">How it works</a> covers what each column means and where it stops being reliable. Still a new project, so expect the odd number that looks off &mdash; the form below is the fastest way to tell me.</p>';
+      '<p><a href="/how-it-works">How it works</a> &mdash; where every number comes from, why some players show no hours, and where the figures stop being reliable.</p>';
 
     // ---- sortable + searchable feed ----
     var pv=document.getElementById('playersView'), tv=document.getElementById('teamsView');
