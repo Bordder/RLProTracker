@@ -6,6 +6,8 @@
 //
 //   presence.yml - the */5 schedule. One batched Steam call; cheap, and gaps in
 //                  it undercount playtime rather than corrupt it.
+//   steam.yml    - hourly. Playtime totals, and the privacy classification that
+//                  decides whether a row shows hours or says why it cannot.
 //   tracker.yml  - the */3 schedule. Since the scraper reads the stats API
 //                  instead of loading profile pages, a full 60-player run costs
 //                  ~2 MB, so 3-minute polling is ~28 GB/month against a 250 GB
@@ -16,6 +18,7 @@
 
 const PRESENCE_CRON = "*/5 * * * *";
 const TRACKER_CRON = "*/3 * * * *";
+const STEAM_CRON = "7 * * * *";
 
 async function dispatch(env, workflow) {
   const url = `https://api.github.com/repos/${env.GH_OWNER}/${env.GH_REPO}` +
@@ -89,6 +92,7 @@ export default {
     const jobs = [];
     if (event.cron === PRESENCE_CRON) jobs.push(dispatch(env, "presence.yml"));
     if (event.cron === TRACKER_CRON) jobs.push(dispatch(env, "tracker.yml"));
+    if (event.cron === STEAM_CRON) jobs.push(dispatch(env, "steam.yml"));
     // A cron we do not recognise means wrangler.toml and this file disagree;
     // fall back to presence so the cheap collector keeps running either way.
     if (!jobs.length) jobs.push(dispatch(env, "presence.yml"));

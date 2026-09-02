@@ -13,12 +13,18 @@ workers_dev = false
 # .github/workflows/ are a slow safety net.
 #
 # Two schedules, and the handler dispatches by which one fired: presence every
-# 5 minutes (matches POLL_MINUTES in computePresenceHours.mjs), tracker every 3
-# as a freshness trial. 3 min is deliberately close to the measured run time
+# 5 minutes (matches POLL_MINUTES in computePresenceHours.mjs), tracker every 3,
+# and steam hourly.
+#
+# Steam was left on GitHub's own hourly cron and paid for it: it last fired at
+# 07:32 and was still not running five hours later, so a fix to how playtime is
+# classified could not reach the site. GitHub drops these runs on public repos
+# whatever the interval, so every collector that matters is dispatched here now.
+# Offset to :07 to stay clear of the tracker and presence ticks. 3 min is deliberately close to the measured run time
 # (33-101s before the API rewrite), so watch the cancelled-run rate - tracker.yml
 # sets cancel-in-progress, meaning an overlapping dispatch kills the run before it.
 [triggers]
-crons = ["*/5 * * * *", "*/3 * * * *"]
+crons = ["*/5 * * * *", "*/3 * * * *", "7 * * * *"]
 
 # GH_TOKEN is a fine-grained PAT (Actions: read and write) and is NOT declared
 # here - add it as a Secret in the dashboard. Secrets survive a deploy; the vars
