@@ -38,8 +38,23 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      # Chromium is 22s of a ~65s run, which is the single biggest fixed cost in
+      # the cadence. The browser binaries are cached on the Playwright version, so
+      # a warm run only pays for the OS deps.
+      - name: Cache Chromium
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-1.62.1
+
       - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+        run: |
+          if [ "${{ steps.pw-cache.outputs.cache-hit }}" = "true" ]; then
+            npx playwright install-deps chromium
+          else
+            npx playwright install --with-deps chromium
+          fi
 
       - name: Collect tracker data (MMR + games, then aggregate)
         env:
