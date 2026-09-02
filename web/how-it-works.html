@@ -74,7 +74,14 @@
     <li><span class="tag">Private</span> The whole profile is closed. Nothing can be read from outside, playtime included.</li>
     <li><span class="tag">Hidden</span> The profile stays open but the game details section is switched off. The profile loads fine; the playtime is simply not published.</li>
   </ul>
-  <p>Either way Steam publishes no playtime, so <b>Total h</b> stays blank instead of being filled with a guess. Ranks come from a different source, which is why a player can show a full set of MMR numbers and no hours at all.</p>
+  <p>There is a third case that looks the same on the board. Some players own Rocket League on
+  Steam but launch it through Epic, so Steam honestly records zero playtime for them no matter how
+  much they play. Those rows are marked <b>epic</b>.</p>
+  <p>In all three cases the hours column names the reason instead of showing a number, because a
+  zero would read as &ldquo;has not played&rdquo; about someone who may have played all week. Ranks
+  come from a different source and are unaffected, which is why a player can show a full set of MMR
+  numbers and no hours at all. Profiles are re-checked every hour, so if a setting changes the hours
+  appear on their own.</p>
 
   <h2><span class="n">3.</span> Estimated hours</h2>
   <p>Steam still shows what someone is playing <i>right now</i>, even when it hides how long they have played. So for those profiles the site checks every few minutes and credits the time whenever it finds them in Rocket League.</p>
