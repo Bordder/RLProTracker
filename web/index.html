@@ -206,6 +206,8 @@
   /* Says why a figure is missing. Quieter than a real number, but readable,
      because a bare dot here reads as "no activity" when the truth is "Steam is
      not telling us". */
+  /* A partial team total: real, but not the whole roster. */
+  .part{border-bottom:1px dotted rgba(139,144,160,.5);cursor:help}
   .na{color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.04em;
     text-transform:uppercase;cursor:help;border-bottom:1px dotted rgba(86,94,106,.55)}
   .empty{padding:56px 20px;text-align:center;color:var(--slate);font-family:var(--display);text-transform:uppercase;letter-spacing:.16em}
@@ -220,10 +222,13 @@
 
   /* ---- Region chip ---- */
   .rg{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:5px;border:1px solid var(--line2);color:var(--slate);background:var(--bg2);white-space:nowrap}
+  /* Regions sit next to the status chips, so none of them may reuse a status
+     colour: mint green means "public" and amber means "private or hidden".
+     SAM was mint and MENA was amber, which made the two columns read as one. */
   .rg-eu{color:#5AA0E0;border-color:rgba(90,160,224,.35);background:rgba(90,160,224,.08)}
   .rg-na{color:#E0655A;border-color:rgba(224,101,90,.35);background:rgba(224,101,90,.08)}
-  .rg-sam{color:#5AD98A;border-color:rgba(90,217,138,.35);background:rgba(90,217,138,.08)}
-  .rg-mena{color:#D9B45A;border-color:rgba(217,180,90,.35);background:rgba(217,180,90,.08)}
+  .rg-mena{color:#2F9E76;border-color:rgba(47,158,118,.4);background:rgba(47,158,118,.10)}
+  .rg-sam{color:#D96FA8;border-color:rgba(217,111,168,.35);background:rgba(217,111,168,.09)}
   .rg-oce{color:#B98AE0;border-color:rgba(185,138,224,.35);background:rgba(185,138,224,.08)}
   .rg-apac{color:#5AD9D9;border-color:rgba(90,217,217,.35);background:rgba(90,217,217,.08)}
   .c-rg{width:62px;padding-left:0}
@@ -366,6 +371,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=5406453c" defer></script>
+<script src="rlpt.js?v=ee4b882e" defer></script>
 </body>
 </html>

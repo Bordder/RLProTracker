@@ -12,12 +12,12 @@
   // Short chip labels, with the full meaning kept on hover.
   var STATUS_LABEL={'hidden-details':'hidden','no-steam-id':'no steam','no-steam-link':'no steam','playtime-hidden':'hours hidden'};
   var STATUS_HINT={
-    'public':'Steam profile is public, so playtime hours are available.',
-    'hidden-details':'Profile is visible but the game details section is switched off, so Steam does not publish playtime.',
-    'private':'Steam profile is closed to the public, so no playtime is available.',
+    'public':'Profile is public, so Steam publishes playtime.',
+    'hidden-details':'Game details are switched off, so Steam publishes no playtime.',
+    'private':'Profile is closed, so Steam publishes nothing.',
     'no-steam-id':'No Steam account matched for this player.',
     'no-steam-link':'No Steam account matched for this player.',
-    'playtime-hidden':'This profile is public, but has the separate setting that keeps total playtime private, so Steam reports no hours for it. The fortnight figure is sampled from live status instead. Ranked numbers are unaffected.',
+    'playtime-hidden':'Profile is public but keeps total playtime private, a separate Steam setting.',
     'unknown':'Steam did not return a profile state for this player.'
   };
   var statusChip=function(s){
@@ -38,11 +38,11 @@
   // is not reporting them, and the profile is re-checked every hour, so a
   // number appears on its own if the setting ever changes.
   var HOURS_NA={
-    'hidden-details':{t:'hidden',h:'This profile hides its game details, so Steam publishes no playtime. Checked every hour; if that setting changes the hours appear here automatically.'},
-    'private':{t:'private',h:'This Steam profile is closed, so no playtime is available. Checked every hour; if it opens the hours appear here automatically.'},
-    'playtime-hidden':{t:'hours hidden',h:'This profile keeps its total playtime private, which is a separate setting from hiding game details. Steam therefore reports no hours. Where possible the fortnight figure is sampled from live status instead. Ranked games and MMR are unaffected.'},
-    'no-steam-id':{t:'no steam',h:'No Steam account has been matched to this player yet.'},
-    'no-steam-link':{t:'no steam',h:'No Steam account has been matched to this player yet.'}
+    'hidden-details':{t:'hidden',h:'Game details are switched off. Checked hourly, and logged for good if that ever changes.'},
+    'private':{t:'private',h:'Profile is closed. Checked hourly, and logged for good if it ever opens.'},
+    'playtime-hidden':{t:'hours hidden',h:'Total playtime is set to private. Checked hourly, and logged for good if it ever opens.'},
+    'no-steam-id':{t:'no steam',h:'No Steam account matched yet.'},
+    'no-steam-link':{t:'no steam',h:'No Steam account matched yet.'}
   };
   var hoursNA=function(status){
     var n=HOURS_NA[String(status||'').toLowerCase()];
@@ -60,7 +60,7 @@
     // Covers both routes to a frozen figure: a profile that went private, and
     // one that switched its total playtime to private. The reader only needs to
     // know the number is real, when it was taken, and why it has stopped moving.
-    return'<span class="frozen" title="Captured on '+esc(on)+', while this profile was still publishing its hours. It is a real figure from that date and cannot move again until the profile publishes them once more.">'+v+'</span>';
+    return'<span class="frozen" title="Real total, captured '+esc(on)+'. Frozen until this profile publishes hours again.">'+v+'</span>';
   };
   // The 2-week hours cell, in order of preference: Steam's own figure, then a
   // sampled estimate, then a note saying why there is neither.
@@ -71,7 +71,7 @@
   var hours2wkCell=function(p){
     if(p.hours2wk!=null)return hf(p.hours2wk);
     if(p.estHours2wk!=null){
-      return '<span class="est" title="Estimated, not measured. Built by checking every few minutes whether this player is in Rocket League and adding up the time, which is the only route when Steam reports no playtime for them. It undercounts, because a session between two checks is invisible and nothing before tracking began is counted.">'+hf(p.estHours2wk)+'</span>';
+      return '<span class="est" title="Estimated, not measured: sampled every few minutes from live status. Always low, since sessions between checks are missed.">'+hf(p.estHours2wk)+'</span>';
     }
     return hoursNA(p.status);
   };
@@ -391,7 +391,18 @@
 
     var tCols=[{label:'#',cls:'c-rk'},{label:'Team',cls:'c-who',k:'name'},{label:'Region',cls:'c-rg',k:'region'},{label:'',cls:'c-fill'},{label:'Avg 1v1',cls:'c-mmr',k:'ones',num:true},{label:'Avg 2v2',cls:'c-mmr',k:'twos',num:true},{label:'Avg 3v3',cls:'c-mmr',k:'threes',num:true},{label:'Games',cls:'c-sg',k:'sg',num:true,title:'Total ranked games played by the roster since the current competitive season began'},{label:'2wk h',cls:'c-hr',k:'h2',num:true},{label:'Total h',cls:'c-hr',k:'ht',num:true}];
     var tAcc={name:function(t){return(t.team||'').toLowerCase();},region:function(t){return t.region||null;},ones:function(t){return t.avgMmr?t.avgMmr.ones:null;},twos:function(t){return t.avgMmr?t.avgMmr.twos:null;},threes:function(t){return t.avgMmr?t.avgMmr.threes:null;},sg:function(t){return t.seasonGames;},h2:function(t){return t.hours2wk;},ht:function(t){return t.totalHours;}};
-    var teamRow=function(t){
+    // Team totals only sum the players who publish hours. Printing 0 for a team
+  // where nobody does reads as "this team never plays", and a partial sum needs
+  // saying so or it looks like the whole roster.
+  var teamHoursCell=function(t,v,fmt){
+    if(!t.tracked)return'<span class="na" title="None of these players publish their hours.">no data</span>';
+    if(v==null)return'<span class="dash">&middot;</span>';
+    var body=fmt(v);
+    if(t.tracked<t.players)return'<span class="part" title="'+t.tracked+' of '+t.players+' players publish hours; the rest keep them private.">'+body+'</span>';
+    return body;
+  };
+
+  var teamRow=function(t){
       var a=t.avgMmr||{};
       return '<tr class="team-row '+(t.ranked?'':'isnorank')+'" data-team="'+esc(t.team)+'" tabindex="0" aria-expanded="false">'+
         '<td class="c-rk">'+rankMark(t.__rank)+'</td>'+
@@ -400,8 +411,8 @@
         '<td class="c-fill"></td>'+
         mmrCell(a.ones)+mmrCell(a.twos)+mmrCell(a.threes)+
         '<td class="c-sg">'+(t.seasonGames!=null?'<span class="sgv">'+nf(t.seasonGames)+'</span>':'<span class="dash">&middot;</span>')+'</td>'+
-        '<td class="c-hr">'+(t.hours2wk!=null?hf(t.hours2wk):'<span class="dash">&middot;</span>')+'</td>'+
-        '<td class="c-hr">'+(t.totalHours!=null?nf(Math.round(t.totalHours)):'<span class="dash">&middot;</span>')+'</td></tr>';
+        '<td class="c-hr">'+teamHoursCell(t,t.hours2wk,hf)+'</td>'+
+        '<td class="c-hr">'+teamHoursCell(t,t.totalHours,function(x){return nf(Math.round(x));})+'</td></tr>';
     };
     var tMatch=function(t,q){return (String(t.team||'')+' '+String(t.region||'')).toLowerCase().indexOf(q)>=0;};
 
