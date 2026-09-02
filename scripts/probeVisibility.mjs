@@ -62,6 +62,26 @@ const rows = players.map((p) => {
   };
 });
 
+// Second question, added after presence data contradicted the first theory:
+// Steam reports some of these players as being IN Rocket League, yet their
+// playtime reads zero. That points at the separate "keep my total playtime
+// private" setting rather than at where they launch the game. The difference
+// matters, because a MISSING playtime field is not the same as a zero, and the
+// collector currently turns one into the other.
+const SUSPECT = ["reveal", "nass", "Seikoo", "Wahvey", "dralii", "gunz", "trk511"];
+console.log("\nraw GetOwnedGames for the players showing zero:");
+for (const p of players.filter((x) => SUSPECT.includes(x.name))) {
+  const url = `https://api.steampowered.com/IPlayerService/GetOwnedGames/v1/?key=${KEY}` +
+    `&steamid=${p.steamId64}&include_appinfo=false&include_played_free_games=true&appids_filter[0]=252950`;
+  const res = await fetch(url).catch((e) => { throw new Error(redact(e.message ?? e)); });
+  const j = await res.json();
+  const g = j?.response?.games?.[0];
+  console.log(" ", String(p.name).padEnd(12),
+    "game_count:", j?.response?.game_count ?? "-",
+    "| entry:", g ? JSON.stringify(g) : "none",
+    "| has playtime_forever key:", g ? Object.prototype.hasOwnProperty.call(g, "playtime_forever") : "-");
+}
+
 const pad = (v, n) => String(v).padEnd(n);
 console.log(pad("player", 16), pad("our status", 16), pad("visibility", 13), pad("persona", 9), pad("game field", 12), pad("extra", 6), "last logoff");
 console.log("-".repeat(96));

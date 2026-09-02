@@ -74,11 +74,11 @@ export function computeSteamPlayers(snaps, lastKnown = {}) {
           : { hours: null, partial: true };
     }
 
-    // A player who runs the game through Epic accrues no Steam playtime, so
-    // every figure Steam gives us for them is zero. Publishing those zeros
-    // would say "has not played" about someone who plays every day, so they
-    // are suppressed and the row shows why instead.
-    const onSteam = row.status !== "not-on-steam";
+    // These accounts keep their total playtime private, and Steam expresses
+    // that as a zero rather than by withholding the game. Publishing it would
+    // say "has not played" about someone who plays daily, so the zeros are
+    // suppressed and the row says the hours are hidden instead.
+    const onSteam = row.status !== "playtime-hidden";
 
     // Fall back to the stored reading only when Steam gives us nothing now.
     const frozen = cur == null ? lastKnown[row.id] : null;

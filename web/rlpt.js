@@ -10,14 +10,14 @@
   var fmtGames=function(gs,win){ var g=gs?gs[win]:null; if(!g||g.games==null)return'<span class="dash">&middot;</span>'; if(g.partial)return'<span class="pending">pending</span>'; if(g.games===0)return'<span class="mv">0</span>'; return'<span class="g14v">'+nf(g.games)+'</span>'; };
   var WIN_LABEL={d1:'24h',d7:'7d',d14:'14d'};
   // Short chip labels, with the full meaning kept on hover.
-  var STATUS_LABEL={'hidden-details':'hidden','no-steam-id':'no steam','no-steam-link':'no steam','not-on-steam':'epic'};
+  var STATUS_LABEL={'hidden-details':'hidden','no-steam-id':'no steam','no-steam-link':'no steam','playtime-hidden':'hrs hidden'};
   var STATUS_HINT={
     'public':'Steam profile is public, so playtime hours are available.',
     'hidden-details':'Profile is visible but the game details section is switched off, so Steam does not publish playtime.',
     'private':'Steam profile is closed to the public, so no playtime is available.',
     'no-steam-id':'No Steam account matched for this player.',
     'no-steam-link':'No Steam account matched for this player.',
-    'not-on-steam':'Owns Rocket League on Steam but launches it through Epic, so Steam records no playtime for them. Their ranked numbers are unaffected.',
+    'playtime-hidden':'This profile is public, but has the separate setting that keeps total playtime private, so Steam reports no hours for it. The fortnight figure is sampled from live status instead. Ranked numbers are unaffected.',
     'unknown':'Steam did not return a profile state for this player.'
   };
   var statusChip=function(s){
@@ -40,7 +40,7 @@
   var HOURS_NA={
     'hidden-details':{t:'hidden',h:'This profile hides its game details, so Steam publishes no playtime. Checked every hour; if that setting changes the hours appear here automatically.'},
     'private':{t:'private',h:'This Steam profile is closed, so no playtime is available. Checked every hour; if it opens the hours appear here automatically.'},
-    'not-on-steam':{t:'epic',h:'This player launches Rocket League through Epic, so Steam records no playtime for them. Their ranked games and MMR are unaffected.'},
+    'playtime-hidden':{t:'hrs hidden',h:'This profile keeps its total playtime private, which is a separate setting from hiding game details. Steam therefore reports no hours. Where possible the fortnight figure is sampled from live status instead. Ranked games and MMR are unaffected.'},
     'no-steam-id':{t:'no steam',h:'No Steam account has been matched to this player yet.'},
     'no-steam-link':{t:'no steam',h:'No Steam account has been matched to this player yet.'}
   };

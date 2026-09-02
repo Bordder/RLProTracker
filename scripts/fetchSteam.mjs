@@ -74,12 +74,20 @@ async function getVisibility(ids) {
 //   hidden-details -> profile public but game list hidden; presence poll covers it
 //   private        -> profile locked; only games-based estimate possible
 function classify(visibility, owned, foreverMin) {
-  // Owning the game on Steam but never having launched it there means the
-  // player runs it through Epic, so Steam will never report their playtime.
-  // Reporting that as zero hours reads as "has not played", which is the
-  // opposite of the truth: reveal shows 0 here while sitting at Supersonic
-  // Legend with 19 ranked games in a day.
-  if (owned && foreverMin === 0) return "not-on-steam";
+  // Steam has a setting separate from game details: "always keep my total
+  // playtime private". With it on, the API still returns the game but reports
+  // playtime_forever as 0 rather than omitting it, so a hidden figure is
+  // indistinguishable from a real zero by shape alone. Confirmed against
+  // reveal's profile, which shows exactly that setting.
+  //
+  // These are not the hidden-details case: a profile with game details off
+  // returns no game at all, so `owned` is false there. Here the profile is
+  // public, live status works, and only the total is withheld - which is why
+  // presence sampling can still put a number on them.
+  //
+  // Publishing the zero would say "has not played" about players sitting at
+  // Supersonic Legend with 19 ranked games in a day.
+  if (owned && foreverMin === 0) return "playtime-hidden";
   if (owned) return "public";
   if (visibility === 3) return "hidden-details";
   if (visibility === 1 || visibility === 2) return "private";
