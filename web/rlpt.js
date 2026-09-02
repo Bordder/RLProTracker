@@ -117,39 +117,86 @@
     : Promise.all([getJson('steam-hours.json'),getJson('team-hours.json'),getJson('tracker.json'),getJson('team-tracker.json'),getJson('presence-hours.json')]);
 
   load.then(function(res){
-    var steam=res[0], teamH=res[1], tracker=res[2], teamT=res[3], presence=res[4];
-    if(!steam||!teamH){ document.getElementById('playersView').innerHTML='<div class="scroll"><div class="empty">Failed to load data</div></div>'; return; }
+    // ---- rank by 2v2 MMR (players by their twos, teams by avg twos) ----
+    var assignRank=function(arr,key){ arr.filter(function(x){return key(x)!=null;}).sort(function(a,b){return key(b)-key(a);}).forEach(function(x,i){x.__rank=i+1;}); };
+
+    // ---- stat cards (Grind dashboard summary) ----
+    var card=function(k,v,s2,hot){return '<div class="card'+(hot?' hot':'')+'"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+s2+'</div></div>';};
+    function renderCards(){
+      var ranked=players.filter(function(p){return p.hasMmr;});
+      var totalGames=players.reduce(function(a,p){return a+(p.seasonGames||0);},0);
+      var top=players.filter(function(p){return p.seasonGames!=null;}).sort(function(a,b){return b.seasonGames-a.seasonGames;})[0];
+      var withTwos=ranked.filter(function(p){return p.mmr.twos!=null;});
+      var avg2v2=withTwos.length?Math.round(withTwos.reduce(function(a,p){return a+(p.mmr.twos||0);},0)/withTwos.length):null;
+      var rankedTeams=teams.filter(function(t){return t.ranked>0;}).length;
+      document.getElementById('stats').innerHTML=
+        card('Players Ranked', ranked.length+' <small>/ '+players.length+'</small>', 'pros with ranked data', false)+
+        card('Total Ranked Games', nf(totalGames)+' <small>games</small>', 'this season, across all tracked pros', false)+
+        card('Most Active This Season', top?(nf(top.seasonGames)+' <small>games</small>'):'&middot;', top?('<b>'+esc(top.name)+'</b> &middot; '+esc(top.team||'')):'no data yet', true)+
+        card('Avg 2v2 MMR', avg2v2!=null?nf(avg2v2):'&middot;', avg2v2!=null?('average of '+ranked.length+' pros'):'no data yet', false)+
+        card('Teams', rankedTeams+' <small>/ '+teams.length+'</small>', 'with ranked players', false);
+    }
 
     // ---- merge into unified models ----
-    var trById={}; (tracker&&tracker.players||[]).forEach(function(p){trById[p.id]=p;});
-    // Presence hours are only ever a fallback. Where Steam publishes playtime we
-    // use that; where it does not, polling who is in-game reconstructs a rough
-    // figure. d14 matches the 2-week window the Steam column shows.
-    var presById={}; (presence&&presence.players||[]).forEach(function(p){presById[p.id]=p;});
-    var players=steam.players.map(function(p){
-      var t=trById[p.id]||{};
-      return { name:p.name, team:p.team, region:REGION[p.team]||null, status:p.status,
-        mmr:(t.mmr&&t.mmr.twos!=null)?t.mmr:(t.mmr||null),
-        hasMmr:!!(t.mmr&&(t.mmr.ones!=null||t.mmr.twos!=null||t.mmr.threes!=null)),
-        seasonGames:t.seasonGames?t.seasonGames.total:null,
-        games:t.games?t.games.total:null,
-        updatedAt:(function(){var v=t.updatedAt?Date.parse(t.updatedAt):NaN;return isNaN(v)?null:v;})(),
-        hours2wk:p.steam2wkHours,
-        estHours2wk:(function(){
-          if(p.steam2wkHours!=null)return null; // never shadow a measured reading
-          var e=presById[p.id];
-          return (e&&e.presenceHours&&e.presenceHours.d14)?e.presenceHours.d14:null;
-        })(),
-        totalHours:p.totalHours, totalFrozenAt:p.totalHoursFrozenAt||null };
-    });
-    var ttByTeam={}; (teamT&&teamT.teams||[]).forEach(function(t){ttByTeam[t.team]=t;});
-    var teams=teamH.teams.map(function(t){
-      var tt=ttByTeam[t.team]||{};
-      return { team:t.team, region:REGION[t.team]||null, players:t.players, tracked:t.tracked, ranked:tt.ranked||0,
-        avgMmr:tt.avgMmr||null, seasonGames:tt.seasonGames!=null?tt.seasonGames:null,
-        hours2wk:t.steam2wkHours, totalHours:t.totalHours };
-    });
+    //
+    // players and teams are filled IN PLACE rather than reassigned. buildTable
+    // closes over these arrays and its paint() re-reads them, so refilling and
+    // repainting updates the board without rebuilding the table or rebinding a
+    // single listener - which is what lets new data arrive without a reload,
+    // keeping the visitor's sort, search and scroll position.
+    var players=[], teams=[];
+    var collectedAt=null, serverAt=null;
 
+    function hydrate(res){
+      var steam=res[0], teamH=res[1], tracker=res[2], teamT=res[3], presence=res[4];
+      if(!steam||!teamH)return false;
+
+      var trById={}; (tracker&&tracker.players||[]).forEach(function(p){trById[p.id]=p;});
+      // Presence hours are only ever a fallback. Where Steam publishes playtime
+      // we use that; where it does not, polling who is in-game reconstructs a
+      // rough figure. d14 matches the 2-week window the Steam column shows.
+      var presById={}; (presence&&presence.players||[]).forEach(function(p){presById[p.id]=p;});
+
+      var nextPlayers=steam.players.map(function(p){
+        var t=trById[p.id]||{};
+        return { name:p.name, team:p.team, region:REGION[p.team]||null, status:p.status,
+          mmr:(t.mmr&&t.mmr.twos!=null)?t.mmr:(t.mmr||null),
+          hasMmr:!!(t.mmr&&(t.mmr.ones!=null||t.mmr.twos!=null||t.mmr.threes!=null)),
+          seasonGames:t.seasonGames?t.seasonGames.total:null,
+          games:t.games?t.games.total:null,
+          updatedAt:(function(){var v=t.updatedAt?Date.parse(t.updatedAt):NaN;return isNaN(v)?null:v;})(),
+          hours2wk:p.steam2wkHours,
+          estHours2wk:(function(){
+            if(p.steam2wkHours!=null)return null; // never shadow a measured reading
+            var e=presById[p.id];
+            return (e&&e.presenceHours&&e.presenceHours.d14)?e.presenceHours.d14:null;
+          })(),
+          totalHours:p.totalHours, totalFrozenAt:p.totalHoursFrozenAt||null };
+      });
+
+      var ttByTeam={}; (teamT&&teamT.teams||[]).forEach(function(t){ttByTeam[t.team]=t;});
+      var nextTeams=teamH.teams.map(function(t){
+        var tt=ttByTeam[t.team]||{};
+        return { team:t.team, region:REGION[t.team]||null, players:t.players, tracked:t.tracked, ranked:tt.ranked||0,
+          avgMmr:tt.avgMmr||null, seasonGames:tt.seasonGames!=null?tt.seasonGames:null,
+          hours2wk:t.steam2wkHours, totalHours:t.totalHours };
+      });
+
+      players.length=0; Array.prototype.push.apply(players,nextPlayers);
+      teams.length=0;   Array.prototype.push.apply(teams,nextTeams);
+
+      assignRank(players,function(p){return p.mmr?p.mmr.twos:null;});
+      assignRank(teams,function(t){return t.avgMmr?t.avgMmr.twos:null;});
+      renderCards();
+
+      var iso=(tracker&&tracker.computedAt)||steam.computedAt;
+      var d=iso?Date.parse(iso):NaN;
+      collectedAt=isNaN(d)?null:d;
+      if(collectedAt!=null&&(serverAt==null||collectedAt>serverAt))serverAt=collectedAt;
+      return true;
+    }
+
+    if(!hydrate(res)){ document.getElementById('playersView').innerHTML='<div class="scroll"><div class="empty">Failed to load data</div></div>'; return; }
     assignTeamHues(teams.map(function(t){return t.team;}).concat(players.map(function(p){return p.team;})));
 
     // A logo that fails to load drops back to the monogram underneath it.
@@ -162,25 +209,6 @@
       }
     },true);
 
-    // ---- rank by 2v2 MMR (players by their twos, teams by avg twos) ----
-    var assignRank=function(arr,key){ arr.filter(function(x){return key(x)!=null;}).sort(function(a,b){return key(b)-key(a);}).forEach(function(x,i){x.__rank=i+1;}); };
-    assignRank(players,function(p){return p.mmr?p.mmr.twos:null;});
-    assignRank(teams,function(t){return t.avgMmr?t.avgMmr.twos:null;});
-
-    // ---- stat cards (Grind dashboard summary) ----
-    var ranked=players.filter(function(p){return p.hasMmr;});
-    var totalGames=players.reduce(function(a,p){return a+(p.seasonGames||0);},0);
-    var top=players.filter(function(p){return p.seasonGames!=null;}).sort(function(a,b){return b.seasonGames-a.seasonGames;})[0];
-    var avg2v2=ranked.length?Math.round(ranked.reduce(function(a,p){return a+(p.mmr.twos||0);},0)/ranked.filter(function(p){return p.mmr.twos!=null;}).length):null;
-    var rankedTeams=teams.filter(function(t){return t.ranked>0;}).length;
-    var card=function(k,v,s,hot){return '<div class="card'+(hot?' hot':'')+'"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+s+'</div></div>';};
-    document.getElementById('stats').innerHTML=
-      card('Players Ranked', ranked.length+' <small>/ '+players.length+'</small>', 'pros with ranked data', false)+
-      card('Total Ranked Games', nf(totalGames)+' <small>games</small>', 'this season, across all tracked pros', false)+
-      card('Most Active This Season', top?(nf(top.seasonGames)+' <small>games</small>'):'&middot;', top?('<b>'+esc(top.name)+'</b> &middot; '+esc(top.team||'')):'no data yet', true)+
-      card('Avg 2v2 MMR', avg2v2!=null?nf(avg2v2):'&middot;', avg2v2!=null?('average of '+ranked.length+' pros'):'no data yet', false)+
-      card('Teams', rankedTeams+' <small>/ '+teams.length+'</small>', 'with ranked players', false);
-
     // ---- updated + footnote ----
     // ---- collection status -------------------------------------------------
     //
@@ -189,11 +217,6 @@
     // minutes; the thresholds below are loose enough that a couple of missed
     // runs stay quiet, and tight enough that a real outage is obvious.
     var LATE_MS=15*60e3, HALTED_MS=60*60e3;
-    var collectedAt=(function(){
-      var iso=(tracker&&tracker.computedAt)||steam.computedAt;
-      var d=iso?Date.parse(iso):NaN;
-      return isNaN(d)?null:d;
-    })();
 
     var ageWords=function(ms){
       var m=Math.round(ms/60000);
@@ -203,9 +226,6 @@
       var d=Math.round(h/24);
       return d+' day'+(d===1?'':'s');
     };
-
-    // What the server has, when we last asked. Starts as what we loaded.
-    var serverAt=collectedAt;
 
     var renderStatus=function(){
       var meta=document.querySelector('.kick-meta');
@@ -235,11 +255,9 @@
 
       if(state==='ok'){ box.innerHTML=''; return; }
       if(state==='behind'){
-        box.innerHTML='<div class="dstatus fresh-avail"><span aria-hidden="true">&#8635;</span>'+
-          '<span><b>Newer numbers are available.</b> This page was loaded '+esc(ageWords(Date.now()-collectedAt))+' ago. '+
-          '<button type="button" id="reloadData" class="linkish">Refresh</button> to see them.</span></div>';
-        var btn=document.getElementById('reloadData');
-        if(btn)btn.addEventListener('click',function(){location.reload();});
+        // Transient: refreshData() is already fetching. Say nothing rather than
+        // asking the reader to do something the page is about to do itself.
+        box.innerHTML='';
         return;
       }
       var aged=ageWords(age);
@@ -251,13 +269,35 @@
     // Ask the server what it has, rather than assuming this tab is current.
     // A few bytes every couple of minutes; on failure we simply keep the last
     // answer and fall back to judging by age alone.
+    // Refetch and repaint in place. The tables are rebuilt from the same arrays
+    // buildTable already closes over, so sort order, search text, the active tab
+    // and scroll position all survive - no reload, nothing moves under the
+    // reader except the numbers themselves.
+    var refreshing=false;
+    var refreshData=function(){
+      if(refreshing)return;
+      refreshing=true;
+      Promise.all([getJson('steam-hours.json'),getJson('team-hours.json'),getJson('tracker.json'),getJson('team-tracker.json'),getJson('presence-hours.json')])
+        .then(function(next){
+          if(hydrate(next)){ paintP(); paintT(); }
+        })
+        .catch(function(){})
+        .then(function(){ refreshing=false; renderStatus(); });
+    };
+
+    // Ask the server what it has, rather than assuming this tab is current. A
+    // few bytes every couple of minutes; only pull the full data when the
+    // timestamp has actually moved. On failure keep the last answer and fall
+    // back to judging by age alone.
     var pollStatus=function(){
       fetch('/status',{cache:'no-store'})
         .then(function(r){return r.ok?r.json():null;})
         .then(function(j){
           if(!j||!j.computedAt)return;
           var t=Date.parse(j.computedAt);
-          if(!isNaN(t))serverAt=t;
+          if(isNaN(t))return;
+          serverAt=t;
+          if(collectedAt==null||t>collectedAt+60e3){ refreshData(); return; }
           renderStatus();
         })
         .catch(function(){});
@@ -266,8 +306,6 @@
     renderStatus();
     // A tab left open must not keep claiming the data is fresh.
     setInterval(renderStatus,60000);
-    setInterval(pollStatus,150000);
-    pollStatus();
 
     // ---- sortable + searchable feed ----
     var pv=document.getElementById('playersView'), tv=document.getElementById('teamsView');
@@ -449,6 +487,11 @@
           .then(function(){ fbBtn.disabled=false; });
       });
     }
+
+    // Started here rather than beside renderStatus, because a refresh repaints
+    // the tables and those are built further down.
+    setInterval(pollStatus,150000);
+    pollStatus();
 
     var yr=document.getElementById('yr'); if(yr)yr.textContent=String(new Date().getFullYear());
   });

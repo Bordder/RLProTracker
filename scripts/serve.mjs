@@ -55,6 +55,18 @@ createServer(async (req, res) => {
     await syncData();
     path = path.replace("/data/", "/data/derived/");
   }
+  // Production serves /status from a Pages Function so an open tab can check
+  // for newer data cheaply. Mirror it, or the auto-refresh silently does
+  // nothing locally and only breaks once deployed.
+  if (path === "/status") {
+    await syncData();
+    let computedAt = null;
+    try {
+      ({ computedAt } = JSON.parse(await readFile(join(WEB, "data", "derived", "tracker.json"), "utf8")));
+    } catch {}
+    res.writeHead(200, { "content-type": "application/json", "cache-control": "no-store" });
+    return res.end(JSON.stringify({ computedAt: computedAt ?? null }));
+  }
   if (path === "/") path = "/index.html";
   const file = normalize(join(WEB, path));
   if (!file.startsWith(WEB)) { res.writeHead(403); return res.end("forbidden"); }
