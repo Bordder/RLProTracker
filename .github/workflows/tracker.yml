@@ -48,12 +48,19 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-1.62.1
 
+      # install-deps is an apt install and costs ~15s of every run, but the
+      # runner image may already carry Chromium's libraries. Rather than assume
+      # either way, prove it: fetch the browser, try to launch it, and only pay
+      # for apt when that actually fails. Self-correcting, so if a future image
+      # drops a library the run repairs itself instead of breaking.
       - name: Install Chromium
         run: |
-          if [ "${{ steps.pw-cache.outputs.cache-hit }}" = "true" ]; then
-            npx playwright install-deps chromium
+          npx playwright install chromium
+          if node -e "require('playwright').chromium.launch().then(b=>b.close())" 2>/dev/null; then
+            echo "browser launches as-is; skipping apt"
           else
-            npx playwright install --with-deps chromium
+            echo "launch failed; installing system dependencies"
+            npx playwright install-deps chromium
           fi
 
       - name: Collect tracker data (MMR + games, then aggregate)

@@ -312,13 +312,34 @@
     // buildTable already closes over, so sort order, search text, the active tab
     // and scroll position all survive - no reload, nothing moves under the
     // reader except the numbers themselves.
+    // The five feeds do not move at the same rate. Ranked stats and the team
+    // aggregates built from them change every 2 minutes; Steam playtime is
+    // collected hourly and presence every 5, so pulling all five on every
+    // refresh spends most of its bytes re-downloading identical files. The
+    // slow three are refetched on their own schedule and otherwise reused from
+    // the last successful load.
+    var SLOW_MS=5*60e3;
+    var lastFull=Date.now();
+    var latest=res.slice();
     var refreshing=false;
     var refreshData=function(){
       if(refreshing)return;
       refreshing=true;
-      Promise.all([getJson('steam-hours.json'),getJson('team-hours.json'),getJson('tracker.json'),getJson('team-tracker.json'),getJson('presence-hours.json')])
+      var full=Date.now()-lastFull>=SLOW_MS;
+      var keep=function(i){ return Promise.resolve(latest[i]); };
+      Promise.all([
+        full?getJson('steam-hours.json'):keep(0),
+        full?getJson('team-hours.json'):keep(1),
+        getJson('tracker.json'),
+        getJson('team-tracker.json'),
+        full?getJson('presence-hours.json'):keep(4)
+      ])
         .then(function(next){
-          if(hydrate(next)){ paintP(); paintT(); restoreOpenTeam(); }
+          // A failed fetch yields null, which hydrate rejects wholesale. Keep
+          // the previous copy for any feed that did not come back rather than
+          // discarding a good board over one bad response.
+          for(var i=0;i<next.length;i++) if(!next[i]) next[i]=latest[i];
+          if(hydrate(next)){ latest=next; if(full)lastFull=Date.now(); paintP(); paintT(); restoreOpenTeam(); }
         })
         .catch(function(){})
         .then(function(){ refreshing=false; renderStatus(); });
