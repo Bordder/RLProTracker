@@ -32,15 +32,6 @@
   };
   var rankMark=function(r){ if(!r)return'<span class="rknum">&middot;</span>'; return'<span class="rknum'+(r<=3?' t'+r:'')+'">'+String(r).padStart(2,'0')+'</span>'; };
 
-  // How long ago a player's ranked data was last refreshed.
-  var STALE_MS=24*3600e3;
-  var relTime=function(ms){
-    var s=Math.max(0,(Date.now()-ms)/1000);
-    if(s<90)return'just now';
-    if(s<3600)return Math.round(s/60)+'m ago';
-    if(s<86400)return Math.round(s/3600)+'h ago';
-    return Math.round(s/86400)+'d ago';
-  };
   // Total playtime, flagged when it is a stored reading from before the profile closed.
   var totalHoursCell=function(p){
     if(p.totalHours==null)return'<span class="dash">&middot;</span>';
@@ -59,12 +50,6 @@
       return '<span class="est" title="Estimated, not measured. This profile hides its playtime, so hours are reconstructed by checking every few minutes whether the player is in Rocket League. It undercounts - any session between checks is missed - and it only covers time since tracking began.">'+hf(p.estHours2wk)+'</span>';
     }
     return '<span class="dash">&middot;</span>';
-  };
-  var updatedCell=function(ms){
-    if(ms==null)return'<td class="c-up"><span class="dash">&middot;</span></td>';
-    var exact=new Date(ms).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-    var stale=(Date.now()-ms)>STALE_MS;
-    return'<td class="c-up"><span class="upv'+(stale?' stale':'')+'" data-ts="'+ms+'" title="Ranked data last refreshed '+esc(exact)+'">'+esc(relTime(ms))+'</span></td>';
   };
 
   // Region by team's RLCS competitive region (may differ from a player's nationality).
@@ -209,7 +194,7 @@
       '<p>Either setting stops Steam publishing playtime, so <b>Total h</b> is left blank rather than filled with a guess. Ranks and games played come from a separate source and are unaffected, which is why a player can show a full set of MMR numbers with no total hours at all.</p>'+
       '<p><b>Estimated hours.</b> Steam still reveals what someone is playing right now even when it hides how long they have played. So for those profiles the site checks every few minutes and, when it finds them in Rocket League, credits the time since the last check. Those figures appear in <b>2wk h</b> as <span class="est">a tilde and a dotted underline</span>, and they are an undercount by nature: any session that starts and ends between two checks is invisible, and nothing before tracking began is counted. Treat them as a floor, not a measurement. A plain number in that column is Steam&rsquo;s own.</p>'+
       '<p><b>Readings that stop moving.</b> Players do sometimes open a profile that was closed before. When that happens the total playtime is recorded and kept, so if they close it again the number stays on the page instead of vanishing. It is frozen at that point: real, but stuck at whatever it read on the day it was captured, and unable to move again until the profile reopens. Those totals are marked with <span class="frozen">an asterisk</span> and the date is on hover. The 2-week column is deliberately not carried over, because it measures a rolling fortnight and an old value would read as recent activity when it is nothing of the sort.</p>'+
-      '<p><b>Why some players update sooner than others.</b> Collecting this data reliably costs money, and the cost climbs the more often each account is checked. For now the most-followed pros are refreshed on a shorter cycle, so their numbers sit close to live, while less popular pros are checked less often and can lag behind. The <b>Updated</b> column shows exactly when each player was last checked, so you never have to guess how current a row is. If the site builds an audience, that goes back into better infrastructure so everyone refreshes at the same rate.</p>'+
+      '<p><b>How current this is.</b> Every player on the board is re-checked every few minutes, all of them on the same cycle, so no row is fresher than another. The timestamp at the top of the page is the last time the numbers were collected. Ranked stats only move when a match ends, and a match plus queue runs about seven minutes, so a figure a few minutes old is as live as this data gets.</p>'+
       '<p><b>Early days.</b> This is a new project and still a work in progress, so expect the occasional rough edge or a number that looks off. Regions follow each team’s competitive region rather than nationality, so a player living elsewhere still carries their team’s region. If something looks wrong, the form below is the fastest way to tell me.</p>';
 
     // ---- sortable + searchable feed ----
@@ -253,8 +238,8 @@
     }
 
     var win='d1'; // recent-games window: d1 (24h, live now) / d7 / d14
-    var pCols=[{label:'#',cls:'c-rk'},{label:'Player',cls:'c-who',k:'name'},{label:'Region',cls:'c-rg',k:'region'},{label:'Status',cls:'c-st',k:'status'},{label:'1v1',cls:'c-mmr',k:'ones',num:true},{label:'2v2',cls:'c-mmr',k:'twos',num:true},{label:'3v3',cls:'c-mmr',k:'threes',num:true},{label:'Games',cls:'c-sg',k:'sg',num:true,title:'Total ranked games played since the current competitive season began'},{label:WIN_LABEL[win],cls:'c-g14',k:'g14',num:true},{label:'2wk h',cls:'c-hr',k:'h2',num:true},{label:'Total h',cls:'c-hr',k:'ht',num:true},{label:'Updated',cls:'c-up',k:'up',num:true,title:'When this player’s ranked data was last refreshed'}];
-    var pAcc={name:function(p){return(p.name||'').toLowerCase();},region:function(p){return p.region||null;},status:function(p){return p.status?String(p.status).toLowerCase():null;},ones:function(p){return p.mmr?p.mmr.ones:null;},twos:function(p){return p.mmr?p.mmr.twos:null;},threes:function(p){return p.mmr?p.mmr.threes:null;},sg:function(p){return p.seasonGames;},g14:function(p){return p.games&&p.games[win]?p.games[win].games:null;},h2:function(p){return p.hours2wk!=null?p.hours2wk:p.estHours2wk;},ht:function(p){return p.totalHours;},up:function(p){return p.updatedAt;}};
+    var pCols=[{label:'#',cls:'c-rk'},{label:'Player',cls:'c-who',k:'name'},{label:'Region',cls:'c-rg',k:'region'},{label:'Status',cls:'c-st',k:'status'},{label:'1v1',cls:'c-mmr',k:'ones',num:true},{label:'2v2',cls:'c-mmr',k:'twos',num:true},{label:'3v3',cls:'c-mmr',k:'threes',num:true},{label:'Games',cls:'c-sg',k:'sg',num:true,title:'Total ranked games played since the current competitive season began'},{label:WIN_LABEL[win],cls:'c-g14',k:'g14',num:true},{label:'2wk h',cls:'c-hr',k:'h2',num:true},{label:'Total h',cls:'c-hr',k:'ht',num:true}];
+    var pAcc={name:function(p){return(p.name||'').toLowerCase();},region:function(p){return p.region||null;},status:function(p){return p.status?String(p.status).toLowerCase():null;},ones:function(p){return p.mmr?p.mmr.ones:null;},twos:function(p){return p.mmr?p.mmr.twos:null;},threes:function(p){return p.mmr?p.mmr.threes:null;},sg:function(p){return p.seasonGames;},g14:function(p){return p.games&&p.games[win]?p.games[win].games:null;},h2:function(p){return p.hours2wk!=null?p.hours2wk:p.estHours2wk;},ht:function(p){return p.totalHours;}};
     var playerRow=function(p){
       var mmr=p.hasMmr?(mmrCell(p.mmr.ones)+mmrCell(p.mmr.twos)+mmrCell(p.mmr.threes)):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
       return '<tr class="'+(p.hasMmr?'':'isnorank')+'">'+
@@ -266,7 +251,7 @@
         '<td class="c-g14">'+fmtGames(p.games,win)+'</td>'+
         '<td class="c-hr">'+hours2wkCell(p)+'</td>'+
         '<td class="c-hr">'+totalHoursCell(p)+'</td>'+
-        updatedCell(p.updatedAt)+'</tr>';
+        '</tr>';
     };
     var pMatch=function(p,q){return (String(p.name||'')+' '+String(p.team||'')+' '+String(p.region||'')).toLowerCase().indexOf(q)>=0;};
 
@@ -392,18 +377,6 @@
           .then(function(){ fbBtn.disabled=false; });
       });
     }
-    // "3m ago" would otherwise stay "3m ago" for as long as the tab is open,
-    // which reads as fresher than the data is. Re-derive the labels from the
-    // timestamps every 30s; this touches text only, never the data.
-    setInterval(function(){
-      var now=Date.now();
-      [].forEach.call(document.querySelectorAll('.upv[data-ts]'),function(el){
-        var ts=+el.getAttribute('data-ts');
-        if(!ts)return;
-        el.textContent=relTime(ts);
-        el.classList.toggle('stale',(now-ts)>STALE_MS);
-      });
-    },30000);
 
     var yr=document.getElementById('yr'); if(yr)yr.textContent=String(new Date().getFullYear());
   });
