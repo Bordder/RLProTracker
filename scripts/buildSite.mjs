@@ -54,11 +54,16 @@ const hashes = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)]
 // plus the Worker that receives feedback.
 const csp = [
   "default-src 'none'",
-  `script-src 'self' ${hashes.join(" ")}`,
+  // Cloudflare Pages injects its Web Analytics beacon from this host. It is
+  // cookieless and does no cross-site tracking, and it is the only way to get a
+  // unique-visitor count - zone analytics counts requests and IPs, not people.
+  // Without these two entries the page's own CSP blocks the beacon and no
+  // analytics are collected at all.
+  `script-src 'self' https://static.cloudflareinsights.com ${hashes.join(" ")}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self'",
-  "connect-src 'self' https://raw.githubusercontent.com https://*.workers.dev",
+  "connect-src 'self' https://raw.githubusercontent.com https://*.workers.dev https://cloudflareinsights.com",
   "base-uri 'none'",
   "form-action 'none'",
   "frame-ancestors 'none'",
