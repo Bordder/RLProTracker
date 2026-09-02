@@ -61,6 +61,19 @@
   .kick-meta{font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;gap:8px}
   .live-dot{width:8px;height:8px;border-radius:50%;background:var(--live);box-shadow:0 0 0 0 rgba(72,201,138,.6);animation:pulse 2.1s ease-out infinite}
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(72,201,138,.5)}70%{box-shadow:0 0 0 7px rgba(72,201,138,0)}100%{box-shadow:0 0 0 0 rgba(72,201,138,0)}}
+  /* Collection running late, or stopped. The pulse is dropped in both cases:
+     a heartbeat animation next to numbers that are not moving reads as a lie. */
+  .live-dot.is-late{background:var(--t-gc);animation:none;box-shadow:none}
+  .live-dot.is-halted{background:#E0655A;animation:none;box-shadow:none}
+  .kick-meta.is-late #updated{color:var(--t-gc)}
+  .kick-meta.is-halted #updated{color:#E0655A}
+  /* Only rendered when something is actually wrong - the header carries the
+     normal case on its own. */
+  .dstatus{display:flex;gap:10px;align-items:flex-start;margin:18px 0 0;padding:10px 14px;
+    border-radius:8px;font-size:13.5px;line-height:1.5}
+  .dstatus b{font-weight:600}
+  .dstatus.late{background:rgba(217,180,90,.10);border:1px solid rgba(217,180,90,.34);color:#E7CE93}
+  .dstatus.halted{background:rgba(224,101,90,.10);border:1px solid rgba(224,101,90,.34);color:#EFA79E}
   .headline{
     font-family:var(--display);font-weight:900;text-transform:uppercase;
     font-size:clamp(2.8rem,10vw,7rem);line-height:.82;letter-spacing:-.02em;margin:.16em 0 0;
@@ -280,7 +293,7 @@
       <span class="kick-meta"><span class="live-dot" aria-hidden="true"></span><span id="updated">loading&hellip;</span></span>
     </div>
     <h1 class="headline">Who&rsquo;s Grinding<span class="accent">?</span></h1>
-    <p class="dek">Ranked-ladder activity for RLCS pros <b>outside</b> official tournaments: who&rsquo;s actually queuing, ranked by <b>2v2 MMR</b>, with games this season and MMR per playlist.</p>
+    <p class="dek" id="dek">Ranked-ladder activity for RLCS pros <b>outside</b> official tournaments: who&rsquo;s actually queuing, ranked by <b>2v2 MMR</b>, with games this season and MMR per playlist.</p>
 
     <div class="stats" id="stats"></div>
   </header>
@@ -304,6 +317,8 @@
       <button data-w="d7" aria-pressed="false">7d</button>
     </div>
   </div>
+
+  <div id="dataStatus"></div>
 
   <section id="playersView" role="tabpanel"></section>
   <section id="teamsView" role="tabpanel" hidden></section>
@@ -339,6 +354,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=b201e461" defer></script>
+<script src="rlpt.js?v=f70883ac" defer></script>
 </body>
 </html>

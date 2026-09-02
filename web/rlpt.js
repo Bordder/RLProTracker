@@ -182,8 +182,57 @@
       card('Teams', rankedTeams+' <small>/ '+teams.length+'</small>', 'with ranked players', false);
 
     // ---- updated + footnote ----
-    var upd=(function(){var iso=(tracker&&tracker.computedAt)||steam.computedAt;var d=iso?new Date(iso):null;return (d&&!isNaN(d))?('updated '+d.toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})):'live';})();
-    document.getElementById('updated').textContent=upd;
+    // ---- collection status -------------------------------------------------
+    //
+    // The site's whole claim is that these numbers are recent, so serving old
+    // ones silently is the worst thing it can do. Collectors run every few
+    // minutes; the thresholds below are loose enough that a couple of missed
+    // runs stay quiet, and tight enough that a real outage is obvious.
+    var LATE_MS=15*60e3, HALTED_MS=60*60e3;
+    var collectedAt=(function(){
+      var iso=(tracker&&tracker.computedAt)||steam.computedAt;
+      var d=iso?Date.parse(iso):NaN;
+      return isNaN(d)?null:d;
+    })();
+
+    var ageWords=function(ms){
+      var m=Math.round(ms/60000);
+      if(m<60)return m+' minute'+(m===1?'':'s');
+      var h=Math.round(m/60);
+      if(h<24)return h+' hour'+(h===1?'':'s');
+      var d=Math.round(h/24);
+      return d+' day'+(d===1?'':'s');
+    };
+
+    var renderStatus=function(){
+      var meta=document.querySelector('.kick-meta');
+      var dot=document.querySelector('.live-dot');
+      var box=document.getElementById('dataStatus');
+      if(!meta||!box)return;
+
+      if(collectedAt==null){
+        document.getElementById('updated').textContent='live';
+        return;
+      }
+      var age=Date.now()-collectedAt;
+      var when=new Date(collectedAt).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+      document.getElementById('updated').textContent='updated '+when;
+
+      var state=age>=HALTED_MS?'halted':(age>=LATE_MS?'late':'ok');
+      meta.classList.toggle('is-late',state==='late');
+      meta.classList.toggle('is-halted',state==='halted');
+      if(dot){ dot.classList.toggle('is-late',state==='late'); dot.classList.toggle('is-halted',state==='halted'); }
+
+      if(state==='ok'){ box.innerHTML=''; return; }
+      var aged=ageWords(age);
+      box.innerHTML = state==='late'
+        ? '<div class="dstatus late"><span aria-hidden="true">&#9888;</span><span><b>Collection is running behind.</b> These numbers were last refreshed '+esc(aged)+' ago, so recent games may be missing.</span></div>'
+        : '<div class="dstatus halted"><span aria-hidden="true">&#9888;</span><span><b>These numbers are not being updated.</b> Nothing here has refreshed for '+esc(aged)+'. Treat every figure on this page as out of date until it recovers.</span></div>';
+    };
+
+    renderStatus();
+    // A tab left open must not keep claiming the data is fresh.
+    setInterval(renderStatus,60000);
 
     // ---- sortable + searchable feed ----
     var pv=document.getElementById('playersView'), tv=document.getElementById('teamsView');
