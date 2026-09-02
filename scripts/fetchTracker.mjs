@@ -154,23 +154,26 @@ async function scrapeOnce(ctx, id) {
   return data;
 }
 
-// Try each attempt on a DIFFERENT proxy so one flaky proxy (tunnel failure,
-// transient 400, slow collector) doesn't cost us the player. startIdx staggers
-// which proxy each player begins on.
-// Each context has its own cache, so every context used in a run re-downloads
-// the ~865 KB tracker app bundle. Keeping the normal path inside a small
-// working set means the bundle is fetched a few times per run instead of once
-// per proxy; the remaining proxies stay available, but only for retries, so
-// failover is unchanged while ~40% of the bandwidth disappears.
-async function scrapePlayer(contexts, startIdx, id, workingSet = contexts.length) {
+// Which proxy a given attempt uses. Pure, so the rotation can be tested without
+// launching a browser - it was wrong for weeks in a way no error could reveal.
+//
+// Every attempt lands on a DIFFERENT proxy, so one flaky tunnel does not cost us
+// the player, and startIdx staggers which proxy each player starts from.
+//
+// This used to confine attempt 0 to the first POOL contexts, to avoid every
+// context re-downloading the 865 KB app bundle. That reasoning died with the
+// API rewrite: a scrape is now a ~32 KB JSON call and no bundle is fetched at
+// all. What remained was five proxies doing all the primary work while ten sat
+// waiting for retries - measured as 86 GB against 15 GB across the two pools.
+export function proxyIndexFor(attempt, startIdx, count) {
+  return (startIdx + attempt) % count;
+}
+
+async function scrapePlayer(contexts, startIdx, id) {
   let lastErr;
-  const primary = Math.max(1, Math.min(workingSet, contexts.length));
   const tries = Math.min(ATTEMPTS, contexts.length);
   for (let a = 0; a < tries; a++) {
-    // attempt 0 rotates within the working set; retries may use any proxy
-    const ctx = a === 0
-      ? contexts[startIdx % primary]
-      : contexts[(startIdx + a) % contexts.length];
+    const ctx = contexts[proxyIndexFor(a, startIdx, contexts.length)];
     try {
       const d = await scrapeOnce(ctx, id);
       if (d) return d;
@@ -308,7 +311,7 @@ async function main() {
       const p = players[idx];
       const row = { id: p.id, name: p.name, team: p.team, steamId64: p.steamId64, status: "ok", playlists: null };
       try {
-        row.playlists = await scrapePlayer(contexts, idx, p.steamId64, pool);
+        row.playlists = await scrapePlayer(contexts, idx, p.steamId64);
         if (!row.playlists) row.status = "no-data";
       } catch (e) {
         row.status = `error: ${e.message.split("\n")[0].slice(0, 50)}`;

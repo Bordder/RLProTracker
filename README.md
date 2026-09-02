@@ -154,6 +154,26 @@ Every player currently sits on the same short interval, because reading the stat
 rather than loading profile pages cut a full-roster run to roughly 2 MB - cheap enough that
 staggering is no longer worth the staleness it costs.
 
+### Proxies
+
+`fetchTracker.mjs` reads tracker.gg through rotating proxies, configured entirely by environment
+variables so no credential is ever in the repository. Either form works, and `parseProxies()`
+accepts both:
+
+```
+PROXY_LIST   one per line or comma separated: host:port:user:pass, host:port, or
+             http://user:pass@host:port
+PROXY_HOST   single host, with PROXY_PORTS as a comma separated list of ports and
+   + PORTS   PROXY_USER / PROXY_PASS for credentials
+```
+
+Every proxy gets its own browser context, so each keeps a separate Cloudflare clearance cookie,
+and work is rotated across all of them. Each attempt for a player uses a different proxy, so one
+dead tunnel costs a retry rather than the player.
+
+Set only one of the two forms. `parseProxies()` concatenates whatever it finds, so leaving stale
+values in the other form quietly puts dead proxies back into the rotation.
+
 ### Frontend
 
 `web/index.html` holds the markup and styles, `web/rlpt.js` the behaviour. No build step and no
