@@ -74,6 +74,11 @@
   .dstatus b{font-weight:600}
   .dstatus.late{background:rgba(217,180,90,.10);border:1px solid rgba(217,180,90,.34);color:#E7CE93}
   .dstatus.halted{background:rgba(224,101,90,.10);border:1px solid rgba(224,101,90,.34);color:#EFA79E}
+  /* Not a warning: the data is fine, this tab is simply old. */
+  .dstatus.fresh-avail{background:rgba(72,201,138,.09);border:1px solid rgba(72,201,138,.32);color:#9BD9BA}
+  .linkish{background:none;border:0;padding:0;font:inherit;color:var(--bone);font-weight:600;
+    text-decoration:underline;text-decoration-color:var(--accent-line);text-underline-offset:2px;cursor:pointer}
+  .linkish:hover{color:var(--accent);text-decoration-color:var(--accent)}
   .headline{
     font-family:var(--display);font-weight:900;text-transform:uppercase;
     font-size:clamp(2.8rem,10vw,7rem);line-height:.82;letter-spacing:-.02em;margin:.16em 0 0;
@@ -354,6 +359,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=f70883ac" defer></script>
+<script src="rlpt.js?v=953f274b" defer></script>
 </body>
 </html>

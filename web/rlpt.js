@@ -204,6 +204,9 @@
       return d+' day'+(d===1?'':'s');
     };
 
+    // What the server has, when we last asked. Starts as what we loaded.
+    var serverAt=collectedAt;
+
     var renderStatus=function(){
       var meta=document.querySelector('.kick-meta');
       var dot=document.querySelector('.live-dot');
@@ -214,25 +217,57 @@
         document.getElementById('updated').textContent='live';
         return;
       }
-      var age=Date.now()-collectedAt;
       var when=new Date(collectedAt).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
       document.getElementById('updated').textContent='updated '+when;
 
-      var state=age>=HALTED_MS?'halted':(age>=LATE_MS?'late':'ok');
+      // Two different problems, and telling a visitor the wrong one is worse
+      // than saying nothing. If the server has newer data than this tab holds,
+      // collection is healthy and the page is simply out of date - offer a
+      // refresh. Only when the SERVER's own data has gone cold is something
+      // actually broken.
+      var pageBehind = serverAt!=null && collectedAt!=null && serverAt>collectedAt+60e3;
+      var age = Date.now() - (serverAt!=null ? Math.max(serverAt,collectedAt) : collectedAt);
+      var state = pageBehind ? 'behind' : (age>=HALTED_MS ? 'halted' : (age>=LATE_MS ? 'late' : 'ok'));
+
       meta.classList.toggle('is-late',state==='late');
       meta.classList.toggle('is-halted',state==='halted');
       if(dot){ dot.classList.toggle('is-late',state==='late'); dot.classList.toggle('is-halted',state==='halted'); }
 
       if(state==='ok'){ box.innerHTML=''; return; }
+      if(state==='behind'){
+        box.innerHTML='<div class="dstatus fresh-avail"><span aria-hidden="true">&#8635;</span>'+
+          '<span><b>Newer numbers are available.</b> This page was loaded '+esc(ageWords(Date.now()-collectedAt))+' ago. '+
+          '<button type="button" id="reloadData" class="linkish">Refresh</button> to see them.</span></div>';
+        var btn=document.getElementById('reloadData');
+        if(btn)btn.addEventListener('click',function(){location.reload();});
+        return;
+      }
       var aged=ageWords(age);
       box.innerHTML = state==='late'
         ? '<div class="dstatus late"><span aria-hidden="true">&#9888;</span><span><b>Collection is running behind.</b> These numbers were last refreshed '+esc(aged)+' ago, so recent games may be missing.</span></div>'
         : '<div class="dstatus halted"><span aria-hidden="true">&#9888;</span><span><b>These numbers are not being updated.</b> Nothing here has refreshed for '+esc(aged)+'. Treat every figure on this page as out of date until it recovers.</span></div>';
     };
 
+    // Ask the server what it has, rather than assuming this tab is current.
+    // A few bytes every couple of minutes; on failure we simply keep the last
+    // answer and fall back to judging by age alone.
+    var pollStatus=function(){
+      fetch('/status',{cache:'no-store'})
+        .then(function(r){return r.ok?r.json():null;})
+        .then(function(j){
+          if(!j||!j.computedAt)return;
+          var t=Date.parse(j.computedAt);
+          if(!isNaN(t))serverAt=t;
+          renderStatus();
+        })
+        .catch(function(){});
+    };
+
     renderStatus();
     // A tab left open must not keep claiming the data is fresh.
     setInterval(renderStatus,60000);
+    setInterval(pollStatus,150000);
+    pollStatus();
 
     // ---- sortable + searchable feed ----
     var pv=document.getElementById('playersView'), tv=document.getElementById('teamsView');
