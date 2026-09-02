@@ -5,9 +5,25 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>RL Pro Tracker</title>
 <script src="config.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;900&family=Big+Shoulders+Display:wght@500;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<!-- Fonts are self-hosted. Loading them from fonts.googleapis.com sent every
+     visitor's IP address to Google before the page had rendered - the site's
+     only third-party request, and a real problem for EU traffic. Latin subsets
+     only (~400 KB total); the cyrillic/greek/vietnamese subsets Google serves
+     would have tripled that for an English-language site. -->
+<style>
+@font-face{font-family:'Archivo';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/archivo-400.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Archivo';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/archivo-500.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Archivo';font-style:normal;font-weight:600;font-display:swap;src:url(fonts/archivo-600.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Archivo';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/archivo-700.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Archivo';font-style:normal;font-weight:900;font-display:swap;src:url(fonts/archivo-900.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Big Shoulders Display';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/big-shoulders-display-500.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Big Shoulders Display';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/big-shoulders-display-700.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Big Shoulders Display';font-style:normal;font-weight:800;font-display:swap;src:url(fonts/big-shoulders-display-800.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'Big Shoulders Display';font-style:normal;font-weight:900;font-display:swap;src:url(fonts/big-shoulders-display-900.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:400;font-display:swap;src:url(fonts/jetbrains-mono-400.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:500;font-display:swap;src:url(fonts/jetbrains-mono-500.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+@font-face{font-family:'JetBrains Mono';font-style:normal;font-weight:700;font-display:swap;src:url(fonts/jetbrains-mono-700.woff2) format('woff2');unicode-range:U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD}
+</style>
 <style>
   /* ---- Palette: dark "broadcast poster" world -------------------------
      ink ground, bone type, boost-orange accent, tier colours for MMR. */
@@ -669,25 +685,40 @@
     tabP.addEventListener('click',function(){show(true);});
     tabT.addEventListener('click',function(){show(false);});
 
-    // ---- feedback -> opens a prefilled GitHub issue in the repo ----
+    // ---- feedback -> posted to the Worker, which files the GitHub issue ----
+    // The site is static, so it cannot hold a token; the Worker holds it and
+    // this just posts JSON. Falls back to opening a prefilled issue if the
+    // Worker is unreachable, so feedback is never simply lost.
+    var FB_ENDPOINT=window.__FB_ENDPOINT__||'https://rlprotracker-cron.georgebaggers1999.workers.dev/feedback';
     var REPO='https://github.com/Bordder/RLProTracker';
     var fb=document.getElementById('fbForm');
     if(fb){
       var fbRes=document.getElementById('fbResult');
+      var fbBtn=document.getElementById('fbBtn');
       fb.addEventListener('submit',function(e){
         e.preventDefault();
-        if(document.getElementById('fbHp').value){ fb.reset(); fbRes.textContent='Thanks!'; fbRes.className='msg ok'; return; } // honeypot
+        var hp=document.getElementById('fbHp').value;
         var user=(document.getElementById('fbUser').value||'').trim().slice(0,60);
         var type=document.getElementById('fbType').value;
         var msg=(document.getElementById('fbMsg').value||'').trim().slice(0,2000);
         if(!msg){ fbRes.textContent='Add a message first.'; fbRes.className='msg err'; document.getElementById('fbMsg').focus(); return; }
-        var title=type+(user?(' from '+user):'')+': '+msg.split('\n')[0].slice(0,60);
-        var body=msg+'\n\n---\nType: '+type+'\nFrom: '+(user||'anonymous')+'\nVia: RL Pro Tracker feedback form';
-        var url=REPO+'/issues/new?title='+encodeURIComponent(title)+'&body='+encodeURIComponent(body);
-        window.open(url,'_blank','noopener,noreferrer');
-        fbRes.textContent='Opening GitHub to post your feedback. Thanks!';
-        fbRes.className='msg ok';
-        fb.reset();
+        fbBtn.disabled=true;
+        fbRes.textContent='Sending…'; fbRes.className='msg';
+        fetch(FB_ENDPOINT,{method:'POST',headers:{'content-type':'application/json'},
+          body:JSON.stringify({user:user,type:type,message:msg,hp:hp})})
+          .then(function(r){ if(!r.ok)throw new Error('http '+r.status); return r.json(); })
+          .then(function(){
+            fbRes.textContent='Sent. Thanks!'; fbRes.className='msg ok'; fb.reset();
+          })
+          .catch(function(){
+            // Last resort: hand the user the prefilled issue rather than dropping
+            // what they wrote.
+            var title=type+(user?(' from '+user):'')+': '+msg.split('\n')[0].slice(0,60);
+            var body=msg+'\n\n---\nType: '+type+'\nFrom: '+(user||'anonymous')+'\nVia: RL Pro Tracker feedback form';
+            window.open(REPO+'/issues/new?title='+encodeURIComponent(title)+'&body='+encodeURIComponent(body),'_blank','noopener,noreferrer');
+            fbRes.textContent='Could not send directly - opening GitHub instead.'; fbRes.className='msg err';
+          })
+          .then(function(){ fbBtn.disabled=false; });
       });
     }
     var yr=document.getElementById('yr'); if(yr)yr.textContent=String(new Date().getFullYear());

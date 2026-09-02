@@ -21,6 +21,10 @@ crons = ["*/5 * * * *", "*/3 * * * *"]
 GH_OWNER = "Bordder"
 GH_REPO  = "RLProTracker"
 GH_REF   = "main"
+# Browser origins allowed to POST /feedback, comma-separated, no trailing slash.
+# Anything else gets no CORS headers and cannot read the response. Add the apex
+# domain here once it is live; the pages.dev origin stays useful for previews.
+SITE_ORIGINS = "https://rlprotracker.pages.dev"
 
 # Without this, the dashboard log stream stays empty - including the invocation
 # lines that tell you whether the cron fired at all, which is the first thing

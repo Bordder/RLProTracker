@@ -42,8 +42,108 @@ async function dispatch(env, workflow) {
   return res.status;
 }
 
+// Read-only health check. Deliberately says nothing about the token beyond
+// whether one is bound - this URL is public once Cloudflare Access is removed
+// so the feedback endpoint can be reached from a browser.
+async function check(env, workflow) {
+  if (!env.GH_TOKEN) return { workflow, error: "GH_TOKEN binding missing" };
+  const url = `https://api.github.com/repos/${env.GH_OWNER}/${env.GH_REPO}` +
+    `/actions/workflows/${workflow}`;
+  const res = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${env.GH_TOKEN.trim()}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "rlprotracker-cron",
+    },
+  });
+  return { workflow, status: res.status };
+}
+
+// ---- feedback relay ----------------------------------------------------
+//
+// The site is static, so it cannot hold a GitHub token: anything shipped to the
+// browser would let anyone file issues on the repo. The form posts here instead
+// and the token stays server-side. Requires Issues: write on the PAT, which is
+// a separate permission from the Actions one the cron needs.
+
+const MAX_MESSAGE = 2000;
+const MAX_USER = 60;
+const TYPES = ["Feedback", "Feature request", "Bug", "Other"];
+
+// Only the site may call this from a browser. SITE_ORIGINS is a comma-separated
+// list in wrangler.toml; a request from any other origin gets no CORS headers,
+// so the browser refuses to read the response.
+function corsHeaders(request, env) {
+  const origin = request.headers.get("Origin") || "";
+  const allowed = (env.SITE_ORIGINS || "").split(",").map((x) => x.trim()).filter(Boolean);
+  if (!allowed.includes(origin)) return null;
+  return {
+    "access-control-allow-origin": origin,
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-headers": "content-type",
+    "access-control-max-age": "86400",
+    vary: "Origin",
+  };
+}
+
+async function handleFeedback(request, env) {
+  let payload;
+  try { payload = await request.json(); } catch { return { status: 400, body: { error: "bad-json" } }; }
+
+  // Honeypot: a real user never fills a hidden field. Answer 200 so a bot cannot
+  // tell it was rejected, but file nothing.
+  if (payload.hp) return { status: 200, body: { ok: true } };
+
+  const message = String(payload.message ?? "").trim().slice(0, MAX_MESSAGE);
+  const user = String(payload.user ?? "").trim().slice(0, MAX_USER);
+  const type = TYPES.includes(payload.type) ? payload.type : "Feedback";
+  if (!message) return { status: 400, body: { error: "empty-message" } };
+
+  const firstLine = message.split("\n")[0].slice(0, 60);
+  const title = `${type}${user ? ` from ${user}` : ""}: ${firstLine}`;
+  const body = [
+    message,
+    "",
+    "---",
+    `Type: ${type}`,
+    `From: ${user || "anonymous"}`,
+    `Country: ${request.headers.get("cf-ipcountry") || "??"}`,
+    "Via: RL Pro Tracker feedback form",
+  ].join("\n");
+
+  const res = await fetch(`https://api.github.com/repos/${env.GH_OWNER}/${env.GH_REPO}/issues`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${env.GH_TOKEN.trim()}`,
+      Accept: "application/vnd.github+json",
+      "X-GitHub-Api-Version": "2022-11-28",
+      "User-Agent": "rlprotracker-cron",
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({ title, body, labels: ["feedback"] }),
+  });
+  if (res.status !== 201) {
+    // 403 here usually means the PAT lacks Issues: write.
+    console.log(`feedback -> ${res.status} ${(await res.text()).slice(0, 200)}`);
+    return { status: 502, body: { error: "upstream" } };
+  }
+  return { status: 200, body: { ok: true } };
+}
+
 export default {
   async fetch(request, env) {
+    const url = new URL(request.url);
+
+    if (url.pathname === "/feedback") {
+      const cors = corsHeaders(request, env);
+      if (request.method === "OPTIONS") return new Response(null, { status: cors ? 204 : 403, headers: cors ?? {} });
+      if (request.method !== "POST") return new Response("method not allowed", { status: 405 });
+      if (!cors) return new Response("forbidden origin", { status: 403 });
+      const { status, body } = await handleFeedback(request, env);
+      return Response.json(body, { status, headers: { ...cors, "cache-control": "no-store" } });
+    }
+
     const results = await Promise.all([
       check(env, "presence.yml"),
       check(env, "tracker.yml"),
