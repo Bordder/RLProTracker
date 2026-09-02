@@ -17,7 +17,14 @@ RL Pro Tracker collects publicly available Rocket League statistics for professi
 
 All data comes from public sources (Steam Web API, Liquipedia, and tracker.gg). The project stores only game statistics for the configured list of professional players. It does not collect data about site visitors.
 
-Currently in development and is NOT complete
+Live at **[198x.online](https://198x.online)**.
+
+> [!WARNING]
+> **In development, and not finished.** The site is live and collecting real data, but it is
+> actively being built: numbers can be wrong or missing, features move around, and things
+> occasionally break without warning. Playtime for players who hide their Steam details is
+> *estimated by sampling* and always undercounts - it is not a measurement. Treat everything
+> here as an indication rather than a record.
 
 ## Features
 
@@ -33,12 +40,17 @@ The project has two halves that stay decoupled:
 
 ```
 Data collection (scheduled)              Website (static)
-roster job (3 days) -> Steam IDs         index.html
-steam job  (daily)  -> playtime  -->     reads the JSON at runtime
-tracker job (20 min)-> MMR + games       renders player and team tables
+roster job  (daily)  -> Steam IDs        index.html + rlpt.js
+steam job   (hourly) -> playtime  -->    read the JSON at runtime
+tracker job (3 min)  -> MMR + games      render player and team tables
+presence    (5 min)  -> live in-game
 ```
 
 Scheduled jobs write JSON into the repository. The website fetches that JSON at load time, so new data appears without rebuilding or redeploying the site.
+
+GitHub drops most high-frequency scheduled runs on public repositories, so the collectors are
+driven by a Cloudflare Worker (`worker/`) that calls the `workflow_dispatch` API every few
+minutes. The crons inside each workflow are a slow safety net rather than the real cadence.
 
 ## Tech stack
 
@@ -46,8 +58,8 @@ Scheduled jobs write JSON into the repository. The website fetches that JSON at 
 | --- | --- |
 | Data scripts | Node.js, standard library only (no dependencies) |
 | Frontend | Plain HTML, CSS, and JavaScript |
-| Scheduling | GitHub Actions (cron) |
-| Hosting | Cloudflare Pages, GitHub Pages, Netlify, or any other static host |
+| Scheduling | GitHub Actions, dispatched by a Cloudflare Worker cron |
+| Hosting | Cloudflare Pages, with Pages Functions serving the data and the feedback endpoint |
 
 ## Getting started
 
@@ -136,17 +148,33 @@ Rolling windows are built by comparing snapshots over time, so the 24 hour and 7
 
 ### Tuning tracker update frequency
 
-`data/priorities.json` controls how often each player's MMR and games are refreshed. Set a player id to a target interval in hours; `perRun` caps how many players each run scrapes so the job stays under tracker.gg's rate limit. Popular players can be refreshed hourly, others every several hours.
+`data/priorities.json` controls how often each player's MMR and games are refreshed. A player id
+maps to a target interval in hours, and `perRun` caps how many players a single run scrapes.
+
+Every player currently sits on the same short interval, because reading the stats API directly
+rather than loading profile pages cut a full-roster run to roughly 2 MB - cheap enough that
+staggering is no longer worth the staleness it costs.
 
 ### Frontend
 
-The site is a single `web/index.html` file with no build step. It reads the JSON in `data/derived` (locally) or from `window.__DATA_BASE__` (in production, set by `buildSite.mjs`). Edit the file directly and refresh.
+`web/index.html` holds the markup and styles, `web/rlpt.js` the behaviour. No build step and no
+framework. Data is fetched from `/data/<file>.json`, which a Pages Function proxies from the
+repository with a short edge cache; `scripts/serve.mjs` mirrors that route locally, so the same
+paths work in both places. Edit and refresh.
 
 ## Deployment
 
-1. Host the `web/` directory on any static host. Set the build command to `npm run build:site` and the output directory to `web`.
-2. Set the environment variable `DATA_BASE` to the raw URL of the `data/derived` directory so the site reads fresh data without rebuilding.
-3. The scheduled workflows in `.github/workflows` collect data automatically. Add `STEAM_API_KEY` as an encrypted repository secret so they can run.
+1. Deploy `web/` to Cloudflare Pages with build command `npm run build:site` and output
+   directory `web`. `functions/` is picked up automatically and provides `/data/*` and
+   `/feedback`.
+2. Add `STEAM_API_KEY` as an encrypted repository secret so the workflows can collect data, and
+   `GH_TOKEN` (a fine-grained token with Actions and Issues write) as a Pages secret so the
+   Worker can dispatch jobs and the feedback form can file issues.
+3. `npm run build:site` also generates `web/_headers`, which carries the content security policy
+   and cache rules.
+
+Another static host will serve the site, but `/data/*` and `/feedback` are Pages Functions and
+would need replacing.
 
 ## Data sources
 

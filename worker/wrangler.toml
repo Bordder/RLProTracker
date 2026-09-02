@@ -2,6 +2,12 @@ name = "rlprotracker-cron"
 main = "src/index.js"
 compatibility_date = "2026-01-01"
 
+# No public URL. This Worker only runs on a schedule, and the workers.dev
+# hostname it was getting embedded the account holder's email local-part
+# (<name>.workers.dev), which is not something a cron job should be publishing.
+# Scheduled handlers run regardless of routing.
+workers_dev = false
+
 # GitHub's own scheduler drops most high-frequency runs on public repos, so this
 # Worker is the primary trigger for the collectors and the crons in
 # .github/workflows/ are a slow safety net.
