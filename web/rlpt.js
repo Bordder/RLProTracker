@@ -102,7 +102,7 @@
   };
   var regionChip=function(r){ return r?'<span class="rg '+(REGION_CLASS[r]||'')+'">'+esc(r)+'</span>':'<span class="dash">&middot;</span>'; };
 
-  var DATA_BASE=window.__DATA_BASE__||"./data/derived";
+  var DATA_BASE=window.__DATA_BASE__||"/data";
   // raw.githubusercontent.com sends Cache-Control: max-age=300, so a plain fetch
   // can hand back data five minutes old - and a tab left open would never see
   // anything newer at all. The collector writes every ~3 minutes, so bust the

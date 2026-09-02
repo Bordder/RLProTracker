@@ -8,6 +8,7 @@
 // Usage:  npm run build:site   (DATA_BASE optional)
 
 import { readdir, readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -25,12 +26,15 @@ try {
   console.log("no data/derived yet - skipping copy");
 }
 
-const base = process.env.DATA_BASE;
-const cfg = base
-  ? `window.__DATA_BASE__=${JSON.stringify(base)};`
-  : `/* no DATA_BASE set - site uses bundled ./data/derived */`;
-await writeFile(join(ROOT, "web", "config.js"), cfg + "\n");
-console.log(base ? `web/config.js -> DATA_BASE=${base}` : "web/config.js -> bundled data");
+// config.js is deliberately gone. It existed to point the page at a data host,
+// but data is served from this origin by the /data Pages Function now, so the
+// page just defaults to "/data" and there is nothing to configure.
+//
+// It was also actively dangerous: Pages caches assets for four hours, and a
+// Pages BUILD env var (DATA_BASE) still holding an old raw.githubusercontent URL
+// silently overwrote a correct deploy - shipping a config the CSP then blocked,
+// which left every visitor looking at an empty table for as long as their
+// browser held the file. One less moving part.
 
 // ---- Content-Security-Policy -------------------------------------------
 //
@@ -81,3 +85,25 @@ await writeFile(join(ROOT, "web", "_headers"), [
   "",
 ].join("\n"));
 console.log("web/_headers -> CSP written");
+
+// ---- cache-bust the page script -----------------------------------------
+//
+// Pages serves static assets with a four-hour Cache-Control and ignores any
+// override in _headers, so a fix to rlpt.js does not reach anyone still holding
+// the old copy. That is not theoretical: a stale data path survived two deploys
+// that way, leaving the live page with an empty table.
+//
+// The HTML itself is always revalidated, so stamping the script reference with a
+// hash of its contents means a changed script is fetched immediately and an
+// unchanged one still hits cache.
+const scriptPath = join(ROOT, "web", "rlpt.js");
+const scriptHash = createHash("sha256").update(await readFile(scriptPath)).digest("hex").slice(0, 8);
+const indexPath = join(ROOT, "web", "index.html");
+const indexHtml = await readFile(indexPath, "utf8");
+const stamped = indexHtml.replace(/src="rlpt\.js(?:\?v=[0-9a-f]+)?"/, `src="rlpt.js?v=${scriptHash}"`);
+if (stamped !== indexHtml) {
+  await writeFile(indexPath, stamped);
+  console.log(`web/index.html -> rlpt.js?v=${scriptHash}`);
+} else {
+  console.log(`rlpt.js?v=${scriptHash} (unchanged)`);
+}
