@@ -4,10 +4,15 @@ compatibility_date = "2026-01-01"
 
 # GitHub's own scheduler drops most high-frequency runs on public repos, so this
 # Worker is the primary trigger for the collectors and the crons in
-# .github/workflows/ are a slow safety net. One tick every 5 minutes; the Worker
-# decides which workflows a given tick fires.
+# .github/workflows/ are a slow safety net.
+#
+# Two schedules, and the handler dispatches by which one fired: presence every
+# 5 minutes (matches POLL_MINUTES in computePresenceHours.mjs), tracker every 3
+# as a freshness trial. 3 min is deliberately close to the measured run time
+# (33-101s before the API rewrite), so watch the cancelled-run rate - tracker.yml
+# sets cancel-in-progress, meaning an overlapping dispatch kills the run before it.
 [triggers]
-crons = ["*/5 * * * *"]
+crons = ["*/5 * * * *", "*/3 * * * *"]
 
 # GH_TOKEN is a fine-grained PAT (Actions: read and write) and is NOT declared
 # here - add it as a Secret in the dashboard. Secrets survive a deploy; the vars

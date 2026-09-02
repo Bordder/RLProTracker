@@ -4,14 +4,18 @@
 // schedule produced zero runs in 26 minutes), so the workflow_dispatch API is
 // the reliable route. This Worker ticks every 5 minutes and dispatches:
 //
-//   presence.yml - every tick. One batched Steam call; cheap, and gaps in it
-//                  undercount playtime rather than corrupt it.
-//   tracker.yml  - every 4th tick (20 min). Proxied headless browser scrape,
-//                  far more expensive, and the scheduler inside it only
-//                  releases a slice of players per run anyway.
+//   presence.yml - the */5 schedule. One batched Steam call; cheap, and gaps in
+//                  it undercount playtime rather than corrupt it.
+//   tracker.yml  - the */3 schedule. Since the scraper reads the stats API
+//                  instead of loading profile pages, a full 60-player run costs
+//                  ~2 MB, so 3-minute polling is ~28 GB/month against a 250 GB
+//                  allowance. The limit here is run duration, not bandwidth.
+//
+// Both crons fire together every 15 minutes; each dispatch is independent, so
+// that needs no special handling.
 
-const TRACKER_EVERY_MS = 20 * 60 * 1000;
-const TICK_MS = 5 * 60 * 1000;
+const PRESENCE_CRON = "*/5 * * * *";
+const TRACKER_CRON = "*/3 * * * *";
 
 async function dispatch(env, workflow) {
   const url = `https://api.github.com/repos/${env.GH_OWNER}/${env.GH_REPO}` +
@@ -38,39 +42,6 @@ async function dispatch(env, workflow) {
   return res.status;
 }
 
-// True when this tick crosses a new 20-minute boundary, so tracker fires once
-// per boundary even if a tick is delayed or replayed.
-function trackerDue(scheduledTime) {
-  return Math.floor(scheduledTime / TRACKER_EVERY_MS) !==
-    Math.floor((scheduledTime - TICK_MS) / TRACKER_EVERY_MS);
-}
-
-
-// Read-only health check, served at the Worker's URL. Reports whether the token
-// binding exists and whether GitHub accepts it for this repo, using a GET
-// against the workflow - it starts nothing, so exposing it publicly is safe.
-async function check(env, workflow) {
-  if (!env.GH_TOKEN) return { workflow, error: "GH_TOKEN binding missing" };
-  const raw = env.GH_TOKEN;
-  const shape = {
-    length: raw.length,
-    trimmedLength: raw.trim().length,
-    prefix: raw.trim().slice(0, 11),
-  };
-  const url = `https://api.github.com/repos/${env.GH_OWNER}/${env.GH_REPO}` +
-    `/actions/workflows/${workflow}`;
-  const res = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${env.GH_TOKEN.trim()}`,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28",
-      "User-Agent": "rlprotracker-cron",
-    },
-  });
-  const body = await res.text();
-  return { workflow, status: res.status, body: body.slice(0, 300), shape };
-}
-
 export default {
   async fetch(request, env) {
     const results = await Promise.all([
@@ -88,10 +59,12 @@ export default {
   },
 
   async scheduled(event, env, ctx) {
-    const jobs = [dispatch(env, "presence.yml")];
-    if (trackerDue(event.scheduledTime)) {
-      jobs.push(dispatch(env, "tracker.yml"));
-    }
+    const jobs = [];
+    if (event.cron === PRESENCE_CRON) jobs.push(dispatch(env, "presence.yml"));
+    if (event.cron === TRACKER_CRON) jobs.push(dispatch(env, "tracker.yml"));
+    // A cron we do not recognise means wrangler.toml and this file disagree;
+    // fall back to presence so the cheap collector keeps running either way.
+    if (!jobs.length) jobs.push(dispatch(env, "presence.yml"));
     ctx.waitUntil(Promise.all(jobs));
   },
 };
