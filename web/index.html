@@ -7,6 +7,7 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
 <meta name="theme-color" content="#0C0E13">
 <!-- Fonts are self-hosted. Loading them from fonts.googleapis.com sent every
      visitor's IP address to Google before the page had rendered - the site's
@@ -257,8 +258,8 @@
   /* Links inside body copy were falling back to the browser default blue, which
      is close to unreadable on this background. Bold bone text with a warm
      underline instead. */
-  .note a,.fb .lead a{color:var(--bone);font-weight:600;text-decoration:underline;text-decoration-color:var(--accent-line);text-underline-offset:2px}
-  .note a:hover,.fb .lead a:hover{color:var(--accent);text-decoration-color:var(--accent)}
+  .note a,.fb .lead a,.dek a{color:var(--bone);font-weight:600;text-decoration:underline;text-decoration-color:var(--accent-line);text-underline-offset:2px}
+  .note a:hover,.fb .lead a:hover,.dek a:hover{color:var(--accent);text-decoration-color:var(--accent)}
   .foot-links a{color:var(--slate);font-size:12.5px;text-decoration:none;border-bottom:1px solid var(--line2);padding-bottom:1px}
   .foot-links a:hover{color:var(--accent);border-color:var(--accent-line)}
   .fb{margin-top:24px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;max-width:520px}
@@ -298,7 +299,7 @@
       <span class="kick-meta"><span class="live-dot" aria-hidden="true"></span><span id="updated">loading&hellip;</span></span>
     </div>
     <h1 class="headline">Who&rsquo;s Grinding<span class="accent">?</span></h1>
-    <p class="dek" id="dek">Ranked-ladder activity for RLCS pros <b>outside</b> official tournaments: who&rsquo;s actually queuing, ranked by <b>2v2 MMR</b>, with games this season and MMR per playlist.</p>
+    <p class="dek" id="dek">Ranked-ladder activity for RLCS pros <b>outside</b> official tournaments: who&rsquo;s actually queuing, ranked by <b>2v2 MMR</b>, with games this season and MMR per playlist. <a href="/how-it-works">How it works</a> &middot; <a href="/faq">FAQ</a></p>
 
     <div class="stats" id="stats"></div>
   </header>
@@ -331,7 +332,7 @@
   <footer class="foot">
     <form class="fb" id="fbForm" autocomplete="off" novalidate>
       <h3>Send feedback</h3>
-      <p class="lead">Feature idea, bug, or general feedback? Send it below. Username is optional. What you write is posted publicly as a <a href="https://github.com/Bordder/RLProTracker/issues" target="_blank" rel="noopener noreferrer">GitHub issue</a>, so please leave out anything private.</p>
+      <p class="lead">Feature idea, bug, or general feedback? Send it below. Username is optional. What you write is posted publicly as a <a href="https://github.com/Bordder/RLProTracker/issues" target="_blank" rel="noopener noreferrer">GitHub issue</a>, so leave anything private out &mdash; Discord (@_198x) is there for that. <b>You will get a reply within 48 hours.</b></p>
       <div class="row">
         <input class="u" id="fbUser" type="text" placeholder="Username (optional)" maxlength="60" />
         <select id="fbType" aria-label="Type of feedback">
@@ -350,6 +351,7 @@
     <div class="foot-links">
       <a href="https://github.com/Bordder/RLProTracker" target="_blank" rel="noopener noreferrer">View the source on GitHub</a>
       <a href="/how-it-works">How it works</a>
+      <a href="/faq">FAQ</a>
       <a href="/privacy">Privacy policy</a>
       <a href="/terms">Terms of service</a>
     </div>
@@ -359,6 +361,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=9dbb368c" defer></script>
+<script src="rlpt.js?v=8eb8a248" defer></script>
 </body>
 </html>

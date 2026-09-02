@@ -8,6 +8,7 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
 <meta name="theme-color" content="#0C0E13">
 <link rel="stylesheet" href="fonts/fonts.css">
 <style>
@@ -21,7 +22,11 @@
   html,body{margin:0;background:var(--ink)}
   body{color:var(--slate);font-family:var(--body);font-size:15px;line-height:1.6;padding:0 20px 80px}
   .wrap{max-width:720px;margin:0 auto}
-  header.top{padding:26px 0 14px;border-bottom:1px solid var(--line);margin-bottom:30px;display:flex;gap:18px;align-items:baseline;flex-wrap:wrap}
+  header.top{padding:26px 0 14px;border-bottom:1px solid var(--line);margin-bottom:18px;display:flex;gap:18px;align-items:baseline;flex-wrap:wrap}
+  .crumbs{font-size:12px;color:var(--dim);margin:0 0 24px}
+  .crumbs a{color:var(--slate);text-decoration:none}
+  .crumbs a:hover{color:var(--accent)}
+  .crumbs span[aria-current]{color:var(--bone)}
   .brand{font-family:var(--display);font-weight:900;text-transform:uppercase;letter-spacing:.02em;font-size:19px;color:var(--bone);text-decoration:none}
   .brand span{color:var(--accent)}
   h1{font-family:var(--display);font-weight:900;text-transform:uppercase;font-size:clamp(2rem,6vw,3rem);line-height:.95;margin:0 0 4px;color:var(--bone)}
@@ -47,6 +52,9 @@
   <header class="top">
     <a class="brand" href="/">RL Pro Tracker<span>.</span></a>
   </header>
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a href="/">Tracker</a> <span aria-hidden="true">/</span> <span aria-current="page">Terms of service</span>
+  </nav>
   <h1>Terms of service</h1>
   <p class="updated">Last updated 2 September 2026</p>
 
@@ -100,7 +108,7 @@
   <p>Discord, at <span class="handle">@_198x</span>, or the feedback form on the tracker.</p>
 
   <footer class="legal">
-    <div class="links"><a href="/">Back to the tracker</a><a href="/how-it-works">How it works</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div>
+    <div class="links"><a href="/">Back to the tracker</a><a href="/how-it-works">How it works</a><a href="/faq">FAQ</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div>
     <p class="copyright">Built and maintained by <b>Bordder</b>. &copy; 2026.<br />
     A fan-made project, not connected to Psyonix, Epic Games or RLCS in any way. Rocket League is a trademark of Psyonix LLC. Player and team names belong to their respective owners.</p>
   </footer>

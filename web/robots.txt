@@ -1,0 +1,12 @@
+# RL Pro Tracker - https://198x.online
+User-agent: *
+Allow: /
+
+# Endpoints, not pages: /data serves the JSON the board reads, /status is a
+# freshness probe, /feedback only answers POST. Nothing for a crawler to index,
+# and crawling them just wastes both our time.
+Disallow: /data/
+Disallow: /status
+Disallow: /feedback
+
+Sitemap: https://198x.online/sitemap.xml
