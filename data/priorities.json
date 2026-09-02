@@ -1,5 +1,5 @@
 {
-  "note": "Tracker update scheduling. Runs are 3 minutes apart (dispatched by the Cloudflare Worker in worker/, not by the cron in tracker.yml) and RUN_SPACING_MS matches. Every player is on a ~5 min interval so the whole roster refreshes each run; perRun covers all 60. intervalMultiplier multiplies EVERY interval - keep it at 1 unless deliberately throttling.",
+  "note": "Tracker update scheduling. Runs are 2 minutes apart (dispatched by the Cloudflare Worker in worker/, not by the cron in tracker.yml) and RUN_SPACING_MS matches. A player is scraped when its interval has elapsed AND its slot matches the run: slots = round(interval / RUN_SPACING_MS), so the 5 min interval below gives 2 slots and each player refreshes about every 6 minutes, not every 5. Dropping the interval to 2 min would give 1 slot and refresh every player every run, at double the proxy traffic and a run that has to stay under 120s. intervalMultiplier multiplies EVERY interval - keep it at 1 unless deliberately throttling.",
   "perRun": 60,
   "intervalMultiplier": 1,
   "defaultHours": 1,
