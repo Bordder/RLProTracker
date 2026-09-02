@@ -1,8 +1,12 @@
 // Collect ranked MMR and games-played per playlist from tracker.gg.
 //
 // tracker is Cloudflare-protected, so we drive a headless Chromium
-// (playwright-extra + stealth) that clears the challenge and read the page's
-// embedded state (window.__INITIAL_STATE__).
+// (playwright-extra + stealth) that clears the challenge. We do NOT load the
+// profile page: the page ships an empty __INITIAL_STATE__ shell and its bundle
+// then calls api.tracker.gg for the real stats, so a page load costs ~2.4 MB to
+// deliver ~32 KB of JSON. Instead each context clears Cloudflare once against a
+// trivial URL on the site origin, then calls that API directly from inside the
+// page - same cookies, ~75x less traffic.
 //
 // To stay under Cloudflare's rate limiting, each run scrapes only the most
 // "overdue" players (see data/priorities.json): popular pros refresh hourly,
@@ -23,12 +27,18 @@ chromium.use(stealth());
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
-const PROFILE = (id) => `https://rocketleague.tracker.network/rocket-league/profile/steam/${id}/overview`;
+const ORIGIN = "https://rocketleague.tracker.network";
+// Cheapest URL on the site origin that still yields a Cloudflare clearance
+// cookie. Measured: warming on robots.txt costs ~0 MB and the API then answers
+// 200, exactly as it does after a full profile load. Warming on the API host
+// itself does NOT work - it answers 403 until the origin has cleared.
+const WARM_URL = `${ORIGIN}/robots.txt`;
+const API = (id) => `https://api.tracker.gg/api/v2/rocket-league/standard/profile/steam/${id}`;
 const PLAYLISTS = { d1: "Ranked Duel 1v1", d2: "Ranked Doubles 2v2", d3: "Ranked Standard 3v3" };
 const STATE_FILE = join(ROOT, "data", "tracker-state.json");
 const ATTEMPTS = 5; // capped at proxy count in scrapePlayer; try every proxy before giving up
 const NAV_TIMEOUT = 45000;
-const STATE_TIMEOUT = 30000; // a warm profile hydrates well under this
+const API_TIMEOUT = 30000; // per-player API call; a warm profile answers in ~0.5-1.3s
 const PER_PROXY_DELAY = 1000; // small gap between a worker's consecutive loads
 // How many pages scrape at once. Concurrency hurts here on two fronts: it
 // starves CPU (Vue never hydrates in time) AND the free Oxylabs datacenter
@@ -55,27 +65,14 @@ export function nextActivity(prev, curMatches) {
   return { matches: curMatches, hot, idle };
 }
 
-// Resolve as soon as the profile is decided: "ok" (playlist segments present)
-// or "err" (tracker returned a status/error, e.g. 400/404 while its collector
-// is refreshing). Returning "err" lets us fail fast and retry on another proxy
-// instead of waiting out the whole timeout.
-function stateOutcome() {
-  const sp = window.__INITIAL_STATE__?.stats?.standardProfiles;
-  if (!sp) return false;
-  const prof = sp[Object.keys(sp)[0]];
-  if (!prof) return false;
-  if (prof.segments?.some((s) => s.type === "playlist")) return "ok";
-  if (prof.status || prof.errors?.length) return "err";
-  return false;
-}
-
-function extractInPage(names) {
-  const sp = window.__INITIAL_STATE__?.stats?.standardProfiles;
-  if (!sp) return null;
-  const prof = sp[Object.keys(sp)[0]];
-  if (!prof?.segments) return null;
+// Pull the three ranked playlists out of an API profile payload. The API
+// returns the same segment shape the page's embedded state used to carry, so
+// the keys downstream (computeTrackerDeltas) are unchanged.
+function pickPlaylists(json, names) {
+  const segments = json?.data?.segments;
+  if (!Array.isArray(segments)) return null;
   const pick = (name) => {
-    const s = prof.segments.find((x) => x.type === "playlist" && x.metadata?.name === name);
+    const s = segments.find((x) => x.type === "playlist" && x.metadata?.name === name);
     if (!s) return null;
     return { rating: s.stats?.rating?.value ?? null, matches: s.stats?.matchesPlayed?.value ?? null, tier: s.stats?.tier?.metadata?.name ?? null };
   };
@@ -84,16 +81,31 @@ function extractInPage(names) {
   return out;
 }
 
-// __INITIAL_STATE__ is populated by the app bundle on trackercdn.com, so that
-// host has to stay allowed - blocking it leaves the state undefined and every
-// scrape times out. Everything beyond the tracker's own hosts is waste. Measured
-// against a real run: 35.5 MB of proxy traffic to collect 1.3 MB of documents -
-// 96% went to ad platforms (live.primis.tech alone sent 1.1 MB per page) and to
-// trackercdn.com app bundles that only exist to render a page we never look at.
+// api.tracker.gg is on the same Cloudflare edge as the site, and the app calls
+// it with the site's cookies - so this has to run INSIDE the cleared page, not
+// from Node. Returns the raw text so the caller can distinguish a cold profile
+// (404 while the collector refreshes) from a transport failure.
+async function apiFetch(page, url, timeout) {
+  return page.evaluate(async ([u, ms]) => {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), ms);
+    try {
+      const res = await fetch(u, { credentials: "include", headers: { accept: "application/json" }, signal: ctl.signal });
+      return { status: res.status, text: await res.text() };
+    } finally {
+      clearTimeout(timer);
+    }
+  }, [url, timeout]);
+}
+
+// Everything beyond the tracker's own hosts is waste. Measured against a real
+// run: 35.5 MB of proxy traffic to collect 1.3 MB of documents - 96% went to ad
+// platforms (live.primis.tech alone sent 1.1 MB per page). The API route avoids
+// almost all of it, but the allowlist stays as a backstop: an unfiltered load
+// pulled in enough ad JS to crash the tab outright during testing.
 //
 // An allowlist rather than a blocklist: chasing ad domains is endless, and a new
-// one silently costs bandwidth again. Only the profile host and Cloudflare's
-// challenge endpoints are allowed through.
+// one silently costs bandwidth again.
 const ALLOW_HOSTS = /(^|\.)(tracker\.network|trackercdn\.com|tracker\.gg|challenges\.cloudflare\.com)$/i;
 
 const blockAssets = (page) =>
@@ -105,19 +117,41 @@ const blockAssets = (page) =>
     return ALLOW_HOSTS.test(host) ? route.continue() : route.abort();
   });
 
-async function scrapeOnce(ctx, id) {
-  const page = await ctx.newPage();
-  try {
-    await blockAssets(page);
-    await page.goto(PROFILE(id), { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT });
-    // NB: waitForFunction(fn, arg, options) - the timeout MUST be the 3rd arg.
-    const handle = await page.waitForFunction(stateOutcome, null, { timeout: STATE_TIMEOUT });
-    const outcome = await handle.jsonValue();
-    if (outcome !== "ok") throw new Error("collector-refreshing"); // retry other proxy
-    return await page.evaluate(extractInPage, PLAYLISTS); // may be null
-  } finally {
-    await page.close().catch(() => {});
+// One cleared page per context, reused for every player that context handles.
+// Cloudflare clearance is per-context, so warming once and holding the page open
+// is what turns a run into N cheap JSON calls instead of N page loads.
+const warmed = new WeakMap();
+
+function warmPage(ctx) {
+  let p = warmed.get(ctx);
+  if (!p) {
+    p = (async () => {
+      const page = await ctx.newPage();
+      await blockAssets(page);
+      await page.goto(WARM_URL, { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT });
+      return page;
+    })().catch((e) => {
+      warmed.delete(ctx); // let a later attempt re-warm rather than caching the failure
+      throw e;
+    });
+    warmed.set(ctx, p);
   }
+  return p;
+}
+
+async function scrapeOnce(ctx, id) {
+  const page = await warmPage(ctx);
+  const { status, text } = await apiFetch(page, API(id), API_TIMEOUT);
+  // 404 means the collector has no warm profile for this id yet (it re-fetches
+  // from the RL API in the background) - or the id is simply wrong. Both are
+  // worth retrying on another proxy; a genuinely bad id stays 404 everywhere,
+  // across runs.
+  if (status !== 200) throw new Error(`api-${status}`);
+  let json;
+  try { json = JSON.parse(text); } catch { throw new Error("api-bad-json"); }
+  const data = pickPlaylists(json, PLAYLISTS); // may be null
+  if (data && Object.values(data).every((v) => v == null)) throw new Error("no-playlists");
+  return data;
 }
 
 // Try each attempt on a DIFFERENT proxy so one flaky proxy (tunnel failure,
