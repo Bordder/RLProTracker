@@ -67,6 +67,33 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
+    // Manual dispatch, for when Cloudflare's scheduler goes quiet.
+    //
+    // On 2026-09-02 the crons simply stopped firing: still registered, no
+    // incident, no invocations in the tail, and a redeploy changed nothing -
+    // while this same Worker answered HTTP perfectly and its token worked. So
+    // execution is sound and only the scheduling is unreliable, which means an
+    // outside heartbeat can stand in for it. The liveness workflow calls this
+    // when the published data goes stale.
+    //
+    // Guarded by a shared key so the endpoint cannot be used to hammer the
+    // collectors from outside.
+    if (url.pathname === "/run") {
+      if (request.method !== "POST") return new Response("method not allowed", { status: 405 });
+      const key = (env.RUN_KEY || "").trim();
+      if (!key) return Response.json({ error: "not-configured" }, { status: 503 });
+      if ((request.headers.get("x-run-key") || "").trim() !== key) {
+        return new Response("forbidden", { status: 403 });
+      }
+      const wanted = url.searchParams.get("only");
+      const jobs = [];
+      if (!wanted || wanted === "presence") jobs.push(dispatch(env, "presence.yml"));
+      if (!wanted || wanted === "tracker") jobs.push(dispatch(env, "tracker.yml"));
+      if (wanted === "steam") jobs.push(dispatch(env, "steam.yml"));
+      const codes = await Promise.all(jobs);
+      return Response.json({ dispatched: codes.length, codes });
+    }
+
     // Feedback moved to a Pages Function on the site's own origin, where
     // Cloudflare WAF rate limiting can actually reach it. Point anything still
     // calling here at the new home rather than failing silently.

@@ -1,0 +1,86 @@
+name: Liveness
+
+# Watches the published data and does something about it when it goes stale.
+#
+# The failure this exists for produces no error anywhere: on 2026-09-02 the
+# Cloudflare Worker's cron triggers stopped firing while the Worker itself stayed
+# healthy - registered schedules, no incident, no invocations, and a redeploy
+# changed nothing. Nothing failed, so nothing notified, and the board quietly
+# served numbers 19 minutes old.
+#
+# GitHub's scheduler drops runs too, so this is deliberately not the primary
+# trigger for anything. It is a watchdog: whenever it does run, it checks how old
+# the published data is, pokes the Worker to dispatch the collectors if needed,
+# and says so on Discord.
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Dispatch collectors even if the data looks fresh"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: liveness
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check data freshness, and recover if stale
+        env:
+          RUN_KEY: ${{ secrets.WORKER_RUN_KEY }}
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          set -uo pipefail
+
+          # How old the data may be before this is worth acting on. Collectors
+          # run every few minutes, so 20 absorbs a couple of missed runs without
+          # crying wolf.
+          STALE_MINUTES=20
+
+          status=$(curl -sS --max-time 20 https://198x.online/status || echo '{}')
+          computed=$(printf '%s' "$status" | sed -n 's/.*"computedAt":"\([^"]*\)".*/\1/p')
+
+          if [ -z "$computed" ]; then
+            echo "could not read /status: $status"
+            age_min=9999
+          else
+            now=$(date -u +%s)
+            then=$(date -u -d "$computed" +%s)
+            age_min=$(( (now - then) / 60 ))
+            echo "data timestamp: $computed  (${age_min} minutes old)"
+          fi
+
+          if [ "$age_min" -lt "$STALE_MINUTES" ] && [ "${FORCE:-false}" != "true" ]; then
+            echo "fresh enough; nothing to do"
+            exit 0
+          fi
+
+          echo "stale (${age_min}m) - asking the Worker to dispatch the collectors"
+          if [ -n "${RUN_KEY:-}" ]; then
+            code=$(curl -sS -o /tmp/run.json -w '%{http_code}' --max-time 25 \
+              -X POST "https://cron.198x.online/run" -H "x-run-key: ${RUN_KEY}" || echo 000)
+            echo "worker /run -> HTTP ${code}: $(cat /tmp/run.json 2>/dev/null | head -c 200)"
+          else
+            echo "WORKER_RUN_KEY not set; cannot self-heal"
+            code="skipped"
+          fi
+
+          if [ -n "${DISCORD_WEBHOOK:-}" ]; then
+            text="**RL Pro Tracker: collection is behind.** Published data is ${age_min} minutes old. Asked the Worker to dispatch collectors (HTTP ${code}). https://198x.online/"
+            curl -sS --max-time 20 -H 'content-type: application/json' \
+              -d "$(printf '{"content":%s}' "$(printf '%s' "$text" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')")" \
+              "$DISCORD_WEBHOOK" >/dev/null && echo "notified Discord"
+          else
+            echo "DISCORD_WEBHOOK not set; no notification sent"
+          fi

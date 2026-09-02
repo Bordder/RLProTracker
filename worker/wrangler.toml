@@ -8,6 +8,15 @@ compatibility_date = "2026-01-01"
 # Scheduled handlers run regardless of routing.
 workers_dev = false
 
+# A probe URL on the site's own zone, rather than the workers.dev hostname,
+# which embeds the account holder's email local-part. Needed because a Worker
+# with no route cannot be inspected at all: when its crons stopped firing on
+# 2026-09-02 there was no way to tell whether the Worker was running and failing
+# to dispatch, or not running at all.
+[[routes]]
+pattern = "cron.198x.online"
+custom_domain = true
+
 # GitHub's own scheduler drops most high-frequency runs on public repos, so this
 # Worker is the primary trigger for the collectors and the crons in
 # .github/workflows/ are a slow safety net.
