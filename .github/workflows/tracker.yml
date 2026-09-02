@@ -58,11 +58,23 @@ jobs:
         run: |
           git config user.name "rl-tracker-bot"
           git config user.email "actions@github.com"
-          git add data/tracker-history.json data/derived data/tracker-state.json
+          git add data/tracker-history.json data/tracker-state.json data/derived/tracker.json data/derived/team-tracker.json
           git diff --staged --quiet && echo "no changes" && exit 0
           git commit -m "[skip ci] data: tracker update"
+          # Clear any half-finished rebase before retrying: without this, one
+          # conflict leaves unmerged files behind and every later attempt dies
+          # on them instead of trying again.
+          #
+          # -X theirs means the commit being replayed - our freshly computed
+          # data - wins a conflict. That is what we want: the file is
+          # regenerated from scratch each run, so the newer copy is correct and
+          # there is nothing in the older one worth merging.
           for i in 1 2 3 4 5; do
-            git pull --rebase --autostash origin main && git push && exit 0
+            git rebase --abort 2>/dev/null || true
+            if git pull --rebase --autostash -X theirs origin main && git push; then
+              exit 0
+            fi
             echo "push retry $i"; sleep $((RANDOM % 8 + 3))
           done
+          git rebase --abort 2>/dev/null || true
           echo "push failed after retries"; exit 1
