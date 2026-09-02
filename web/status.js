@@ -141,12 +141,79 @@
     }).join("");
   };
 
+  // Expected collections per hour. Kept next to the cadence it mirrors: if the
+  // cron moves, this has to move with it or the strip reports a false outage.
+  var RUNS_PER_HOUR = 30;
+
+  var renderHistory = function (up) {
+    var strip = $("strip"), legend = $("legend"), hist = $("hist");
+    if (!strip) return;
+
+    var runs = (up && Array.isArray(up.runs)) ? up.runs.slice().sort(function (a, b) { return a - b; }) : [];
+    if (!runs.length) {
+      strip.innerHTML = "";
+      legend.textContent = "No history recorded yet. This fills in as the collector runs.";
+      hist.innerHTML = "";
+      return;
+    }
+
+    var nowMin = Math.floor(Date.now() / 60000);
+    var start = nowMin - 24 * 60;
+    var firstKnown = runs[0];
+
+    var cells = [], known = 0, got = 0;
+    for (var h = 0; h < 24; h++) {
+      var from = start + h * 60, to = from + 60;
+      // An hour that ended before anything was ever recorded is unknown, not an
+      // outage. Painting it red would invent a failure that never happened.
+      if (to <= firstKnown) {
+        cells.push('<span class="is-unknown" title="' + hourLabel(from) + ': not recorded"></span>');
+        continue;
+      }
+      var n = 0;
+      for (var i = 0; i < runs.length; i++) if (runs[i] >= from && runs[i] < to) n++;
+      // The current hour is only partly elapsed, so scale what we expect of it.
+      var elapsed = Math.max(1, Math.min(60, nowMin - from));
+      var expect = Math.max(1, Math.round(RUNS_PER_HOUR * (elapsed / 60)));
+      var ratio = Math.min(1, n / expect);
+      known += expect; got += Math.min(n, expect);
+      var st = ratio >= 0.8 ? "ok" : (ratio >= 0.4 ? "late" : "bad");
+      cells.push('<span class="is-' + st + '" title="' + hourLabel(from) + ": " + n + " of ~" + expect +
+        ' collections"><i style="height:' + Math.max(6, Math.round(ratio * 100)) + '%"></i></span>');
+    }
+    strip.innerHTML = cells.join("");
+
+    var pct = known ? Math.round((got / known) * 1000) / 10 : null;
+
+    // Longest gap between consecutive collections, which is what a reader
+    // actually felt: the longest the board went without moving.
+    var gap = 0;
+    for (var j = 1; j < runs.length; j++) gap = Math.max(gap, runs[j] - runs[j - 1]);
+
+    var hours = Math.min(24, Math.max(1, Math.round((nowMin - firstKnown) / 60)));
+    legend.textContent = "Each bar is one hour. Full height means every expected collection landed." +
+      (firstKnown > start ? " Hatched hours are before records began." : "");
+    hist.innerHTML =
+      '<div><span class="k">Collections landed</span><span class="v">' + (pct == null ? "&mdash;" : pct + "<small>%</small>") + "</span></div>" +
+      '<div><span class="k">Longest gap</span><span class="v">' + ageWords(gap * 60000) + "</span></div>" +
+      '<div><span class="k">Runs recorded</span><span class="v">' + runs.length + "</span></div>" +
+      '<div><span class="k">History covers</span><span class="v">' + hours + "<small>h</small></span></div>";
+  };
+
+  var hourLabel = function (min) {
+    return new Date(min * 60000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
   var loading = false;
   var refresh = function () {
     if (loading) return;
     loading = true;
-    Promise.all(FEEDS.map(function (f) { return getJson("/data/" + f.file); }))
-      .then(render)
+    Promise.all(FEEDS.map(function (f) { return getJson("/data/" + f.file); })
+      .concat([getJson("/data/uptime.json")]))
+      .then(function (all) {
+        render(all);
+        renderHistory(all[FEEDS.length]);
+      })
       .catch(function () {})
       .then(function () { loading = false; });
   };

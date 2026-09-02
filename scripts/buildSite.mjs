@@ -97,10 +97,12 @@ console.log("web/_headers -> CSP written");
 // hash of its contents means a changed script is fetched immediately and an
 // unchanged one still hits cache.
 for (const [page, script] of [["index.html", "rlpt.js"], ["status.html", "status.js"]]) {
-  const hash = createHash("sha256")
-    .update(await readFile(join(ROOT, "web", script)))
-    .digest("hex")
-    .slice(0, 8);
+  // Hash the normalised text, not the raw bytes. On Windows git checks these
+  // files out with CRLF while the editor writes LF, so hashing bytes made the
+  // stamp flip back and forth on every checkout: a phantom diff in index.html
+  // and a pointless cache bust for every visitor.
+  const source = (await readFile(join(ROOT, "web", script), "utf8")).replace(/\r\n/g, "\n");
+  const hash = createHash("sha256").update(source).digest("hex").slice(0, 8);
   const pagePath = join(ROOT, "web", page);
   const html = await readFile(pagePath, "utf8");
   const pattern = new RegExp(`src="${script.replace(/\./g, "\\.")}(?:\\?v=[0-9a-f]+)?"`);

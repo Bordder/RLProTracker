@@ -73,6 +73,15 @@
   .cov .v{font-family:var(--mono);font-size:20px;color:var(--bone)}
   .cov .v small{font-size:12px;color:var(--dim)}
 
+  /* One cell per hour. Height is fixed and the fill is the only variable, so a
+     partly covered hour reads as partly covered rather than as a small number. */
+  .strip{display:flex;gap:3px;align-items:stretch;height:46px;margin:2px 0 8px}
+  .strip span{flex:1 1 0;border-radius:3px;background:var(--line);position:relative;overflow:hidden}
+  .strip span i{position:absolute;left:0;right:0;bottom:0;background:var(--ok);display:block}
+  .strip span.is-late i{background:var(--warn)}
+  .strip span.is-bad i{background:var(--bad)}
+  .strip span.is-unknown{background:repeating-linear-gradient(135deg,#171B24,#171B24 3px,#12151C 3px,#12151C 6px)}
+  .legend{font-size:12.5px;color:var(--dim);margin:0 0 10px}
   .note{font-size:13.5px;color:var(--dim);margin-top:14px}
   footer.legal{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:13px}
   footer.legal .links a{margin-right:14px}
@@ -107,6 +116,11 @@
   <h2>Coverage</h2>
   <div class="cov" id="cov"></div>
 
+  <h2>Last 24 hours</h2>
+  <div class="strip" id="strip" aria-hidden="true"></div>
+  <p class="legend" id="legend">&nbsp;</p>
+  <div class="cov" id="hist"></div>
+
   <h2>How often things run</h2>
   <p>Ranked stats are collected every <b>2 minutes</b> and every tracked player is refreshed on
   every run. Steam playtime is hourly, because Steam only recomputes the two-week figure a few
@@ -122,6 +136,6 @@
     A fan-made project, not connected to Psyonix, Epic Games or RLCS in any way. Rocket League is a trademark of Psyonix LLC. Player and team names belong to their respective owners.</p>
   </footer>
 </div>
-<script src="status.js?v=a07b6e4b" defer></script>
+<script src="status.js?v=50d35c48" defer></script>
 </body>
 </html>
