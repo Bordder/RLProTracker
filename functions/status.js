@@ -10,9 +10,20 @@
 
 const SOURCE = "https://raw.githubusercontent.com/Bordder/RLProTracker/main/data/derived/tracker.json";
 
+// Upstream is fetched with a per-bucket cache buster.
+//
+// Asking for cacheTtl alone was not enough: on 2026-09-02 raw was serving a
+// timestamp of 17:57 while this endpoint returned 17:33, a 24 minute gap, which
+// made the site report that collection had stalled when the collectors were
+// running perfectly. A fixed upstream URL can sit in Cloudflare's cache, and in
+// GitHub's, for far longer than the TTL we ask for; changing the URL every
+// bucket gives both a key they have never seen.
+const BUCKET_MS = 30e3;
+const bust = () => `?t=${Math.floor(Date.now() / BUCKET_MS)}`;
+
 export async function onRequestGet() {
   try {
-    const res = await fetch(SOURCE, {
+    const res = await fetch(SOURCE + bust(), {
       cf: { cacheTtl: 30, cacheEverything: true },
       headers: { "User-Agent": "rlprotracker-site" },
     });
