@@ -56,7 +56,10 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self'",
-  "connect-src 'self' https://raw.githubusercontent.com https://*.workers.dev https://cloudflareinsights.com",
+  // The page reads its data from this origin now (the /data Pages Function), so
+  // raw.githubusercontent.com is no longer an allowed destination. workers.dev
+  // stays for the feedback endpoint.
+  "connect-src 'self' https://*.workers.dev https://cloudflareinsights.com",
   "base-uri 'none'",
   "form-action 'none'",
   "frame-ancestors 'none'",

@@ -47,6 +47,10 @@ const readJson = async (f, fallback) => { try { return JSON.parse(await readFile
 
 async function main() {
   const KEY = process.env.STEAM_API_KEY;
+
+// Strip the API key from anything we print - it travels in the query string and
+// these logs are public.
+const redact = (text) => (KEY ? text.split(KEY).join("***") : text);
   if (!KEY) { console.log("presenceHot: no STEAM_API_KEY - skipping"); return; }
 
   const roster = await readJson(join(ROOT, "data", "roster.json"), { players: [] });
@@ -61,8 +65,15 @@ async function main() {
     const group = withId.slice(i, i + 100).map((p) => p.steamId64);
     const url = `https://api.steampowered.com/ISteamUser/GetPlayerSummaries/v2/?key=${KEY}&steamids=${group.join(",")}`;
     let data;
-    try { data = await (await fetch(url)).json(); }
-    catch (e) { console.log(`presenceHot: summaries fetch failed (${e.message}) - skipping`); return; }
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      data = await res.json();
+    } catch (e) {
+      // Redacted: the key is in the query string and this log is public.
+      console.log(`presenceHot: summaries fetch failed (${redact(String(e.message ?? e))}) - skipping`);
+      return;
+    }
     for (const s of data?.response?.players ?? []) {
       const pid = idBySteam.get(s.steamid);
       if (pid) presence.set(pid, classifyPresence(s));
@@ -82,5 +93,5 @@ async function main() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  main().catch((e) => { console.error(e); process.exit(1); });
+  main().catch((e) => { console.error(redact(String(e && e.stack || e))); process.exit(1); });
 }

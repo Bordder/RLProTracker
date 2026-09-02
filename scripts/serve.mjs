@@ -48,6 +48,13 @@ createServer(async (req, res) => {
   // Re-sync on each derived-data request: the hourly jobs rewrite data/derived
   // while the server stays up, and a startup-only copy would serve stale JSON.
   if (path.startsWith("/data/derived/")) await syncData();
+  // Production serves the JSON from /data/<file>.json via a Pages Function.
+  // Mirror that here so a local build with DATA_BASE=/data behaves the same;
+  // otherwise the page silently 404s every data file locally.
+  if (/^\/data\/[a-z0-9-]+\.json$/i.test(path)) {
+    await syncData();
+    path = path.replace("/data/", "/data/derived/");
+  }
   if (path === "/") path = "/index.html";
   const file = normalize(join(WEB, path));
   if (!file.startsWith(WEB)) { res.writeHead(403); return res.end("forbidden"); }
