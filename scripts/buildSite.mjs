@@ -56,10 +56,9 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self'",
-  // The page reads its data from this origin now (the /data Pages Function), so
-  // raw.githubusercontent.com is no longer an allowed destination. workers.dev
-  // stays for the feedback endpoint.
-  "connect-src 'self' https://*.workers.dev https://cloudflareinsights.com",
+  // Both data and feedback are same-origin Pages Functions now, so the only
+  // outbound destination left is the analytics beacon.
+  "connect-src 'self' https://cloudflareinsights.com",
   "base-uri 'none'",
   "form-action 'none'",
   "frame-ancestors 'none'",

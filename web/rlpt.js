@@ -345,7 +345,7 @@
     // The site is static, so it cannot hold a token; the Worker holds it and
     // this just posts JSON. Falls back to opening a prefilled issue if the
     // Worker is unreachable, so feedback is never simply lost.
-    var FB_ENDPOINT=window.__FB_ENDPOINT__||'https://rlprotracker-cron.georgebaggers1999.workers.dev/feedback';
+    var FB_ENDPOINT=window.__FB_ENDPOINT__||'/feedback';
     var REPO='https://github.com/Bordder/RLProTracker';
     var fb=document.getElementById('fbForm');
     if(fb){

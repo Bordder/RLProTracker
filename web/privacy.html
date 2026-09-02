@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Privacy &amp; terms &middot; RL Pro Tracker</title>
+<meta name="description" content="What RL Pro Tracker collects, where its data comes from, and the terms of use.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="theme-color" content="#0C0E13">
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+  :root{
+    --ink:#0C0E13; --surface:#14171F; --bone:#F2EFE6; --slate:#8B90A0; --dim:#565E6A;
+    --accent:#FF5A1F; --line:#262B36;
+    --display:'Big Shoulders Display','Arial Narrow',system-ui,sans-serif;
+    --body:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--ink)}
+  body{color:var(--bone);font-family:var(--body);font-size:15px;line-height:1.6;padding:0 20px 80px}
+  .wrap{max-width:720px;margin:0 auto}
+  header{padding:26px 0 14px;border-bottom:1px solid var(--line);margin-bottom:34px}
+  .brand{font-family:var(--display);font-weight:900;text-transform:uppercase;letter-spacing:.02em;font-size:19px;color:var(--bone);text-decoration:none}
+  .brand span{color:var(--accent)}
+  h1{font-family:var(--display);font-weight:900;text-transform:uppercase;font-size:clamp(2rem,6vw,3rem);line-height:.95;margin:0 0 6px}
+  h2{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:1.25rem;margin:38px 0 10px;color:var(--bone)}
+  p,li{color:var(--slate)}
+  b,strong{color:var(--bone);font-weight:600}
+  a{color:var(--accent)}
+  ul{padding-left:20px}
+  .lede{font-size:16px;color:var(--bone)}
+  .updated{color:var(--dim);font-size:13px;margin-top:2px}
+  footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header><a class="brand" href="/">RL Pro Tracker<span>.</span></a></header>
+
+  <h1>Privacy &amp; terms</h1>
+  <p class="updated">Last updated 2 September 2026</p>
+
+  <p class="lede">Short version: this site has no accounts, sets no cookies, and asks you for nothing. The only information it ever receives from you is what you deliberately type into the feedback form.</p>
+
+  <h2>What is collected about you</h2>
+  <p><b>Nothing, unless you send feedback.</b> There is no sign-up, no cookie banner because there are no cookies, no advertising, and no third-party trackers. The page is static files and public JSON.</p>
+  <p><b>Visit counts.</b> Cloudflare Web Analytics counts page views so I can tell whether anyone is using the site. It is cookieless, does not fingerprint you, and cannot follow you to other sites. It records the page URL, referrer, and coarse details like country and browser — never an identity. If you run an ad blocker it is probably blocked already, and the site works exactly the same.</p>
+  <p><b>Server logs.</b> Cloudflare keeps short-lived request logs, including IP addresses, as part of serving and protecting any website. I do not export, store, or analyse them.</p>
+
+  <h2>The feedback form</h2>
+  <p>Whatever you type — the message, and the username if you fill it in — is <b>posted publicly as an issue on the project's GitHub repository</b>, where anyone can read it. Please do not put anything private in it. The username field is optional and free-text; it is not verified and does not have to be your real name.</p>
+  <p>Your IP address is not stored with the message, and nothing links a submission back to you.</p>
+
+  <h2>Where the player data comes from</h2>
+  <p>Every number on this site is already public, and is collected without logging into anything:</p>
+  <ul>
+    <li><b>Rosters</b> from Liquipedia, under its open licence.</li>
+    <li><b>Playtime</b> from the public Steam Web API, which only returns what a player has chosen to make visible. A private profile returns nothing and the site leaves those cells blank rather than guessing.</li>
+    <li><b>Ranks and games played</b> from public Rocket League tracking pages.</li>
+  </ul>
+  <p>Only players competing in RLCS are listed, and only their competitive activity — nothing personal, nothing about private individuals. If you are one of the players here and want your row removed, send a message through the feedback form and I will remove it.</p>
+
+  <h2>Terms</h2>
+  <p>This site is provided as-is, for information and curiosity, with no guarantee that any figure is accurate, current, or complete. Sources go down, profiles get hidden, and collection sometimes fails; treat the numbers as an indication rather than a record. Do not rely on them for betting, and do not use them to harass anybody.</p>
+  <p>Not affiliated with, endorsed by, or connected to Psyonix, Epic Games, RLCS, or any team or player shown.</p>
+
+  <h2>Contact</h2>
+  <p>Use the feedback form on the <a href="/">front page</a>, or open an issue on <a href="https://github.com/Bordder/RLProTracker" rel="noopener">GitHub</a>.</p>
+
+  <footer>RL Pro Tracker &middot; <a href="/">Back to the tracker</a></footer>
+</div>
+</body>
+</html>

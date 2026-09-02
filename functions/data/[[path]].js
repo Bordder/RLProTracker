@@ -6,32 +6,62 @@
 // page asked for; and a third-party host is one more thing an ad blocker or a
 // filtered network can refuse, which empties the table with no useful error.
 //
-// Serving it from the site's own origin fixes both. We cache for 60s at the
-// edge, so the origin fetch happens at most once a minute per colo while
-// visitors always see something under a minute old.
+// Serving it from the site's own origin fixes both. We keep a copy in the edge
+// cache and, if GitHub rate-limits or hiccups, serve that copy rather than
+// failing: slightly old numbers beat "Failed to load data".
 
 const REPO_BASE = "https://raw.githubusercontent.com/Bordder/RLProTracker/main/data/derived";
 const ALLOWED = /^[a-z0-9-]+\.json$/i;
 const EDGE_TTL = 60;
 
 export async function onRequestGet(context) {
-  const file = (context.params.path || []).join("/");
+  const { request, params, waitUntil } = context;
+  const file = (params.path || []).join("/");
   // Only ever proxy the derived JSON: no path traversal, no fetching arbitrary
   // repo contents through the site's origin.
   if (!ALLOWED.test(file)) return new Response("not found", { status: 404 });
 
-  const upstream = await fetch(`${REPO_BASE}/${file}`, {
-    cf: { cacheTtl: EDGE_TTL, cacheEverything: true },
-    headers: { "User-Agent": "rlprotracker-site" },
-  });
-  if (!upstream.ok) return new Response("upstream error", { status: 502 });
+  const cache = caches.default;
+  const cacheKey = new Request(new URL(`/__data/${file}`, request.url).toString(), { method: "GET" });
 
-  return new Response(upstream.body, {
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      // Browsers revalidate quickly; the edge absorbs the repeat traffic.
-      "cache-control": `public, max-age=30, s-maxage=${EDGE_TTL}`,
-      "x-proxied-from": "raw.githubusercontent.com",
-    },
-  });
+  let upstream = null;
+  try {
+    upstream = await fetch(`${REPO_BASE}/${file}`, {
+      cf: { cacheTtl: EDGE_TTL, cacheEverything: true },
+      headers: { "User-Agent": "rlprotracker-site" },
+    });
+  } catch {
+    upstream = null; // network failure - fall through to the cached copy
+  }
+
+  if (upstream && upstream.ok) {
+    const body = await upstream.arrayBuffer();
+    const fresh = () => new Response(body, {
+      headers: {
+        "content-type": "application/json; charset=utf-8",
+        // Browsers revalidate quickly; the edge absorbs the repeat traffic.
+        "cache-control": `public, max-age=30, s-maxage=${EDGE_TTL}`,
+        "x-proxied-from": "raw.githubusercontent.com",
+      },
+    });
+    // Keep a long-lived copy purely as a fallback. It is only ever read when
+    // upstream fails, so its age does not affect normal serving.
+    const backup = new Response(body, {
+      headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=86400" },
+    });
+    waitUntil(cache.put(cacheKey, backup));
+    return fresh();
+  }
+
+  const stale = await cache.match(cacheKey);
+  if (stale) {
+    const headers = new Headers(stale.headers);
+    headers.set("cache-control", "public, max-age=15");
+    // Says plainly that this is a fallback, so a confusing number on the page
+    // can be traced without guessing.
+    headers.set("x-data-stale", "upstream-unavailable");
+    return new Response(stale.body, { headers });
+  }
+
+  return new Response("upstream error", { status: 502 });
 }
