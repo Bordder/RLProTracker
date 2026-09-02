@@ -10,13 +10,14 @@
   var fmtGames=function(gs,win){ var g=gs?gs[win]:null; if(!g||g.games==null)return'<span class="dash">&middot;</span>'; if(g.partial)return'<span class="pending">pending</span>'; if(g.games===0)return'<span class="mv">0</span>'; return'<span class="g14v">'+nf(g.games)+'</span>'; };
   var WIN_LABEL={d1:'24h',d7:'7d',d14:'14d'};
   // Short chip labels, with the full meaning kept on hover.
-  var STATUS_LABEL={'hidden-details':'hidden','no-steam-id':'no steam','no-steam-link':'no steam'};
+  var STATUS_LABEL={'hidden-details':'hidden','no-steam-id':'no steam','no-steam-link':'no steam','not-on-steam':'epic'};
   var STATUS_HINT={
     'public':'Steam profile is public, so playtime hours are available.',
     'hidden-details':'Profile is visible but the game details section is switched off, so Steam does not publish playtime.',
     'private':'Steam profile is closed to the public, so no playtime is available.',
     'no-steam-id':'No Steam account matched for this player.',
     'no-steam-link':'No Steam account matched for this player.',
+    'not-on-steam':'Owns Rocket League on Steam but launches it through Epic, so Steam records no playtime for them. Their ranked numbers are unaffected.',
     'unknown':'Steam did not return a profile state for this player.'
   };
   var statusChip=function(s){
@@ -32,24 +33,44 @@
   };
   var rankMark=function(r){ if(!r)return'<span class="rknum">&middot;</span>'; return'<span class="rknum'+(r<=3?' t'+r:'')+'">'+String(r).padStart(2,'0')+'</span>'; };
 
+  // Why an hours cell is empty. A bare dot reads as "no activity", which is
+  // wrong: these players are often the most active on the board. Steam simply
+  // is not reporting them, and the profile is re-checked every hour, so a
+  // number appears on its own if the setting ever changes.
+  var HOURS_NA={
+    'hidden-details':{t:'hidden',h:'This profile hides its game details, so Steam publishes no playtime. Checked every hour; if that setting changes the hours appear here automatically.'},
+    'private':{t:'private',h:'This Steam profile is closed, so no playtime is available. Checked every hour; if it opens the hours appear here automatically.'},
+    'not-on-steam':{t:'epic',h:'This player launches Rocket League through Epic, so Steam records no playtime for them. Their ranked games and MMR are unaffected.'},
+    'no-steam-id':{t:'no steam',h:'No Steam account has been matched to this player yet.'},
+    'no-steam-link':{t:'no steam',h:'No Steam account has been matched to this player yet.'}
+  };
+  var hoursNA=function(status){
+    var n=HOURS_NA[String(status||'').toLowerCase()];
+    if(!n)return'<span class="dash">&middot;</span>';
+    return'<span class="na" title="'+esc(n.h)+'">'+esc(n.t)+'</span>';
+  };
+
   // Total playtime, flagged when it is a stored reading from before the profile closed.
   var totalHoursCell=function(p){
-    if(p.totalHours==null)return'<span class="dash">&middot;</span>';
+    if(p.totalHours==null)return hoursNA(p.status);
     var v=nf(Math.round(p.totalHours));
     if(!p.totalFrozenAt)return v;
     var d=new Date(p.totalFrozenAt);
     var on=isNaN(d)?'an earlier check':d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
     return'<span class="frozen" title="Last reading before this profile was closed, taken '+esc(on)+'. It cannot update while the profile stays private.">'+v+'</span>';
   };
-  // The 2-week hours cell. A Steam reading renders plainly; a presence-derived
-  // estimate renders as ~N with a dotted underline and an explanation on hover,
-  // so the two can never be read as the same kind of number.
+  // The 2-week hours cell, in order of preference: Steam's own figure, then a
+  // sampled estimate, then a note saying why there is neither.
+  //
+  // The estimate matters most for players who own the game on Steam but launch
+  // it through Epic. Their Steam playtime is permanently zero, yet their live
+  // status is public, so sampling is the only way to put a number on them.
   var hours2wkCell=function(p){
     if(p.hours2wk!=null)return hf(p.hours2wk);
     if(p.estHours2wk!=null){
-      return '<span class="est" title="Estimated, not measured. This profile hides its playtime, so hours are reconstructed by checking every few minutes whether the player is in Rocket League. It undercounts - any session between checks is missed - and it only covers time since tracking began.">'+hf(p.estHours2wk)+'</span>';
+      return '<span class="est" title="Estimated, not measured. Built by checking every few minutes whether this player is in Rocket League and adding up the time, which is the only route when Steam reports no playtime for them. It undercounts, because a session between two checks is invisible and nothing before tracking began is counted.">'+hf(p.estHours2wk)+'</span>';
     }
-    return '<span class="dash">&middot;</span>';
+    return hoursNA(p.status);
   };
 
   // Region by team's RLCS competitive region (may differ from a player's nationality).

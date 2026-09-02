@@ -74,14 +74,20 @@ export function computeSteamPlayers(snaps, lastKnown = {}) {
           : { hours: null, partial: true };
     }
 
+    // A player who runs the game through Epic accrues no Steam playtime, so
+    // every figure Steam gives us for them is zero. Publishing those zeros
+    // would say "has not played" about someone who plays every day, so they
+    // are suppressed and the row shows why instead.
+    const onSteam = row.status !== "not-on-steam";
+
     // Fall back to the stored reading only when Steam gives us nothing now.
     const frozen = cur == null ? lastKnown[row.id] : null;
     players.push({
       id: row.id, name: row.name, team: row.team, status: row.status,
-      totalHours: cur != null ? +(cur / 60).toFixed(1) : (frozen ? +(frozen.foreverMin / 60).toFixed(1) : null),
-      totalHoursFrozenAt: frozen ? frozen.at : null,
-      steam2wkHours: row.twoWeeksMin != null ? +(row.twoWeeksMin / 60).toFixed(1) : null,
-      windows,
+      totalHours: !onSteam ? null : (cur != null ? +(cur / 60).toFixed(1) : (frozen ? +(frozen.foreverMin / 60).toFixed(1) : null)),
+      totalHoursFrozenAt: !onSteam ? null : (frozen ? frozen.at : null),
+      steam2wkHours: !onSteam || row.twoWeeksMin == null ? null : +(row.twoWeeksMin / 60).toFixed(1),
+      windows: onSteam ? windows : Object.fromEntries(Object.keys(WINDOWS).map((k) => [k, { hours: null, partial: true }])),
     });
   }
 

@@ -73,7 +73,13 @@ async function getVisibility(ids) {
 //   public         -> Steam gives real 2wk hours now
 //   hidden-details -> profile public but game list hidden; presence poll covers it
 //   private        -> profile locked; only games-based estimate possible
-function classify(visibility, owned) {
+function classify(visibility, owned, foreverMin) {
+  // Owning the game on Steam but never having launched it there means the
+  // player runs it through Epic, so Steam will never report their playtime.
+  // Reporting that as zero hours reads as "has not played", which is the
+  // opposite of the truth: reveal shows 0 here while sitting at Supersonic
+  // Legend with 19 ranked games in a day.
+  if (owned && foreverMin === 0) return "not-on-steam";
   if (owned) return "public";
   if (visibility === 3) return "hidden-details";
   if (visibility === 1 || visibility === 2) return "private";
@@ -101,7 +107,7 @@ async function main() {
 
       const pt = await getRlPlaytime(steamId64);
       if (pt.owned) { out.foreverMin = pt.foreverMin; out.twoWeeksMin = pt.twoWeeksMin; }
-      out.status = classify(out.visibility, pt.owned);
+      out.status = classify(out.visibility, pt.owned, pt.foreverMin);
     } catch (e) {
       out.status = `error: ${e.message}`;
     }

@@ -203,6 +203,11 @@
      Steam's own number. */
   .est{color:var(--dim);border-bottom:1px dotted var(--dim);cursor:help}
   .est::before{content:"~";opacity:.7;margin-right:1px}
+  /* Says why a figure is missing. Quieter than a real number, but readable,
+     because a bare dot here reads as "no activity" when the truth is "Steam is
+     not telling us". */
+  .na{color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.04em;
+    text-transform:uppercase;cursor:help;border-bottom:1px dotted rgba(86,94,106,.55)}
   .empty{padding:56px 20px;text-align:center;color:var(--slate);font-family:var(--display);text-transform:uppercase;letter-spacing:.16em}
 
   /* ---- Footer ---- */
@@ -361,6 +366,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=8eb8a248" defer></script>
+<script src="rlpt.js?v=4b416ced" defer></script>
 </body>
 </html>
