@@ -42,6 +42,10 @@ export function mergeLastKnown(store, snapshotTime, rows) {
   const next = { ...store };
   for (const row of rows) {
     if (row.foreverMin == null) continue;
+    // A profile that keeps its total private reports 0, not nothing. Storing
+    // that would put a permanent "0 hours, captured on <date>" against players
+    // who have played thousands, so only real readings are kept.
+    if (row.foreverMin === 0) continue;
     const prev = next[row.id];
     if (prev && prev.foreverMin >= row.foreverMin) continue;
     next[row.id] = { foreverMin: row.foreverMin, at: new Date(snapshotTime).toISOString() };
@@ -62,7 +66,10 @@ export function computeSteamPlayers(snaps, lastKnown = {}) {
   const players = [];
 
   for (const row of latest.rows) {
-    const cur = row.foreverMin;
+    // A profile with its total kept private reports 0 rather than withholding
+    // the game, so that zero is treated as "no reading" throughout: it must not
+    // become a published figure, a window diff, or a stored capture.
+    const cur = row.status === "playtime-hidden" ? null : row.foreverMin;
     const windows = {};
     for (const [key, span] of Object.entries(WINDOWS)) {
       const past = snapAtOrBefore(sorted, now - span);
@@ -74,20 +81,18 @@ export function computeSteamPlayers(snaps, lastKnown = {}) {
           : { hours: null, partial: true };
     }
 
-    // These accounts keep their total playtime private, and Steam expresses
-    // that as a zero rather than by withholding the game. Publishing it would
-    // say "has not played" about someone who plays daily, so the zeros are
-    // suppressed and the row says the hours are hidden instead.
-    const onSteam = row.status !== "playtime-hidden";
-
     // Fall back to the stored reading only when Steam gives us nothing now.
+    // That includes a profile which has since hidden its total: if we ever
+    // caught a real figure it stays on the board, dated, rather than vanishing.
     const frozen = cur == null ? lastKnown[row.id] : null;
     players.push({
       id: row.id, name: row.name, team: row.team, status: row.status,
-      totalHours: !onSteam ? null : (cur != null ? +(cur / 60).toFixed(1) : (frozen ? +(frozen.foreverMin / 60).toFixed(1) : null)),
-      totalHoursFrozenAt: !onSteam ? null : (frozen ? frozen.at : null),
-      steam2wkHours: !onSteam || row.twoWeeksMin == null ? null : +(row.twoWeeksMin / 60).toFixed(1),
-      windows: onSteam ? windows : Object.fromEntries(Object.keys(WINDOWS).map((k) => [k, { hours: null, partial: true }])),
+      totalHours: cur != null ? +(cur / 60).toFixed(1) : (frozen ? +(frozen.foreverMin / 60).toFixed(1) : null),
+      totalHoursFrozenAt: frozen ? frozen.at : null,
+      // The fortnight figure is never carried over: it describes a rolling two
+      // weeks, so an old value would read as recent activity.
+      steam2wkHours: row.status === "playtime-hidden" || row.twoWeeksMin == null ? null : +(row.twoWeeksMin / 60).toFixed(1),
+      windows,
     });
   }
 
@@ -130,6 +135,8 @@ async function main() {
   // readings taken before it existed and heals if the file is ever lost.
   // Recording happens before computing, so a reading taken this run counts now.
   let lastKnown = await loadLastKnown();
+  // Drop any zeros written before hidden totals were understood.
+  for (const [id, v] of Object.entries(lastKnown)) if (!v || v.foreverMin === 0) delete lastKnown[id];
   for (const snap of sorted) lastKnown = mergeLastKnown(lastKnown, snap.t, snap.rows);
   await writeFile(LAST_KNOWN_FILE, JSON.stringify(
     { note: "Durable last-known Steam playtime per player. Survives snapshot pruning so a profile that opens once keeps its reading. Never delete entries.", updatedAt: new Date(sorted[sorted.length - 1].t).toISOString(), players: lastKnown },

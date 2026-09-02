@@ -126,3 +126,36 @@ test("a player with no stored reading still shows blank when private", () => {
   assert.equal(byId.get("a").totalHours, null);
   assert.equal(byId.get("a").totalHoursFrozenAt, null);
 });
+
+// A profile that keeps its total playtime private reports 0 rather than
+// withholding the game, so the zero has to be treated as "no reading" all the
+// way through: never published, never stored, and never allowed to overwrite a
+// real capture from when the profile was open.
+test("a hidden total is not published as zero hours", () => {
+  const snaps = [{ t: 2000, rows: [{ id: "p", name: "P", team: "T", status: "playtime-hidden", foreverMin: 0, twoWeeksMin: 0 }] }];
+  const { players } = computeSteamPlayers(snaps, {});
+  assert.equal(players[0].totalHours, null);
+  assert.equal(players[0].steam2wkHours, null);
+});
+
+test("a total captured while open survives the profile hiding it", () => {
+  const snaps = [{ t: 5000, rows: [{ id: "p", name: "P", team: "T", status: "playtime-hidden", foreverMin: 0, twoWeeksMin: 0 }] }];
+  const lastKnown = { p: { foreverMin: 6000, at: "2026-08-30T10:00:00.000Z" } };
+  const { players } = computeSteamPlayers(snaps, lastKnown);
+  assert.equal(players[0].totalHours, 100);
+  assert.equal(players[0].totalHoursFrozenAt, "2026-08-30T10:00:00.000Z");
+  // The fortnight figure is deliberately NOT carried over: it is a rolling
+  // window, so a stale value would read as recent activity.
+  assert.equal(players[0].steam2wkHours, null);
+});
+
+test("a hidden zero never becomes a stored capture", () => {
+  const store = mergeLastKnown({}, 1000, [{ id: "p", foreverMin: 0 }]);
+  assert.deepEqual(store, {});
+});
+
+test("a hidden zero cannot overwrite a real capture", () => {
+  const store = mergeLastKnown({ p: { foreverMin: 6000, at: "2026-08-30T10:00:00.000Z" } }, 9000, [{ id: "p", foreverMin: 0 }]);
+  assert.equal(store.p.foreverMin, 6000);
+  assert.equal(store.p.at, "2026-08-30T10:00:00.000Z");
+});

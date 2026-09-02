@@ -57,7 +57,10 @@
     if(!p.totalFrozenAt)return v;
     var d=new Date(p.totalFrozenAt);
     var on=isNaN(d)?'an earlier check':d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
-    return'<span class="frozen" title="Last reading before this profile was closed, taken '+esc(on)+'. It cannot update while the profile stays private.">'+v+'</span>';
+    // Covers both routes to a frozen figure: a profile that went private, and
+    // one that switched its total playtime to private. The reader only needs to
+    // know the number is real, when it was taken, and why it has stopped moving.
+    return'<span class="frozen" title="Captured on '+esc(on)+', while this profile was still publishing its hours. It is a real figure from that date and cannot move again until the profile publishes them once more.">'+v+'</span>';
   };
   // The 2-week hours cell, in order of preference: Steam's own figure, then a
   // sampled estimate, then a note saying why there is neither.
