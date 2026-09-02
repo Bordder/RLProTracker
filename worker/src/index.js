@@ -60,7 +60,15 @@ async function check(env, workflow) {
       "User-Agent": "rlprotracker-cron",
     },
   });
-  return { workflow, status: res.status };
+  // GitHub returns the token's own expiry on every authenticated response, so
+  // the system can warn about it rather than relying on someone remembering a
+  // date a year out. When it lapses, every collector stops at once and nothing
+  // fails loudly enough to notice.
+  return {
+    workflow,
+    status: res.status,
+    tokenExpires: res.headers.get("github-authentication-token-expiration") || null,
+  };
 }
 
 export default {
@@ -105,8 +113,14 @@ export default {
       check(env, "presence.yml"),
       check(env, "tracker.yml"),
     ]);
+    const expiry = results.map((r) => r.tokenExpires).find(Boolean) || null;
+    const daysLeft = expiry
+      ? Math.round((Date.parse(expiry.replace(" UTC", "Z").replace(" ", "T")) - Date.now()) / 86400e3)
+      : null;
     return Response.json({
       ok: results.every((r) => r.status === 200),
+      tokenExpires: expiry,
+      tokenDaysLeft: Number.isFinite(daysLeft) ? daysLeft : null,
       tokenPresent: Boolean(env.GH_TOKEN),
       owner: env.GH_OWNER,
       repo: env.GH_REPO,

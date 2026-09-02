@@ -84,3 +84,31 @@ jobs:
           else
             echo "DISCORD_WEBHOOK not set; no notification sent"
           fi
+
+      - name: Warn before the dispatch token expires
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+        run: |
+          set -uo pipefail
+          # The PAT the Worker dispatches with has a fixed expiry. When it
+          # lapses every collector stops at once, and nothing fails loudly:
+          # dispatches just start returning 404 and the board quietly freezes.
+          # GitHub reports the expiry on every authenticated response, so the
+          # Worker surfaces it and this warns while there is still time.
+          WARN_DAYS=30
+
+          health=$(curl -sS --max-time 20 https://cron.198x.online/ || echo '{}')
+          days=$(printf '%s' "$health" | sed -n 's/.*"tokenDaysLeft":\([0-9-]*\).*/\1/p')
+          expires=$(printf '%s' "$health" | sed -n 's/.*"tokenExpires":"\([^"]*\)".*/\1/p')
+
+          if [ -z "$days" ]; then
+            echo "could not read token expiry from the Worker"
+            exit 0
+          fi
+          echo "dispatch token expires ${expires} (${days} days left)"
+          [ "$days" -gt "$WARN_DAYS" ] && exit 0
+
+          if [ -n "${DISCORD_WEBHOOK:-}" ]; then
+            text="**RL Pro Tracker: the dispatch token expires in ${days} days** (${expires}). When it lapses every collector stops. Issue a new fine-grained PAT with Actions and Issues write, then update RUN_KEY's sibling GH_TOKEN on both the Worker and the Pages project."
+            curl -sS --max-time 20 -H 'content-type: application/json'               -d "$(printf '{"content":%s}' "$(printf '%s' "$text" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')")"               "$DISCORD_WEBHOOK" >/dev/null && echo "warned on Discord"
+          fi
