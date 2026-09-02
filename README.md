@@ -9,6 +9,7 @@
   <a href="https://github.com/Bordder/RLProTracker/actions/workflows/steam.yml"><img src="https://github.com/Bordder/RLProTracker/actions/workflows/steam.yml/badge.svg" alt="Steam update"></a>
   <a href="https://github.com/Bordder/RLProTracker/actions/workflows/roster.yml"><img src="https://github.com/Bordder/RLProTracker/actions/workflows/roster.yml/badge.svg" alt="Roster refresh"></a>
   <img src="https://img.shields.io/badge/node-%E2%89%A520%20%7C%20CI%2024-339933?logo=node.js&logoColor=white" alt="Node 20 or newer, CI runs Node 24">
+  <a href="https://198x.online"><img src="https://img.shields.io/website?url=https%3A%2F%2F198x.online&up_message=live&up_color=FF5A1F&down_message=down&label=198x.online" alt="198x.online"></a>
 </p>
 
 ## About
@@ -16,8 +17,6 @@
 RL Pro Tracker collects publicly available Rocket League statistics for professional players and presents them by player and by team. It reports ranked playtime and ladder performance over rolling 24 hour, 7 day, and 2 week windows.
 
 All data comes from public sources (Steam Web API, Liquipedia, and tracker.gg). The project stores only game statistics for the configured list of professional players. It does not collect data about site visitors.
-
-Live at **[198x.online](https://198x.online)**.
 
 > [!WARNING]
 > **In development, and not finished.** The site is live and collecting real data, but it is
