@@ -172,8 +172,14 @@
       }
       var n = 0;
       for (var i = 0; i < runs.length; i++) if (runs[i] >= from && runs[i] < to) n++;
-      // The current hour is only partly elapsed, so scale what we expect of it.
-      var elapsed = Math.max(1, Math.min(60, nowMin - from));
+      // Expect collections only for the part of this hour we were actually
+      // recording: the current hour is not finished, and the first hour began
+      // before the records did. Charging a full hour against either one
+      // invents misses that never happened - on a cold start that read as
+      // "3.3% landed" directly under a verdict of everything running.
+      var covFrom = Math.max(from, firstKnown);
+      var covTo = Math.min(to, nowMin);
+      var elapsed = Math.max(1, covTo - covFrom);
       var expect = Math.max(1, Math.round(RUNS_PER_HOUR * (elapsed / 60)));
       var ratio = Math.min(1, n / expect);
       known += expect; got += Math.min(n, expect);
