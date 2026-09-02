@@ -405,6 +405,21 @@ async function main() {
   console.log(`pool: ${pool} concurrent`);
   await Promise.all(Array.from({ length: pool }, () => worker()));
 
+  // Also written to data/proxy-use.json, because the Actions log needs auth to
+  // read and the whole point is to be able to check the split without waiting
+  // for a provider's billing page. Indices only, never proxy hostnames: this
+  // file is committed to a public repo. It is NOT copied into web/, so it is
+  // not served from the site.
+  await writeFile(
+    join(ROOT, "data", "proxy-use.json"),
+    JSON.stringify({
+      at: takenAt,
+      proxyCount: contexts.length,
+      players: players.length,
+      use: proxyUse.map((u, i) => ({ i, ...(u || { attempts: 0, retries: 0, fails: 0 }) })),
+    }, null, 2) + "\n"
+  );
+
   // Per-proxy summary. Even shares are the expectation; a lopsided column here
   // is the thing that shows up as a lopsided bill.
   if (contexts.length > 1) {

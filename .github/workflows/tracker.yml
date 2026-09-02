@@ -80,7 +80,7 @@ jobs:
         run: |
           git config user.name "rl-tracker-bot"
           git config user.email "actions@github.com"
-          git add data/tracker-history.json data/tracker-state.json data/derived/tracker.json data/derived/team-tracker.json data/derived/uptime.json
+          git add data/tracker-history.json data/tracker-state.json data/derived/tracker.json data/derived/team-tracker.json data/derived/uptime.json data/proxy-use.json
           git diff --staged --quiet && echo "no changes" && exit 0
           git commit -m "[skip ci] data: tracker update"
           # Clear any half-finished rebase before retrying: without this, one
