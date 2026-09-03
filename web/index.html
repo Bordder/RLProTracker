@@ -227,19 +227,23 @@
   @keyframes lpulse{0%{box-shadow:0 0 0 0 rgba(94,200,255,.5)}70%{box-shadow:0 0 0 9px rgba(94,200,255,0)}100%{box-shadow:0 0 0 0 rgba(94,200,255,0)}}
   /* The one control: a chip beside the regions, so the board can be narrowed to
      whoever is on the ladder without a menu to open. */
-  .pseg{border-color:rgba(94,200,255,.3)}
-  .pseg button{
-    display:inline-flex;align-items:center;gap:7px;
+  /* Same pill as the ordering buttons, divided from them by a rule: it belongs
+     to the same control, but it filters rather than orders. */
+  #playingSlot{display:inline-flex}
+  .wseg button.pbtn{
+    display:inline-flex;align-items:center;gap:7px;margin-left:4px;padding-left:12px;
+    border-left:1px solid var(--line2);border-radius:0 6px 6px 0;
     font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:11.5px;font-weight:700;color:var(--playing);
   }
-  .pseg button::before{
+  .wseg button.pbtn::before{
     content:"";width:6px;height:6px;border-radius:50%;background:var(--playing);flex:none;
     box-shadow:0 0 0 0 rgba(94,200,255,.6);animation:lpulse 2.6s infinite;
   }
-  .pseg button .rn{font-family:var(--mono);font-size:10.5px;font-weight:400;color:var(--slate);letter-spacing:0}
-  .pseg button[aria-pressed="true"]{background:rgba(94,200,255,.16);box-shadow:inset 0 0 0 1px rgba(94,200,255,.55)}
-  .pseg button[aria-pressed="true"] .rn{color:var(--playing)}
-  @media (prefers-reduced-motion:reduce){ .pmark::before,.pseg button::before{animation:none} }
+  .wseg button.pbtn .rn{font-family:var(--mono);font-size:10.5px;font-weight:400;color:var(--slate);letter-spacing:0}
+  .wseg button.pbtn:hover{color:var(--playing)}
+  .wseg button.pbtn[aria-pressed="true"]{background:rgba(94,200,255,.16);color:var(--playing);box-shadow:inset 0 0 0 1px rgba(94,200,255,.5)}
+  .wseg button.pbtn[aria-pressed="true"] .rn{color:var(--playing)}
+  @media (prefers-reduced-motion:reduce){ .pmark::before,.wseg button.pbtn::before{animation:none} }
 
   /* ---- Table / feed ---- */
   .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
@@ -611,8 +615,8 @@
       <button data-k="g14" data-w="d7" aria-pressed="false">Games 7d</button>
       <button data-k="h2" aria-pressed="false">Hours 2wk</button>
       <button data-k="sg" aria-pressed="false">Season</button>
+      <span id="playingSlot"></span>
     </div>
-    <div class="wseg pseg" id="playingSeg" role="group" aria-label="Currently playing" hidden></div>
     <div class="wseg rseg" id="regionSeg" role="group" aria-label="Region"></div>
   </div>
 

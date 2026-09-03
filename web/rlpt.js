@@ -672,7 +672,7 @@
     // it sets which column the table is ordered by, and for the two games
     // options it also sets which window that column shows. Ordering by a
     // column that is not on screen would be the confusing version.
-    var metricBtns=document.querySelectorAll('#metricSeg button');
+    var metricBtns=document.querySelectorAll('#metricSeg button[data-k]');
     var markMetric=function(k){
       Array.prototype.forEach.call(metricBtns,function(b){
         var mine=(b.dataset.k==='mmr')
@@ -756,17 +756,16 @@
     // Playing belongs with the buttons that decide what the board shows, not
     // with the regions, which answer a different question. It only exists while
     // somebody is actually on the ladder.
-    var playingSeg=document.getElementById('playingSeg');
+    var playingSlot=document.getElementById('playingSlot');
     var buildPlaying=function(){
-      if(!playingSeg)return;
+      if(!playingSlot)return;
       var live=players.filter(isLive).length;
       if(!live){
-        playingSeg.hidden=true; playingSeg.innerHTML='';
+        playingSlot.innerHTML='';
         if(liveOnly){ liveOnly=false; renderPodium(); paintP(); }
         return;
       }
-      playingSeg.hidden=false;
-      playingSeg.innerHTML='<button id="playingBtn" aria-pressed="'+(liveOnly?'true':'false')+'">Playing<span class="rn">'+live+'</span></button>';
+      playingSlot.innerHTML='<button class="pbtn" id="playingBtn" aria-pressed="'+(liveOnly?'true':'false')+'">Playing<span class="rn">'+live+'</span></button>';
       document.getElementById('playingBtn').addEventListener('click',function(){
         liveOnly=!liveOnly;
         this.setAttribute('aria-pressed',liveOnly?'true':'false');
