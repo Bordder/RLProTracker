@@ -380,7 +380,7 @@
           // the previous copy for any feed that did not come back rather than
           // discarding a good board over one bad response.
           for(var i=0;i<next.length;i++) if(!next[i]) next[i]=latest[i];
-          if(hydrate(next)){ latest=next; if(full)lastFull=Date.now(); paintP(); paintT(); renderLive(); restoreOpenTeam(); }
+          if(hydrate(next)){ latest=next; if(full)lastFull=Date.now(); paintP(); paintT(); renderLive(); renderPodium(); restoreOpenTeam(); }
         })
         .catch(function(){})
         .then(function(){ refreshing=false; renderStatus(); });
@@ -458,6 +458,7 @@
       // two controls can never disagree about what the table is ordered by.
       paint.setSort=function(k,dir){ sk=k; sd=dir||'desc'; paint(); };
       paint.sortKey=function(){ return sk; };
+      paint.sortDir=function(){ return sd; };
       paint();
       return paint;
     }
@@ -566,6 +567,61 @@
     var paintP=buildTable(pv,pCols,players,pAcc,playerRow,{k:'twos',dir:'desc'},pMatch);
     var paintT=buildTable(tv,tCols,teams,tAcc,teamRow,{k:'twos',dir:'desc'},tMatch);
 
+    // ---- podium ----
+    //
+    // The top three of whatever the table is currently ranked by, big enough to
+    // read from across the room. It follows the rank-by buttons and the region
+    // filter, so it is always the head of the list below it rather than a
+    // second, competing ranking.
+    var podEl=document.getElementById('podium');
+    var METRIC_LABEL={twos:'2v2 MMR',ones:'1v1 MMR',threes:'3v3 MMR',sg:'games this season',g14:'games',h2:'hours, 2wk',ht:'hours total',name:'',region:'',status:''};
+    var podFigure=function(p,k){
+      if(k==='g14'){ var g=p.games&&p.games[win]; return g&&g.games!=null&&!g.partial?nf(g.games):null; }
+      if(k==='h2'){ var h=p.hours2wk!=null?p.hours2wk:p.estHours2wk; return h!=null?hf(h):null; }
+      if(k==='ht') return p.totalHours!=null?nf(Math.round(p.totalHours)):null;
+      if(k==='sg') return p.seasonGames!=null?nf(p.seasonGames):null;
+      var v=p.mmr?p.mmr[k]:null; return v!=null?nf(v):null;
+    };
+    var podStat=function(label,value){
+      return '<div><b'+(value==null?' class="na"':'')+'>'+(value==null?'hidden':value)+'</b><span>'+label+'</span></div>';
+    };
+    var renderPodium=function(){
+      if(!podEl)return;
+      var k=paintP.sortKey(), acc=pAcc[k];
+      // Ranking by name or region is a lookup, not a leaderboard, so no podium.
+      if(!acc||k==='name'||k==='region'||k==='status'||searchQ){ podEl.innerHTML=''; return; }
+      var arr=players.filter(function(p){
+        return !regionQ||p.region===regionQ;
+      });
+      var dir=paintP.sortDir();
+      arr=arr.slice().sort(function(a,b){
+        var av=acc(a),bv=acc(b),an=(av==null),bn=(bv==null);
+        if(an&&bn)return 0; if(an)return 1; if(bn)return -1;
+        return dir==='asc'?(av-bv):(bv-av);
+      }).slice(0,3);
+      if(arr.length<3){ podEl.innerHTML=''; return; }
+      podEl.innerHTML='<div class="pod">'+arr.map(function(p,i){
+        var fig=podFigure(p,k);
+        // The two figures a reader wants next are the ones the podium is not
+        // already ranked by, so pick around the current metric.
+        var stats=[];
+        if(k!=='twos') stats.push(podStat('2v2 MMR',p.mmr&&p.mmr.twos!=null?nf(p.mmr.twos):null));
+        if(k!=='g14'){ var g=p.games&&p.games[win]; stats.push(podStat(WIN_LABEL[win]||win,g&&g.games!=null&&!g.partial?nf(g.games):null)); }
+        if(k!=='sg'&&stats.length<2) stats.push(podStat('season',p.seasonGames!=null?nf(p.seasonGames):null));
+        if(k!=='h2'&&stats.length<2){ var h=p.hours2wk!=null?p.hours2wk:p.estHours2wk; stats.push(podStat('2wk h',h!=null?hf(h):null)); }
+        return '<div class="pc p'+(i+1)+'">'+
+          '<div class="ptop">'+
+            '<span class="pnum">'+String(i+1).padStart(2,'0')+'</span>'+
+            teamMark(p.team)+
+            '<span class="pwho"><b>'+esc(p.name)+'</b><i>'+esc(p.team||'Free agent')+'</i></span>'+
+            (isLive(p)?'<span class="plive">In ranked</span>':'')+
+          '</div>'+
+          '<div class="pfig"><b>'+(fig==null?'&middot;':fig)+'</b><span>'+(METRIC_LABEL[k]||'')+'</span></div>'+
+          '<div class="prow">'+stats.slice(0,2).join('')+'</div>'+
+        '</div>';
+      }).join('')+'</div>';
+    };
+
     // ---- team drilldown: click a team to compare its roster; only one open at a time ----
     var openTeam=null; // team name of the expanded row, so refreshes can restore it
     var toggleTeam=function(tr){
@@ -610,6 +666,7 @@
       }
       Array.prototype.forEach.call(metricBtns,function(b){b.setAttribute('aria-pressed',b===btn?'true':'false');});
       paintP.setSort(k,'desc');
+      renderPodium();
     };
     Array.prototype.forEach.call(metricBtns,function(b){
       b.addEventListener('click',function(){setMetric(b);});
@@ -621,6 +678,7 @@
       var th=e.target.closest?e.target.closest('th.sortable'):null;
       if(!th)return;
       var k=paintP.sortKey();
+      renderPodium();
       Array.prototype.forEach.call(metricBtns,function(b){
         var mine=b.dataset.k===k&&(!b.dataset.w||b.dataset.w===win);
         b.setAttribute('aria-pressed',mine?'true':'false');
@@ -648,7 +706,7 @@
           Array.prototype.forEach.call(regionSeg.querySelectorAll('button'),function(x){
             x.setAttribute('aria-pressed',(x.dataset.r||'')===regionQ?'true':'false');
           });
-          paintP(); paintT();
+          paintP(); paintT(); renderPodium();
         });
       });
     };
@@ -658,13 +716,14 @@
 
     // ---- search ----
     var input=document.getElementById('search'), wrap=document.getElementById('searchWrap');
-    input.addEventListener('input',function(){ searchQ=input.value.trim().toLowerCase(); wrap.classList.toggle('has',!!searchQ); paintP(); paintT(); });
-    document.getElementById('searchClear').addEventListener('click',function(){ input.value=''; searchQ=''; wrap.classList.remove('has'); paintP(); paintT(); input.focus(); });
+    input.addEventListener('input',function(){ searchQ=input.value.trim().toLowerCase(); wrap.classList.toggle('has',!!searchQ); paintP(); paintT(); renderPodium(); });
+    document.getElementById('searchClear').addEventListener('click',function(){ input.value=''; searchQ=''; wrap.classList.remove('has'); paintP(); paintT(); renderPodium(); input.focus(); });
 
     // ---- view toggle ----
     var tabP=document.getElementById('tabPlayers'), tabT=document.getElementById('tabTeams');
     var wrowEl=document.getElementById('wrow');
-    var show=function(isP){ tabP.setAttribute('aria-selected',isP?'true':'false'); tabT.setAttribute('aria-selected',isP?'false':'true'); pv.hidden=!isP; tv.hidden=isP; if(wrowEl)wrowEl.style.display=isP?'':'none'; };
+    var podWrap=document.getElementById('podium');
+    var show=function(isP){ tabP.setAttribute('aria-selected',isP?'true':'false'); tabT.setAttribute('aria-selected',isP?'false':'true'); pv.hidden=!isP; tv.hidden=isP; if(wrowEl)wrowEl.style.display=isP?'':'none'; if(podWrap)podWrap.style.display=isP?'':'none'; };
     tabP.addEventListener('click',function(){show(true);});
     tabT.addEventListener('click',function(){show(false);});
 
