@@ -184,25 +184,32 @@
         card('Total Ranked Games', nf(totalGames)+' <small>games</small>', 'this season, across all tracked pros', false)+
         card('Most Active This Season', top?(nf(top.seasonGames)+' <small>games</small>'):'&middot;', top?('<b>'+esc(top.name)+'</b> &middot; '+esc(top.team||'')):'no data yet', true)+
         card('Avg 2v2 MMR', avg2v2!=null?nf(avg2v2):'&middot;', avg2v2!=null?('average of '+ranked.length+' pros'):'no data yet', false)+
-        liveCard()+
         card('Teams', rankedTeams+' <small>/ '+teams.length+'</small>', 'with ranked players', false);
     }
 
-    // The live count is a card like the others, but it filters the board when
-    // clicked. Names and session lengths live on the rows themselves, so this
-    // says how many and gets out of the way.
-    function liveCard(){
-      var live=players.filter(isLive);
-      if(!live.length)return '';
-      var busiest=live.slice().sort(function(a,b){
+    // Who is on the ladder lives in one pill in the control row: a count you can
+    // read at a glance, and the names behind a click rather than spread across
+    // a band that is empty half the day.
+    function renderLiveMenu(){
+      var wrap=document.getElementById('liveWrap');
+      if(!wrap)return;
+      var live=players.filter(isLive).sort(function(a,b){
         return ((b.session&&b.session.games)||0)-((a.session&&a.session.games)||0);
-      })[0];
-      var g=busiest.session?busiest.session.games:null;
-      return '<button class="card live" id="liveCard" aria-pressed="'+(liveOnly?'true':'false')+'">'+
-        '<div class="k">In Ranked Now</div>'+
-        '<div class="v"><span class="lp" aria-hidden="true"></span>'+live.length+' <small>/ '+players.length+'</small></div>'+
-        '<div class="s">'+(g!=null?('<b>'+esc(busiest.name)+'</b> &middot; '+g+' games in')+' '+durWords(sessionMins(busiest)||1):'tap to show only these')+'</div>'+
-      '</button>';
+      });
+      wrap.hidden=!live.length;
+      if(!live.length){ closeLiveMenu(); return; }
+      document.getElementById('liveCount').textContent=live.length;
+      document.getElementById('liveMenu').innerHTML=
+        live.map(function(p){
+          var m=sessionMins(p), g=p.session?p.session.games:null;
+          return '<button class="lrow" data-live="'+esc(p.name)+'">'+
+            '<span><b>'+esc(p.name)+'</b><i>'+esc(p.team||'')+'</i></span>'+
+            '<span class="sess"><b>'+(g!=null?g+(g===1?' game':' games'):'&middot;')+'</b><i>'+(m!=null?durWords(m):'')+'</i></span>'+
+          '</button>';
+        }).join('')+
+        '<div class="lfoot"><button class="lonly" id="liveOnlyBtn" aria-pressed="'+(liveOnly?'true':'false')+'">'+
+          (liveOnly?'Showing only these':'Show only these')+
+        '</button></div>';
     }
 
     // ---- merge into unified models ----
@@ -273,6 +280,7 @@
       // Cards read live state, and live state is judged against the collection
       // time, so this has to come after that timestamp is in place.
       renderCards();
+      renderLiveMenu();
       return true;
     }
 
@@ -314,6 +322,11 @@
     // ladder right now, and for how long. It replaces that chip rather than
     // crowding in beside it, because while someone is playing that is the more
     // useful of the two facts.
+    var closeLiveMenu=function(){
+      var m=document.getElementById('liveMenu'), b=document.getElementById('livePill');
+      if(m)m.hidden=true;
+      if(b)b.setAttribute('aria-expanded','false');
+    };
     var liveChip=function(p){
       var m=sessionMins(p), g=p.session?p.session.games:null;
       var hint='In a ranked session'+(m!=null?' for '+durWords(m):'')+(g!=null?', '+g+(g===1?' game':' games')+' so far':'')+'.';
@@ -420,7 +433,7 @@
     renderStatus();
     // A live session goes stale on its own, so re-check on the same beat as the
     // freshness line rather than waiting for the next fetch.
-    setInterval(function(){ renderCards(); renderPodium(); paintP(); },60000);
+    setInterval(function(){ renderCards(); renderLiveMenu(); renderPodium(); paintP(); },60000);
     // A tab left open must not keep claiming the data is fresh.
     setInterval(renderStatus,60000);
 
@@ -770,17 +783,43 @@
     showMmrPlaylist();
     setMetric(metricBtns[0]);
 
-    // ---- live filter ----
-    //
-    // The card is rebuilt on every refresh, so the click is caught on the row
-    // of cards rather than bound to a button that will be replaced.
-    document.getElementById('stats').addEventListener('click',function(e){
-      var b=e.target.closest?e.target.closest('#liveCard'):null;
-      if(!b)return;
-      liveOnly=!liveOnly;
-      b.setAttribute('aria-pressed',liveOnly?'true':'false');
-      renderPodium(); paintP();
+    // ---- live menu ----
+    var livePill=document.getElementById('livePill'), liveMenu=document.getElementById('liveMenu');
+    var openLiveMenu=function(open){
+      if(!livePill||!liveMenu)return;
+      liveMenu.hidden=!open;
+      livePill.setAttribute('aria-expanded',open?'true':'false');
+    };
+    var isLiveMenuOpen=function(){ return liveMenu&&!liveMenu.hidden; };
+    livePill&&livePill.addEventListener('click',function(){ openLiveMenu(!isLiveMenuOpen()); });
+
+    // The list is rebuilt on every refresh, so clicks are caught on the menu.
+    liveMenu&&liveMenu.addEventListener('click',function(e){
+      var only=e.target.closest?e.target.closest('#liveOnlyBtn'):null;
+      if(only){
+        liveOnly=!liveOnly;
+        renderLiveMenu(); renderPodium(); paintP();
+        openLiveMenu(true);
+        return;
+      }
+      var row=e.target.closest?e.target.closest('[data-live]'):null;
+      if(!row)return;
+      // Jump to that player rather than filtering: one name is what was asked
+      // for, and the search box already does exactly that.
+      var input=document.getElementById('search');
+      input.value=row.getAttribute('data-live');
+      searchQ=input.value.trim().toLowerCase();
+      document.getElementById('searchWrap').classList.add('has');
+      renderPodium(); paintP(); paintT();
+      openLiveMenu(false);
     });
+
+    document.addEventListener('click',function(e){
+      if(!isLiveMenuOpen())return;
+      if(e.target.closest&&(e.target.closest('#liveMenu')||e.target.closest('#livePill')))return;
+      openLiveMenu(false);
+    });
+    document.addEventListener('keydown',function(e){ if(e.key==='Escape')openLiveMenu(false); });
 
     // ---- search ----
     var input=document.getElementById('search'), wrap=document.getElementById('searchWrap');
