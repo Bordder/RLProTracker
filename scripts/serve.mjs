@@ -55,10 +55,11 @@ createServer(async (req, res) => {
     await syncData();
     path = path.replace("/data/", "/data/derived/");
   }
-  // Production serves /status from a Pages Function so an open tab can check
-  // for newer data cheaply. Mirror it, or the auto-refresh silently does
-  // nothing locally and only breaks once deployed.
-  if (path === "/status") {
+  // Production serves this from a Pages Function at /api/status so an open tab
+  // can check for newer data cheaply. Mirror it at the same path: at "/status"
+  // it both missed the poll the page actually makes and swallowed the status
+  // PAGE, which is a real file sitting at that URL.
+  if (path === "/api/status") {
     await syncData();
     let computedAt = null;
     try {
