@@ -639,9 +639,15 @@
     .mini tbody{display:table-row-group}
     .mini tr{display:table-row}
     .mini th,.mini td{display:table-cell}
-    /* Six columns do not fit a phone. Total hours is the least useful of them
-       inside a roster comparison, and it is on the card above anyway. */
-    .mini th:nth-child(6),.mini td:nth-child(6){display:none}
+    /* Eight columns do not fit a phone, and the rule that used to trim them was
+       written when there were six, so it had started hiding the wrong one and
+       letting the last two run off the edge. Player, 2v2, the window and the
+       fortnight's hours stay; 1v1, 3v3, season and total hours are on the card
+       above or a wider screen away. */
+    .mini th:nth-child(2),.mini td:nth-child(2),
+    .mini th:nth-child(4),.mini td:nth-child(4),
+    .mini th:nth-child(5),.mini td:nth-child(5),
+    .mini th:nth-child(8),.mini td:nth-child(8){display:none}
   }
 
   @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
