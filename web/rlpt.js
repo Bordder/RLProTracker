@@ -329,8 +329,8 @@
     };
     var liveChip=function(p){
       var m=sessionMins(p), g=p.session?p.session.games:null;
-      var hint='In a ranked session'+(m!=null?' for '+durWords(m):'')+(g!=null?', '+g+(g===1?' game':' games')+' so far':'')+'.';
-      return '<span class="sx sx-now" title="'+esc(hint)+'">In ranked'+(m!=null?'<span class="t">'+durWords(m)+'</span>':'')+'</span>';
+      var hint='Playing ranked right now'+(m!=null?', '+durWords(m)+' into the session':'')+(g!=null?', '+g+(g===1?' game':' games')+' so far':'')+'.';
+      return '<span class="sx sx-now" title="'+esc(hint)+'">Playing'+(m!=null?'<span class="t">'+durWords(m)+'</span>':'')+'</span>';
     };
 
     var renderStatus=function(){
