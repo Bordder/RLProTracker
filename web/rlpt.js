@@ -462,6 +462,9 @@
         // A search with no hits renders nothing at all: the absence is the
         // answer, and a "No matches" bar reads like something went wrong.
         tb.innerHTML=arr.length?arr.map(rowFn).join(''):'';
+        // The phone list shows the ordered figure beside the name, and CSS can
+        // only pick that cell if the table says which one it is.
+        tbl.dataset.sort=sk;
         trh.querySelectorAll('th').forEach(function(th){ th.classList.remove('s-asc','s-desc'); if(th.dataset.k===sk)th.classList.add(sd==='asc'?'s-asc':'s-desc'); });
       }
       scroll.appendChild(tbl); mount.innerHTML=''; mount.appendChild(scroll);
