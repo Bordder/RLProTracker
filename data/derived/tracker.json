@@ -1,15 +1,20 @@
 {
-  "computedAt": "2026-09-03T22:08:37.586Z",
-  "snapshotCount": 828,
+  "computedAt": "2026-09-03T22:11:20.500Z",
+  "snapshotCount": 827,
   "players": [
     {
       "id": "gentle-mates-archie",
       "name": "Archie",
       "team": "Gentle Mates",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T22:11:20.500Z",
+      "session": {
+        "startedAt": "2026-09-03T22:05:41.911Z",
+        "games": 1
+      },
       "mmr": {
         "ones": 1028,
-        "twos": 2217,
+        "twos": 2225,
         "threes": 1560
       },
       "tier": {
@@ -19,9 +24,9 @@
       },
       "seasonGames": {
         "ones": 0,
-        "twos": 677,
+        "twos": 678,
         "threes": 6,
-        "total": 683
+        "total": 684
       },
       "games": {
         "ones": {
@@ -40,15 +45,15 @@
         },
         "twos": {
           "d1": {
-            "games": 0,
+            "games": 1,
             "partial": false
           },
           "d7": {
-            "games": 11,
+            "games": 12,
             "partial": true
           },
           "d14": {
-            "games": 11,
+            "games": 12,
             "partial": true
           }
         },
@@ -68,15 +73,15 @@
         },
         "total": {
           "d1": {
-            "games": 0,
+            "games": 1,
             "partial": false
           },
           "d7": {
-            "games": 11,
+            "games": 12,
             "partial": true
           },
           "d14": {
-            "games": 11,
+            "games": 12,
             "partial": true
           }
         }
@@ -86,7 +91,12 @@
       "id": "team-vitality-stizzy",
       "name": "stizzy",
       "team": "Team Vitality",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T21:00:34.920Z",
+      "session": {
+        "startedAt": "2026-09-03T20:20:35.782Z",
+        "games": 6
+      },
       "mmr": {
         "ones": 1531,
         "twos": 2477,
@@ -166,7 +176,12 @@
       "id": "nrg-atomic",
       "name": "Atomic",
       "team": "NRG",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T21:48:31.685Z",
+      "session": {
+        "startedAt": "2026-09-03T20:20:35.782Z",
+        "games": 15
+      },
       "mmr": {
         "ones": 1216,
         "twos": 2411,
@@ -200,7 +215,7 @@
         },
         "twos": {
           "d1": {
-            "games": 41,
+            "games": 40,
             "partial": false
           },
           "d7": {
@@ -228,7 +243,7 @@
         },
         "total": {
           "d1": {
-            "games": 41,
+            "games": 40,
             "partial": false
           },
           "d7": {
@@ -246,7 +261,12 @@
       "id": "nrg-beastmode",
       "name": "BeastMode",
       "team": "NRG",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T00:06:37.666Z",
+      "session": {
+        "startedAt": "2026-09-02T21:42:42.443Z",
+        "games": 15
+      },
       "mmr": {
         "ones": 1377,
         "twos": 2462,
@@ -326,10 +346,15 @@
       "id": "furia-yanxnz",
       "name": "yANXNZ",
       "team": "FURIA",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T22:11:20.500Z",
+      "session": {
+        "startedAt": "2026-09-03T21:40:34.179Z",
+        "games": 3
+      },
       "mmr": {
         "ones": 1543,
-        "twos": 2457,
+        "twos": 2464,
         "threes": 1738
       },
       "tier": {
@@ -339,9 +364,9 @@
       },
       "seasonGames": {
         "ones": 24,
-        "twos": 1051,
+        "twos": 1052,
         "threes": 46,
-        "total": 1121
+        "total": 1122
       },
       "games": {
         "ones": {
@@ -364,11 +389,11 @@
             "partial": false
           },
           "d7": {
-            "games": 80,
+            "games": 81,
             "partial": true
           },
           "d14": {
-            "games": 80,
+            "games": 81,
             "partial": true
           }
         },
@@ -392,11 +417,11 @@
             "partial": false
           },
           "d7": {
-            "games": 80,
+            "games": 81,
             "partial": true
           },
           "d14": {
-            "games": 80,
+            "games": 81,
             "partial": true
           }
         }
@@ -406,7 +431,12 @@
       "id": "virtus-pro-tawk",
       "name": "Tawk",
       "team": "Virtus.pro",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T19:04:36.223Z",
+      "session": {
+        "startedAt": "2026-09-03T18:36:32.900Z",
+        "games": 3
+      },
       "mmr": {
         "ones": 1329,
         "twos": 2449,
@@ -486,7 +516,12 @@
       "id": "virtus-pro-wahvey",
       "name": "Wahvey",
       "team": "Virtus.pro",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T21:16:29.234Z",
+      "session": {
+        "startedAt": "2026-09-03T20:26:26.140Z",
+        "games": 9
+      },
       "mmr": {
         "ones": 1555,
         "twos": 2492,
@@ -566,7 +601,12 @@
       "id": "fut-esports-jstn",
       "name": "jstn",
       "team": "FUT Esports",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T08:40:32.635Z",
+      "session": {
+        "startedAt": "2026-09-03T06:44:35.534Z",
+        "games": 12
+      },
       "mmr": {
         "ones": 1340,
         "twos": 2463,
@@ -646,7 +686,12 @@
       "id": "team-vitality-exotiik",
       "name": "ExoTiiK",
       "team": "Team Vitality",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T21:16:29.234Z",
+      "session": {
+        "startedAt": "2026-09-03T20:04:33.945Z",
+        "games": 12
+      },
       "mmr": {
         "ones": 1409,
         "twos": 2358,
@@ -726,7 +771,12 @@
       "id": "ninjas-in-pyjamas-joreuz",
       "name": "Joreuz",
       "team": "Ninjas in Pyjamas",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T17:20:34.017Z",
+      "session": {
+        "startedAt": "2026-09-03T16:04:29.846Z",
+        "games": 7
+      },
       "mmr": {
         "ones": 1456,
         "twos": 2725,
@@ -806,7 +856,12 @@
       "id": "ninjas-in-pyjamas-crr",
       "name": "crr",
       "team": "Ninjas in Pyjamas",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T14:58:30.113Z",
+      "session": {
+        "startedAt": "2026-09-03T14:34:32.334Z",
+        "games": 4
+      },
       "mmr": {
         "ones": 1445,
         "twos": 2411,
@@ -886,7 +941,12 @@
       "id": "ninjas-in-pyjamas-oaly",
       "name": "oaly.",
       "team": "Ninjas in Pyjamas",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-02T20:09:40.160Z",
+      "session": {
+        "startedAt": "2026-09-02T20:09:40.160Z",
+        "games": 17
+      },
       "mmr": {
         "ones": 1225,
         "twos": 2571,
@@ -966,7 +1026,12 @@
       "id": "man-city-esports-ejby",
       "name": "ejby",
       "team": "Man City Esports",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T21:00:34.920Z",
+      "session": {
+        "startedAt": "2026-09-03T20:32:29.443Z",
+        "games": 5
+      },
       "mmr": {
         "ones": 1292,
         "twos": 2422,
@@ -1046,7 +1111,12 @@
       "id": "man-city-esports-accro",
       "name": "accro",
       "team": "Man City Esports",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-02T20:07:54.597Z",
+      "session": {
+        "startedAt": "2026-09-02T20:07:54.597Z",
+        "games": 7
+      },
       "mmr": {
         "ones": 1163,
         "twos": 2494,
@@ -1126,7 +1196,12 @@
       "id": "man-city-esports-seikoo",
       "name": "Seikoo",
       "team": "Man City Esports",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-01T23:50:50.295Z",
+      "session": {
+        "startedAt": "2026-09-01T23:50:50.295Z",
+        "games": 7
+      },
       "mmr": {
         "ones": 1408,
         "twos": 2434,
@@ -1206,7 +1281,12 @@
       "id": "shopify-rebellion-lj",
       "name": "Lj",
       "team": "Shopify Rebellion",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T17:58:42.083Z",
+      "session": {
+        "startedAt": "2026-09-03T17:50:32.626Z",
+        "games": 2
+      },
       "mmr": {
         "ones": 1309,
         "twos": 2541,
@@ -1286,7 +1366,12 @@
       "id": "mate-y-tapa-atomik",
       "name": "AtomiK",
       "team": "Mate y Tapa",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T22:05:41.911Z",
+      "session": {
+        "startedAt": "2026-09-03T18:52:31.299Z",
+        "games": 26
+      },
       "mmr": {
         "ones": 1320,
         "twos": 2621,
@@ -1366,10 +1451,15 @@
       "id": "fut-esports-cheese",
       "name": "CHEESE.",
       "team": "FUT Esports",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T22:11:20.500Z",
+      "session": {
+        "startedAt": "2026-09-03T21:36:35.510Z",
+        "games": 4
+      },
       "mmr": {
         "ones": 1518,
-        "twos": 2483,
+        "twos": 2485,
         "threes": 1953
       },
       "tier": {
@@ -1379,9 +1469,9 @@
       },
       "seasonGames": {
         "ones": 37,
-        "twos": 1309,
+        "twos": 1310,
         "threes": 57,
-        "total": 1403
+        "total": 1404
       },
       "games": {
         "ones": {
@@ -1404,11 +1494,11 @@
             "partial": false
           },
           "d7": {
-            "games": 141,
+            "games": 142,
             "partial": true
           },
           "d14": {
-            "games": 141,
+            "games": 142,
             "partial": true
           }
         },
@@ -1432,11 +1522,11 @@
             "partial": false
           },
           "d7": {
-            "games": 145,
+            "games": 146,
             "partial": true
           },
           "d14": {
-            "games": 145,
+            "games": 146,
             "partial": true
           }
         }
@@ -1446,7 +1536,12 @@
       "id": "mibr-sad",
       "name": "Sad",
       "team": "MIBR",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-02T23:18:32.483Z",
+      "session": {
+        "startedAt": "2026-09-02T22:20:42.956Z",
+        "games": 8
+      },
       "mmr": {
         "ones": 1234,
         "twos": 2320,
@@ -1526,10 +1621,15 @@
       "id": "mibr-reysbull",
       "name": "Reysbull",
       "team": "MIBR",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T22:11:20.500Z",
+      "session": {
+        "startedAt": "2026-09-03T21:59:05.610Z",
+        "games": 2
+      },
       "mmr": {
         "ones": 1296,
-        "twos": 2307,
+        "twos": 2312,
         "threes": 1323
       },
       "tier": {
@@ -1539,9 +1639,9 @@
       },
       "seasonGames": {
         "ones": 58,
-        "twos": 954,
+        "twos": 955,
         "threes": 9,
-        "total": 1021
+        "total": 1022
       },
       "games": {
         "ones": {
@@ -1564,11 +1664,11 @@
             "partial": false
           },
           "d7": {
-            "games": 65,
+            "games": 66,
             "partial": true
           },
           "d14": {
-            "games": 65,
+            "games": 66,
             "partial": true
           }
         },
@@ -1592,11 +1692,11 @@
             "partial": false
           },
           "d7": {
-            "games": 72,
+            "games": 73,
             "partial": true
           },
           "d14": {
-            "games": 72,
+            "games": 73,
             "partial": true
           }
         }
@@ -1606,7 +1706,12 @@
       "id": "mibr-aztr",
       "name": "Aztrø",
       "team": "MIBR",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-02T23:50:30.176Z",
+      "session": {
+        "startedAt": "2026-09-02T22:54:28.023Z",
+        "games": 5
+      },
       "mmr": {
         "ones": 1313,
         "twos": 2156,
@@ -1686,10 +1791,15 @@
       "id": "furia-lostt",
       "name": "Lostt",
       "team": "FURIA",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T22:11:20.500Z",
+      "session": {
+        "startedAt": "2026-09-03T21:46:34.389Z",
+        "games": 4
+      },
       "mmr": {
         "ones": 1362,
-        "twos": 2172,
+        "twos": 2162,
         "threes": 1293
       },
       "tier": {
@@ -1699,9 +1809,9 @@
       },
       "seasonGames": {
         "ones": 17,
-        "twos": 441,
+        "twos": 442,
         "threes": 3,
-        "total": 461
+        "total": 462
       },
       "games": {
         "ones": {
@@ -1720,15 +1830,15 @@
         },
         "twos": {
           "d1": {
-            "games": 12,
+            "games": 13,
             "partial": false
           },
           "d7": {
-            "games": 59,
+            "games": 60,
             "partial": true
           },
           "d14": {
-            "games": 59,
+            "games": 60,
             "partial": true
           }
         },
@@ -1748,15 +1858,15 @@
         },
         "total": {
           "d1": {
-            "games": 12,
+            "games": 13,
             "partial": false
           },
           "d7": {
-            "games": 59,
+            "games": 60,
             "partial": true
           },
           "d14": {
-            "games": 59,
+            "games": 60,
             "partial": true
           }
         }
@@ -1766,7 +1876,12 @@
       "id": "furia-swiftt",
       "name": "swiftt",
       "team": "FURIA",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T00:12:27.796Z",
+      "session": {
+        "startedAt": "2026-09-02T22:10:41.500Z",
+        "games": 10
+      },
       "mmr": {
         "ones": 1493,
         "twos": 2314,
@@ -1846,7 +1961,12 @@
       "id": "wildcard-torsos",
       "name": "Torsos",
       "team": "Wildcard",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-01T23:50:50.295Z",
+      "session": {
+        "startedAt": "2026-09-01T23:50:50.295Z",
+        "games": 2
+      },
       "mmr": {
         "ones": 1304,
         "twos": 2324,
@@ -1926,7 +2046,12 @@
       "id": "wildcard-fever",
       "name": "Fever",
       "team": "Wildcard",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-08-31T06:40:49.820Z",
+      "session": {
+        "startedAt": "2026-08-31T06:40:49.820Z",
+        "games": 1
+      },
       "mmr": {
         "ones": 1059,
         "twos": 2320,
@@ -2006,7 +2131,12 @@
       "id": "wildcard-bananahead",
       "name": "Bananahead",
       "team": "Wildcard",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T10:56:27.959Z",
+      "session": {
+        "startedAt": "2026-09-03T09:24:34.748Z",
+        "games": 13
+      },
       "mmr": {
         "ones": 1330,
         "twos": 2342,
@@ -2086,7 +2216,12 @@
       "id": "tsm-kevin",
       "name": "Kevin",
       "team": "TSM",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-02T20:09:40.160Z",
+      "session": {
+        "startedAt": "2026-09-02T20:09:40.160Z",
+        "games": 2
+      },
       "mmr": {
         "ones": 1089,
         "twos": 1966,
@@ -2166,7 +2301,12 @@
       "id": "tsm-catalysm",
       "name": "Catalysm",
       "team": "TSM",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T19:04:36.223Z",
+      "session": {
+        "startedAt": "2026-09-03T16:52:33.470Z",
+        "games": 20
+      },
       "mmr": {
         "ones": 1040,
         "twos": 2226,
@@ -2246,7 +2386,12 @@
       "id": "tsm-sphinx",
       "name": "Sphinx",
       "team": "TSM",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T13:48:40.029Z",
+      "session": {
+        "startedAt": "2026-09-03T13:34:36.273Z",
+        "games": 3
+      },
       "mmr": {
         "ones": 1134,
         "twos": 1939,
@@ -2326,7 +2471,12 @@
       "id": "five-fears-tehqoz",
       "name": "tehqoz",
       "team": "Five Fears",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T12:16:27.507Z",
+      "session": {
+        "startedAt": "2026-09-03T11:22:31.421Z",
+        "games": 8
+      },
       "mmr": {
         "ones": 1398,
         "twos": 2369,
@@ -2406,7 +2556,12 @@
       "id": "five-fears-snowyy",
       "name": "Snowyy",
       "team": "Five Fears",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-02T20:07:54.597Z",
+      "session": {
+        "startedAt": "2026-09-02T20:07:54.597Z",
+        "games": 18
+      },
       "mmr": {
         "ones": 1356,
         "twos": 2209,
@@ -2486,7 +2641,12 @@
       "id": "five-fears-gunz",
       "name": "gunz",
       "team": "Five Fears",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T18:38:41.599Z",
+      "session": {
+        "startedAt": "2026-09-03T17:18:28.743Z",
+        "games": 7
+      },
       "mmr": {
         "ones": 1402,
         "twos": 2212,
@@ -2566,10 +2726,15 @@
       "id": "mate-y-tapa-ajg",
       "name": "ajg",
       "team": "Mate y Tapa",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T22:11:20.500Z",
+      "session": {
+        "startedAt": "2026-09-03T21:36:35.510Z",
+        "games": 6
+      },
       "mmr": {
         "ones": 1178,
-        "twos": 2441,
+        "twos": 2449,
         "threes": 1721
       },
       "tier": {
@@ -2579,9 +2744,9 @@
       },
       "seasonGames": {
         "ones": 6,
-        "twos": 536,
+        "twos": 537,
         "threes": 7,
-        "total": 549
+        "total": 550
       },
       "games": {
         "ones": {
@@ -2600,15 +2765,15 @@
         },
         "twos": {
           "d1": {
-            "games": 13,
+            "games": 14,
             "partial": false
           },
           "d7": {
-            "games": 45,
+            "games": 46,
             "partial": true
           },
           "d14": {
-            "games": 45,
+            "games": 46,
             "partial": true
           }
         },
@@ -2628,15 +2793,15 @@
         },
         "total": {
           "d1": {
-            "games": 13,
+            "games": 14,
             "partial": false
           },
           "d7": {
-            "games": 45,
+            "games": 46,
             "partial": true
           },
           "d14": {
-            "games": 45,
+            "games": 46,
             "partial": true
           }
         }
@@ -2646,10 +2811,15 @@
       "id": "mate-y-tapa-dorito",
       "name": "Dorito",
       "team": "Mate y Tapa",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T22:11:20.500Z",
+      "session": {
+        "startedAt": "2026-09-03T21:52:34.390Z",
+        "games": 4
+      },
       "mmr": {
         "ones": 1252,
-        "twos": 2461,
+        "twos": 2469,
         "threes": 1640
       },
       "tier": {
@@ -2659,9 +2829,9 @@
       },
       "seasonGames": {
         "ones": 10,
-        "twos": 958,
+        "twos": 959,
         "threes": 41,
-        "total": 1009
+        "total": 1010
       },
       "games": {
         "ones": {
@@ -2680,15 +2850,15 @@
         },
         "twos": {
           "d1": {
-            "games": 12,
+            "games": 13,
             "partial": false
           },
           "d7": {
-            "games": 44,
+            "games": 45,
             "partial": true
           },
           "d14": {
-            "games": 44,
+            "games": 45,
             "partial": true
           }
         },
@@ -2708,15 +2878,15 @@
         },
         "total": {
           "d1": {
-            "games": 12,
+            "games": 13,
             "partial": false
           },
           "d7": {
-            "games": 44,
+            "games": 45,
             "partial": true
           },
           "d14": {
-            "games": 44,
+            "games": 45,
             "partial": true
           }
         }
@@ -2726,7 +2896,12 @@
       "id": "r8-esports-abdullah",
       "name": "Abdullah",
       "team": "R8 Esports",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T17:00:41.547Z",
+      "session": {
+        "startedAt": "2026-09-03T15:58:30.410Z",
+        "games": 11
+      },
       "mmr": {
         "ones": 1509,
         "twos": 2346,
@@ -2806,7 +2981,12 @@
       "id": "r8-esports-m7md",
       "name": "M7md",
       "team": "R8 Esports",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T16:06:32.973Z",
+      "session": {
+        "startedAt": "2026-09-03T15:58:30.410Z",
+        "games": 2
+      },
       "mmr": {
         "ones": 1233,
         "twos": 2221,
@@ -2886,10 +3066,15 @@
       "id": "r8-esports-ghaazi",
       "name": "Ghaazi",
       "team": "R8 Esports",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T22:11:20.500Z",
+      "session": {
+        "startedAt": "2026-09-03T20:58:34.167Z",
+        "games": 11
+      },
       "mmr": {
         "ones": 1399,
-        "twos": 2469,
+        "twos": 2479,
         "threes": 1961
       },
       "tier": {
@@ -2899,9 +3084,9 @@
       },
       "seasonGames": {
         "ones": 8,
-        "twos": 714,
+        "twos": 715,
         "threes": 127,
-        "total": 849
+        "total": 850
       },
       "games": {
         "ones": {
@@ -2920,15 +3105,15 @@
         },
         "twos": {
           "d1": {
-            "games": 27,
+            "games": 28,
             "partial": false
           },
           "d7": {
-            "games": 30,
+            "games": 31,
             "partial": true
           },
           "d14": {
-            "games": 30,
+            "games": 31,
             "partial": true
           }
         },
@@ -2948,15 +3133,15 @@
         },
         "total": {
           "d1": {
-            "games": 27,
+            "games": 28,
             "partial": false
           },
           "d7": {
-            "games": 30,
+            "games": 31,
             "partial": true
           },
           "d14": {
-            "games": 30,
+            "games": 31,
             "partial": true
           }
         }
@@ -2966,7 +3151,12 @@
       "id": "bigodes-nxghtt",
       "name": "nxghtt",
       "team": "Bigodes",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T06:52:40.586Z",
+      "session": {
+        "startedAt": "2026-09-03T04:42:35.298Z",
+        "games": 17
+      },
       "mmr": {
         "ones": 1257,
         "twos": 2109,
@@ -3046,7 +3236,12 @@
       "id": "bigodes-drufinho",
       "name": "DRUFINHO",
       "team": "Bigodes",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T21:38:34.326Z",
+      "session": {
+        "startedAt": "2026-09-03T21:08:33.377Z",
+        "games": 6
+      },
       "mmr": {
         "ones": 1220,
         "twos": 2472,
@@ -3126,7 +3321,12 @@
       "id": "bigodes-bemmz",
       "name": "Bemmz",
       "team": "Bigodes",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T06:52:40.586Z",
+      "session": {
+        "startedAt": "2026-09-03T04:18:28.988Z",
+        "games": 19
+      },
       "mmr": {
         "ones": 1369,
         "twos": 2312,
@@ -3206,7 +3406,12 @@
       "id": "fut-esports-chronic",
       "name": "Chronic",
       "team": "FUT Esports",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T17:52:33.862Z",
+      "session": {
+        "startedAt": "2026-09-03T17:50:32.626Z",
+        "games": 1
+      },
       "mmr": {
         "ones": 1420,
         "twos": 2537,
@@ -3286,7 +3491,12 @@
       "id": "shopify-rebellion-firstkiller",
       "name": "Firstkiller",
       "team": "Shopify Rebellion",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T17:42:34.393Z",
+      "session": {
+        "startedAt": "2026-09-03T17:34:28.451Z",
+        "games": 3
+      },
       "mmr": {
         "ones": 1500,
         "twos": 2633,
@@ -3366,7 +3576,12 @@
       "id": "shopify-rebellion-kofyr",
       "name": "kofyr",
       "team": "Shopify Rebellion",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T02:00:28.770Z",
+      "session": {
+        "startedAt": "2026-09-03T01:14:28.011Z",
+        "games": 8
+      },
       "mmr": {
         "ones": 1424,
         "twos": 2451,
@@ -3446,7 +3661,12 @@
       "id": "spacestation-gaming-reveal",
       "name": "reveal",
       "team": "Spacestation Gaming",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T02:48:26.515Z",
+      "session": {
+        "startedAt": "2026-09-03T00:30:27.435Z",
+        "games": 20
+      },
       "mmr": {
         "ones": 1217,
         "twos": 2723,
@@ -3526,7 +3746,12 @@
       "id": "twisted-minds-m0nkey-m00n",
       "name": "M0nkey M00n",
       "team": "Twisted Minds",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T14:36:38.043Z",
+      "session": {
+        "startedAt": "2026-09-03T13:12:52.016Z",
+        "games": 11
+      },
       "mmr": {
         "ones": 1476,
         "twos": 2619,
@@ -3606,7 +3831,12 @@
       "id": "virtus-pro-2piece",
       "name": "2Piece",
       "team": "Virtus.pro",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T05:16:36.664Z",
+      "session": {
+        "startedAt": "2026-09-03T03:12:39.064Z",
+        "games": 15
+      },
       "mmr": {
         "ones": 1028,
         "twos": 2515,
@@ -3686,7 +3916,12 @@
       "id": "karmine-corp-atow",
       "name": "Atow.",
       "team": "Karmine Corp",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T22:05:41.911Z",
+      "session": {
+        "startedAt": "2026-09-03T19:44:27.461Z",
+        "games": 19
+      },
       "mmr": {
         "ones": 1548,
         "twos": 2696,
@@ -3766,7 +4001,12 @@
       "id": "nrg-daniel",
       "name": "Daniel",
       "team": "NRG",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T05:50:28.261Z",
+      "session": {
+        "startedAt": "2026-09-03T03:36:26.700Z",
+        "games": 17
+      },
       "mmr": {
         "ones": 1391,
         "twos": 2668,
@@ -3846,10 +4086,15 @@
       "id": "team-falcons-dralii",
       "name": "dralii",
       "team": "Team Falcons",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T22:11:20.500Z",
+      "session": {
+        "startedAt": "2026-09-03T21:59:05.610Z",
+        "games": 2
+      },
       "mmr": {
         "ones": 1526,
-        "twos": 2474,
+        "twos": 2463,
         "threes": 1536
       },
       "tier": {
@@ -3859,9 +4104,9 @@
       },
       "seasonGames": {
         "ones": 85,
-        "twos": 719,
+        "twos": 720,
         "threes": 5,
-        "total": 809
+        "total": 810
       },
       "games": {
         "ones": {
@@ -3880,15 +4125,15 @@
         },
         "twos": {
           "d1": {
-            "games": 1,
+            "games": 2,
             "partial": false
           },
           "d7": {
-            "games": 70,
+            "games": 71,
             "partial": true
           },
           "d14": {
-            "games": 70,
+            "games": 71,
             "partial": true
           }
         },
@@ -3908,15 +4153,15 @@
         },
         "total": {
           "d1": {
-            "games": 1,
+            "games": 2,
             "partial": false
           },
           "d7": {
-            "games": 71,
+            "games": 72,
             "partial": true
           },
           "d14": {
-            "games": 71,
+            "games": 72,
             "partial": true
           }
         }
@@ -3926,7 +4171,12 @@
       "id": "team-vitality-zen",
       "name": "Zen",
       "team": "Team Vitality",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T22:05:41.911Z",
+      "session": {
+        "startedAt": "2026-09-03T20:56:27.876Z",
+        "games": 10
+      },
       "mmr": {
         "ones": 1626,
         "twos": 2765,
@@ -4006,7 +4256,12 @@
       "id": "twisted-minds-trk511",
       "name": "trk511",
       "team": "Twisted Minds",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T22:05:41.911Z",
+      "session": {
+        "startedAt": "2026-09-03T21:54:47.168Z",
+        "games": 3
+      },
       "mmr": {
         "ones": 1486,
         "twos": 2508,
@@ -4086,7 +4341,12 @@
       "id": "karmine-corp-juicy",
       "name": "juicy",
       "team": "Karmine Corp",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T22:05:41.911Z",
+      "session": {
+        "startedAt": "2026-09-03T20:32:29.443Z",
+        "games": 14
+      },
       "mmr": {
         "ones": 1638,
         "twos": 2688,
@@ -4166,7 +4426,12 @@
       "id": "gentle-mates-nass",
       "name": "nass",
       "team": "Gentle Mates",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T18:38:41.599Z",
+      "session": {
+        "startedAt": "2026-09-03T17:08:29.184Z",
+        "games": 8
+      },
       "mmr": {
         "ones": 1729,
         "twos": 2824,
@@ -4200,7 +4465,7 @@
         },
         "twos": {
           "d1": {
-            "games": 45,
+            "games": 44,
             "partial": false
           },
           "d7": {
@@ -4228,7 +4493,7 @@
         },
         "total": {
           "d1": {
-            "games": 45,
+            "games": 44,
             "partial": false
           },
           "d7": {
@@ -4246,7 +4511,12 @@
       "id": "twisted-minds-nwpo",
       "name": "Nwpo",
       "team": "Twisted Minds",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T15:08:29.332Z",
+      "session": {
+        "startedAt": "2026-09-03T13:46:34.595Z",
+        "games": 11
+      },
       "mmr": {
         "ones": 1736,
         "twos": 2520,
@@ -4326,7 +4596,12 @@
       "id": "team-falcons-kiileerrz",
       "name": "Kiileerrz",
       "team": "Team Falcons",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T18:04:35.432Z",
+      "session": {
+        "startedAt": "2026-09-03T18:02:28.883Z",
+        "games": 1
+      },
       "mmr": {
         "ones": 1442,
         "twos": 2508,
@@ -4406,10 +4681,15 @@
       "id": "spacestation-gaming-diaz",
       "name": "diaz",
       "team": "Spacestation Gaming",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T22:11:20.500Z",
+      "session": {
+        "startedAt": "2026-09-03T20:48:35.418Z",
+        "games": 7
+      },
       "mmr": {
         "ones": 1636,
-        "twos": 2748,
+        "twos": 2750,
         "threes": 1595
       },
       "tier": {
@@ -4419,9 +4699,9 @@
       },
       "seasonGames": {
         "ones": 33,
-        "twos": 1336,
+        "twos": 1337,
         "threes": 9,
-        "total": 1378
+        "total": 1379
       },
       "games": {
         "ones": {
@@ -4444,11 +4724,11 @@
             "partial": false
           },
           "d7": {
-            "games": 84,
+            "games": 85,
             "partial": true
           },
           "d14": {
-            "games": 84,
+            "games": 85,
             "partial": true
           }
         },
@@ -4472,11 +4752,11 @@
             "partial": false
           },
           "d7": {
-            "games": 91,
+            "games": 92,
             "partial": true
           },
           "d14": {
-            "games": 91,
+            "games": 92,
             "partial": true
           }
         }
@@ -4486,7 +4766,12 @@
       "id": "spacestation-gaming-zach",
       "name": "zach",
       "team": "Spacestation Gaming",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T21:56:46.522Z",
+      "session": {
+        "startedAt": "2026-09-03T19:22:27.882Z",
+        "games": 22
+      },
       "mmr": {
         "ones": 1597,
         "twos": 2629,
@@ -4566,7 +4851,12 @@
       "id": "karmine-corp-vatira",
       "name": "Vatira",
       "team": "Karmine Corp",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T22:05:41.911Z",
+      "session": {
+        "startedAt": "2026-09-03T19:28:30.289Z",
+        "games": 21
+      },
       "mmr": {
         "ones": 1601,
         "twos": 2734,
@@ -4646,7 +4936,12 @@
       "id": "gentle-mates-oski",
       "name": "Oski",
       "team": "Gentle Mates",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T14:42:31.560Z",
+      "session": {
+        "startedAt": "2026-09-03T13:39:15.850Z",
+        "games": 9
+      },
       "mmr": {
         "ones": 1347,
         "twos": 2588,
@@ -4726,7 +5021,12 @@
       "id": "team-falcons-rw9",
       "name": "Rw9",
       "team": "Team Falcons",
-      "updatedAt": "2026-09-03T22:08:37.586Z",
+      "updatedAt": "2026-09-03T22:11:20.500Z",
+      "lastPlayedAt": "2026-09-03T21:30:29.068Z",
+      "session": {
+        "startedAt": "2026-09-03T17:56:29.512Z",
+        "games": 30
+      },
       "mmr": {
         "ones": 1674,
         "twos": 2607,
