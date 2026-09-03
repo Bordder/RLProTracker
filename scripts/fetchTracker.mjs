@@ -447,6 +447,20 @@ async function main() {
   await writeFile(STATE_FILE, JSON.stringify(state, null, 2));
   const ok = rows.filter((r) => r.playlists).length;
   console.log(`\ntracker history: ${countReadings(history)} readings / ${Object.keys(history.players).length} players\n${ok}/${rows.length} scraped ok`);
+
+  // A profile that answers 200 with no games at all is almost always the wrong
+  // account rather than a player who has never queued: a mistyped Epic name, or
+  // a Steam id Liquipedia attached to someone else. It cannot fail loudly on its
+  // own, so say so here.
+  const empty = rows.filter((r) => {
+    if (!r.playlists) return false;
+    const played = Object.values(r.playlists).reduce((a, pl) => a + (pl?.matches ?? 0), 0);
+    return played === 0;
+  });
+  if (empty.length) {
+    console.log(`\nWARNING: ${empty.length} profile(s) returned no games at all, which usually means the wrong account:`);
+    for (const r of empty) console.log(`  ${r.name} (${r.team}) via ${r.epic ? "epic:" + r.epic : "steam:" + r.steamId64}`);
+  }
 }
 
 // Run only when invoked directly (so the scheduler can be imported for tests).
