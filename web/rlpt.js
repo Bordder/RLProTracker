@@ -480,7 +480,11 @@
           var g=p.games?p.games.d1:null;
           // A partial window is not a low number, it is no number yet.
           return (g&&g.games!=null&&!g.partial)?g.games:null;
-        },fmt:function(v){return '<span class="g14v">'+nf(v)+'</span>';}},
+        },fmt:function(v){return '<span class="g14v">'+nf(v)+'</span>';},
+        na:function(p){
+          var g=p.games?p.games.d1:null;
+          return (g&&g.partial)?'<span class="pending">pending</span>':'<span class="dash">&middot;</span>';
+        }},
         // Same order of preference as the main table: measured Steam hours,
         // then the sampled estimate, marked so the two are never confused.
         {label:'2wk h',val:function(p){return p.hours2wk!=null?p.hours2wk:p.estHours2wk;},fmt:function(v,p){
@@ -488,8 +492,8 @@
           return p.hours2wk!=null
             ? '<span class="c-hr" style="display:inline">'+body+'</span>'
             : '<span class="est" title="Estimated, not measured: sampled every few minutes from live status. Always low, since sessions between checks are missed.">'+body+'</span>';
-        }},
-        {label:'Total h',val:function(p){return p.totalHours!=null?Math.round(p.totalHours):null;},fmt:function(v){return '<span class="c-hr" style="display:inline">'+nf(v)+'</span>';}}
+        },na:function(p){return hoursNA(p.status);}},
+        {label:'Total h',val:function(p){return p.totalHours!=null?Math.round(p.totalHours):null;},fmt:function(v){return '<span class="c-hr" style="display:inline">'+nf(v)+'</span>';},na:function(p){return hoursNA(p.status);}}
       ];
       // Best value per column, so each metric highlights its leader.
       var bests=METRICS.map(function(m){ var b=null; roster.forEach(function(p){ var v=m.val(p); if(v!=null&&(b==null||v>b))b=v; }); return b; });
@@ -497,7 +501,10 @@
       var body=roster.map(function(p){
         return '<tr><td class="pl">'+esc(p.name)+'</td>'+METRICS.map(function(m,i){
           var v=m.val(p);
-          return '<td'+(v!=null&&v===bests[i]?' class="best"':'')+'>'+(v!=null?m.fmt(v,p):'&middot;')+'</td>';
+          // An empty cell says "no activity", which is wrong for a player who
+          // simply keeps their profile shut. Each metric explains its own blank.
+          var body=v!=null?m.fmt(v,p):(m.na?m.na(p):'<span class="dash">&middot;</span>');
+          return '<td'+(v!=null&&v===bests[i]?' class="best"':'')+'>'+body+'</td>';
         }).join('')+'</tr>';
       }).join('');
       return '<div class="exp-wrap"><div class="exp-h">Roster comparison</div><div class="scroll" style="border-radius:8px"><table class="mini"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div></div>';
