@@ -46,9 +46,9 @@
   // is not reporting them, and the profile is re-checked every hour, so a
   // number appears on its own if the setting ever changes.
   var HOURS_NA={
-    'hidden-details':{t:'hidden',h:'Game details are switched off. Checked hourly, and logged for good if that ever changes.'},
-    'private':{t:'private',h:'Profile is closed. Checked hourly, and logged for good if it ever opens.'},
-    'playtime-hidden':{t:'hours hidden',h:'Total playtime is set to private. Checked hourly, and logged for good if it ever opens.'},
+    'hidden-details':{t:'hidden',h:'Game details are off. Rechecked hourly, so hours appear if that changes.'},
+    'private':{t:'private',h:'Profile is closed. Rechecked hourly, so hours appear if it opens.'},
+    'playtime-hidden':{t:'hours hidden',h:'Total playtime is private. Rechecked hourly, so hours appear if it opens.'},
     'no-steam-id':{t:'no steam',h:'No Steam account matched yet.'},
     'no-steam-link':{t:'no steam',h:'No Steam account matched yet.'}
   };
