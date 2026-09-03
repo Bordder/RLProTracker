@@ -255,7 +255,7 @@
       // Cards read live state, and live state is judged against the collection
       // time, so this has to come after that timestamp is in place.
       renderCards();
-      if(typeof buildRegions==='function')buildRegions();
+      if(typeof buildRegions==='function'){ buildRegions(); buildPlaying(); }
       return true;
     }
 
@@ -406,7 +406,7 @@
     renderStatus();
     // A live session goes stale on its own, so re-check on the same beat as the
     // freshness line rather than waiting for the next fetch.
-    setInterval(function(){ renderCards(); renderPodium(); paintP(); },60000);
+    setInterval(function(){ renderCards(); buildPlaying(); renderPodium(); paintP(); },60000);
     // A tab left open must not keep claiming the data is fresh.
     setInterval(renderStatus,60000);
 
@@ -737,29 +737,43 @@
       var counts={};
       players.forEach(function(p){ if(p.region)counts[p.region]=(counts[p.region]||0)+1; });
       var order=['EU','NA','SAM','MENA','OCE','APAC'].filter(function(r){return counts[r];});
-      var live=players.filter(isLive).length;
       regionSeg.innerHTML='<button data-r="" aria-pressed="'+(regionQ?'false':'true')+'">All<span class="rn">'+players.length+'</span></button>'+
         order.map(function(r){
           return '<button data-r="'+r+'" aria-pressed="'+(regionQ===r?'true':'false')+'">'+r+'<span class="rn">'+counts[r]+'</span></button>';
-        }).join('')+
-        (live?'<button class="pchip" data-live-only="1" aria-pressed="'+(liveOnly?'true':'false')+'">Playing<span class="rn">'+live+'</span></button>':'');
+        }).join('');
       Array.prototype.forEach.call(regionSeg.querySelectorAll('button'),function(b){
         b.addEventListener('click',function(){
-          if(b.dataset.liveOnly){
-            liveOnly=!liveOnly;
-            b.setAttribute('aria-pressed',liveOnly?'true':'false');
-          }else{
-            regionQ=b.dataset.r||'';
-            Array.prototype.forEach.call(regionSeg.querySelectorAll('button'),function(x){
-              if(x.dataset.liveOnly)return;
-              x.setAttribute('aria-pressed',(x.dataset.r||'')===regionQ?'true':'false');
-            });
-          }
+          regionQ=b.dataset.r||'';
+          Array.prototype.forEach.call(regionSeg.querySelectorAll('button'),function(x){
+            x.setAttribute('aria-pressed',(x.dataset.r||'')===regionQ?'true':'false');
+          });
           renderPodium(); paintP(); paintT();
         });
       });
     };
     buildRegions();
+
+    // Playing belongs with the buttons that decide what the board shows, not
+    // with the regions, which answer a different question. It only exists while
+    // somebody is actually on the ladder.
+    var playingSeg=document.getElementById('playingSeg');
+    var buildPlaying=function(){
+      if(!playingSeg)return;
+      var live=players.filter(isLive).length;
+      if(!live){
+        playingSeg.hidden=true; playingSeg.innerHTML='';
+        if(liveOnly){ liveOnly=false; renderPodium(); paintP(); }
+        return;
+      }
+      playingSeg.hidden=false;
+      playingSeg.innerHTML='<button id="playingBtn" aria-pressed="'+(liveOnly?'true':'false')+'">Playing<span class="rn">'+live+'</span></button>';
+      document.getElementById('playingBtn').addEventListener('click',function(){
+        liveOnly=!liveOnly;
+        this.setAttribute('aria-pressed',liveOnly?'true':'false');
+        renderPodium(); paintP(); paintT();
+      });
+    };
+    buildPlaying();
 
     showMmrPlaylist();
     setMetric(metricBtns[0]);
