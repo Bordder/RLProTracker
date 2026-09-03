@@ -213,52 +213,23 @@
     .pod .prow{display:none}
   }
 
-  /* ---- Live: a pill in the control row that opens the session list ---- */
-  .lwrap{position:relative;margin-left:auto}
-  .lpill{
-    display:flex;align-items:center;gap:8px;cursor:pointer;
-    font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:700;
-    color:var(--playing);border:1px solid rgba(94,200,255,.4);background:rgba(94,200,255,.08);
-    border-radius:8px;padding:6px 11px;white-space:nowrap;
+  /* ---- Playing: its own mark beside the name, never in place of a status ---- */
+  .pmark{
+    display:inline-flex;align-items:center;gap:5px;vertical-align:1px;margin-left:8px;
+    font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:9.5px;font-weight:700;
+    color:var(--playing);border:1px solid rgba(94,200,255,.45);background:rgba(94,200,255,.12);
+    border-radius:5px;padding:1px 6px;white-space:nowrap;cursor:help;
   }
-  .lpill:hover{border-color:rgba(94,200,255,.75);background:rgba(94,200,255,.13)}
-  .lpill .cw{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:0}
-  .lpill .cv{color:var(--slate);font-family:var(--body);font-size:11.5px;letter-spacing:.06em;font-weight:500}
-  .lpill .ar{font-size:9px;color:var(--slate);transition:transform .15s}
-  .lpill[aria-expanded="true"] .ar{transform:rotate(180deg)}
-  .lmenu{
-    position:absolute;right:0;top:calc(100% + 6px);z-index:12;width:290px;max-height:340px;overflow-y:auto;
-    background:var(--surface);border:1px solid var(--line2);border-radius:10px;padding:6px;
-    box-shadow:0 14px 34px rgba(0,0,0,.55);
+  .pmark::before{
+    content:"";width:5px;height:5px;border-radius:50%;background:var(--playing);flex:none;
+    box-shadow:0 0 0 0 rgba(94,200,255,.6);animation:lpulse 2.6s infinite;
   }
-  .lmenu[hidden]{display:none}
-  .lmenu .lrow{
-    display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;
-    background:none;border:0;cursor:pointer;text-align:left;padding:8px 9px;border-radius:7px;color:inherit;font:inherit;
-  }
-  .lmenu .lrow:hover,.lmenu .lrow:focus-visible{background:var(--panel2);outline:none}
-  .lmenu .lrow b{display:block;font-family:var(--display);font-weight:700;font-size:15px;letter-spacing:.02em}
-  .lmenu .lrow i{display:block;font-style:normal;font-size:11px;color:var(--slate)}
-  .lmenu .lrow .sess{text-align:right;white-space:nowrap}
-  .lmenu .lrow .sess b{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--playing)}
-  .lmenu .lrow .sess i{font-family:var(--mono);font-size:10.5px}
-  .lmenu .lfoot{border-top:1px solid var(--line);margin-top:4px;padding-top:5px}
-  .lmenu .lonly{
-    width:100%;background:none;border:0;cursor:pointer;color:var(--slate);font:inherit;
-    font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:11px;font-weight:700;
-    padding:8px 9px;border-radius:7px;text-align:left;
-  }
-  .lmenu .lonly:hover{background:var(--panel2);color:var(--bone)}
-  .lmenu .lonly[aria-pressed="true"]{color:var(--playing);background:rgba(94,200,255,.1)}
-  .lp{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--playing);box-shadow:0 0 0 0 rgba(94,200,255,.55);animation:lpulse 2.6s infinite}
-  @keyframes lpulse{0%{box-shadow:0 0 0 0 rgba(94,200,255,.5)}70%{box-shadow:0 0 0 10px rgba(94,200,255,0)}100%{box-shadow:0 0 0 0 rgba(94,200,255,0)}}
-  @media (prefers-reduced-motion:reduce){ .lp{animation:none} }
-  @media (max-width:640px){ .lwrap{margin-left:0} .lmenu{right:auto;left:0;width:min(290px,calc(100vw - 40px))} }
-  /* Playing gets its own blue: green already means "profile is public", and the
-     two say completely different things about a player. */
-  .sx.sx-now{color:var(--playing);border-color:rgba(94,200,255,.5);background:rgba(94,200,255,.12);display:inline-flex;align-items:center;gap:6px}
-  .sx.sx-now::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--playing);flex:none;box-shadow:0 0 0 0 rgba(94,200,255,.6);animation:lpulse 2.6s infinite}
-  .sx.sx-now .t{font-family:var(--mono);font-size:10px;letter-spacing:0;opacity:.85}
+  @keyframes lpulse{0%{box-shadow:0 0 0 0 rgba(94,200,255,.5)}70%{box-shadow:0 0 0 9px rgba(94,200,255,0)}100%{box-shadow:0 0 0 0 rgba(94,200,255,0)}}
+  /* The one control: a chip beside the regions, so the board can be narrowed to
+     whoever is on the ladder without a menu to open. */
+  .rseg button.pchip{color:var(--playing)}
+  .rseg button.pchip[aria-pressed="true"]{background:rgba(94,200,255,.14);color:var(--playing);box-shadow:inset 0 0 0 1px rgba(94,200,255,.55)}
+  @media (prefers-reduced-motion:reduce){ .pmark::before{animation:none} }
 
   /* ---- Table / feed ---- */
   .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
@@ -632,15 +603,6 @@
       <button data-k="sg" aria-pressed="false">Season</button>
     </div>
     <div class="wseg rseg" id="regionSeg" role="group" aria-label="Region"></div>
-    <div class="lwrap" id="liveWrap" hidden>
-      <button class="lpill" id="livePill" aria-expanded="false" aria-controls="liveMenu">
-        <span class="lp" aria-hidden="true"></span>
-        <span class="cw" id="liveCount">0</span>
-        <span class="cv">playing</span>
-        <span class="ar" aria-hidden="true">&#9660;</span>
-      </button>
-      <div class="lmenu" id="liveMenu" hidden></div>
-    </div>
   </div>
 
   <noscript>

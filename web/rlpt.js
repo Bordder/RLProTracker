@@ -187,31 +187,6 @@
         card('Teams', rankedTeams+' <small>/ '+teams.length+'</small>', 'with ranked players', false);
     }
 
-    // Who is on the ladder lives in one pill in the control row: a count you can
-    // read at a glance, and the names behind a click rather than spread across
-    // a band that is empty half the day.
-    function renderLiveMenu(){
-      var wrap=document.getElementById('liveWrap');
-      if(!wrap)return;
-      var live=players.filter(isLive).sort(function(a,b){
-        return ((b.session&&b.session.games)||0)-((a.session&&a.session.games)||0);
-      });
-      wrap.hidden=!live.length;
-      if(!live.length){ closeLiveMenu(); return; }
-      document.getElementById('liveCount').textContent=live.length;
-      document.getElementById('liveMenu').innerHTML=
-        live.map(function(p){
-          var m=sessionMins(p), g=p.session?p.session.games:null;
-          return '<button class="lrow" data-live="'+esc(p.name)+'">'+
-            '<span><b>'+esc(p.name)+'</b><i>'+esc(p.team||'')+'</i></span>'+
-            '<span class="sess"><b>'+(g!=null?g+(g===1?' game':' games'):'&middot;')+'</b><i>'+(m!=null?durWords(m):'')+'</i></span>'+
-          '</button>';
-        }).join('')+
-        '<div class="lfoot"><button class="lonly" id="liveOnlyBtn" aria-pressed="'+(liveOnly?'true':'false')+'">'+
-          (liveOnly?'Showing only these':'Show only these')+
-        '</button></div>';
-    }
-
     // ---- merge into unified models ----
     //
     // players and teams are filled IN PLACE rather than reassigned. buildTable
@@ -280,7 +255,7 @@
       // Cards read live state, and live state is judged against the collection
       // time, so this has to come after that timestamp is in place.
       renderCards();
-      renderLiveMenu();
+      if(typeof buildRegions==='function')buildRegions();
       return true;
     }
 
@@ -322,17 +297,13 @@
     // ladder right now, and for how long. It replaces that chip rather than
     // crowding in beside it, because while someone is playing that is the more
     // useful of the two facts.
-    var closeLiveMenu=function(){
-      var m=document.getElementById('liveMenu'), b=document.getElementById('livePill');
-      if(m)m.hidden=true;
-      if(b)b.setAttribute('aria-expanded','false');
-    };
-    var liveChip=function(p){
+    // Playing is not a privacy setting, so it does not stand in for one. It
+    // rides the name instead, leaving the status column to say what Steam
+    // publishes about that profile whether they are on the ladder or not.
+    var playMark=function(p){
       var m=sessionMins(p), g=p.session?p.session.games:null;
       var hint='Playing ranked right now'+(m!=null?', '+durWords(m)+' into the session':'')+(g!=null?', '+g+(g===1?' game':' games')+' so far':'')+'.';
-      // Just the state. How long they have been at it is on hover, and in full
-      // in the session list, where there is room to read it.
-      return '<span class="sx sx-now" title="'+esc(hint)+'">Playing</span>';
+      return '<span class="pmark" title="'+esc(hint)+'">Playing</span>';
     };
 
     var renderStatus=function(){
@@ -435,7 +406,7 @@
     renderStatus();
     // A live session goes stale on its own, so re-check on the same beat as the
     // freshness line rather than waiting for the next fetch.
-    setInterval(function(){ renderCards(); renderLiveMenu(); renderPodium(); paintP(); },60000);
+    setInterval(function(){ renderCards(); renderPodium(); paintP(); },60000);
     // A tab left open must not keep claiming the data is fresh.
     setInterval(renderStatus,60000);
 
@@ -504,14 +475,14 @@
       var mmr=p.hasMmr?(mmrCell(p.mmr.ones,'m1')+mmrCell(p.mmr.twos,'m2')+mmrCell(p.mmr.threes,'m3')):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
       return '<tr class="'+(p.hasMmr?'':'isnorank')+'">'+
         '<td class="c-rk">'+rankMark(p.__rank)+'</td>'+
-        '<td class="c-who">'+teamMark(p.team)+'<span class="nm"><b>'+(isLive(p)?'<span class="livedot" title="In a ranked session right now"></span>':'')+esc(p.name)+'</b><i>'+esc(p.team||'Free agent')+'</i></span></td>'+
+        '<td class="c-who">'+teamMark(p.team)+'<span class="nm"><b>'+esc(p.name)+(isLive(p)?playMark(p):'')+'</b><i>'+esc(p.team||'Free agent')+'</i></span></td>'+
         // The phone layout needs both chips in one container so they can sit
         // flush against the right edge together; as separate grid cells they
         // could be adjacent or right aligned, never both. The duplicate is
         // hidden on desktop, where the two columns stay sortable in their own
         // right.
-        '<td class="c-rg">'+regionChip(p.region)+'<span class="chip-pair">'+(isLive(p)?liveChip(p):statusChip(p.status))+'</span></td>'+
-        '<td class="c-st">'+(isLive(p)?liveChip(p):statusChip(p.status))+'</td>'+mmr+
+        '<td class="c-rg">'+regionChip(p.region)+'<span class="chip-pair">'+statusChip(p.status)+'</span></td>'+
+        '<td class="c-st">'+statusChip(p.status)+'</td>'+mmr+
         '<td class="c-sg" data-l="season">'+(p.seasonGames!=null?'<span class="sgv">'+nf(p.seasonGames)+'</span>':'<span class="dash">&middot;</span>')+'</td>'+
         '<td class="c-g14" data-l="'+esc(WIN_LABEL[win]||win)+'">'+fmtGames(p.games,win)+'</td>'+
         '<td class="c-hr c-hr2" data-l="2wk h">'+hours2wkCell(p)+'</td>'+
@@ -766,16 +737,24 @@
       var counts={};
       players.forEach(function(p){ if(p.region)counts[p.region]=(counts[p.region]||0)+1; });
       var order=['EU','NA','SAM','MENA','OCE','APAC'].filter(function(r){return counts[r];});
+      var live=players.filter(isLive).length;
       regionSeg.innerHTML='<button data-r="" aria-pressed="'+(regionQ?'false':'true')+'">All<span class="rn">'+players.length+'</span></button>'+
         order.map(function(r){
           return '<button data-r="'+r+'" aria-pressed="'+(regionQ===r?'true':'false')+'">'+r+'<span class="rn">'+counts[r]+'</span></button>';
-        }).join('');
+        }).join('')+
+        (live?'<button class="pchip" data-live-only="1" aria-pressed="'+(liveOnly?'true':'false')+'">Playing<span class="rn">'+live+'</span></button>':'');
       Array.prototype.forEach.call(regionSeg.querySelectorAll('button'),function(b){
         b.addEventListener('click',function(){
-          regionQ=b.dataset.r||'';
-          Array.prototype.forEach.call(regionSeg.querySelectorAll('button'),function(x){
-            x.setAttribute('aria-pressed',(x.dataset.r||'')===regionQ?'true':'false');
-          });
+          if(b.dataset.liveOnly){
+            liveOnly=!liveOnly;
+            b.setAttribute('aria-pressed',liveOnly?'true':'false');
+          }else{
+            regionQ=b.dataset.r||'';
+            Array.prototype.forEach.call(regionSeg.querySelectorAll('button'),function(x){
+              if(x.dataset.liveOnly)return;
+              x.setAttribute('aria-pressed',(x.dataset.r||'')===regionQ?'true':'false');
+            });
+          }
           renderPodium(); paintP(); paintT();
         });
       });
@@ -784,44 +763,6 @@
 
     showMmrPlaylist();
     setMetric(metricBtns[0]);
-
-    // ---- live menu ----
-    var livePill=document.getElementById('livePill'), liveMenu=document.getElementById('liveMenu');
-    var openLiveMenu=function(open){
-      if(!livePill||!liveMenu)return;
-      liveMenu.hidden=!open;
-      livePill.setAttribute('aria-expanded',open?'true':'false');
-    };
-    var isLiveMenuOpen=function(){ return liveMenu&&!liveMenu.hidden; };
-    livePill&&livePill.addEventListener('click',function(){ openLiveMenu(!isLiveMenuOpen()); });
-
-    // The list is rebuilt on every refresh, so clicks are caught on the menu.
-    liveMenu&&liveMenu.addEventListener('click',function(e){
-      var only=e.target.closest?e.target.closest('#liveOnlyBtn'):null;
-      if(only){
-        liveOnly=!liveOnly;
-        renderLiveMenu(); renderPodium(); paintP();
-        openLiveMenu(true);
-        return;
-      }
-      var row=e.target.closest?e.target.closest('[data-live]'):null;
-      if(!row)return;
-      // Jump to that player rather than filtering: one name is what was asked
-      // for, and the search box already does exactly that.
-      var input=document.getElementById('search');
-      input.value=row.getAttribute('data-live');
-      searchQ=input.value.trim().toLowerCase();
-      document.getElementById('searchWrap').classList.add('has');
-      renderPodium(); paintP(); paintT();
-      openLiveMenu(false);
-    });
-
-    document.addEventListener('click',function(e){
-      if(!isLiveMenuOpen())return;
-      if(e.target.closest&&(e.target.closest('#liveMenu')||e.target.closest('#livePill')))return;
-      openLiveMenu(false);
-    });
-    document.addEventListener('keydown',function(e){ if(e.key==='Escape')openLiveMenu(false); });
 
     // ---- search ----
     var input=document.getElementById('search'), wrap=document.getElementById('searchWrap');
