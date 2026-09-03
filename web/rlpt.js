@@ -98,7 +98,7 @@
     'KINOTROPE gaming':'APAC',
     'Pioneers':'SSA'
   };
-  var REGION_CLASS={EU:'rg-eu',NA:'rg-na',SAM:'rg-sam',MENA:'rg-mena',OCE:'rg-oce',APAC:'rg-apac'};
+  var REGION_CLASS={EU:'rg-eu',NA:'rg-na',SAM:'rg-sam',MENA:'rg-mena',OCE:'rg-oce',APAC:'rg-apac',SSA:'rg-ssa'};
 
   // ---- Team marks -------------------------------------------------------
   // Drop a file at web/img/teams/<slug>.<ext> and list its extension here to
@@ -223,9 +223,20 @@
       // rough figure. d14 matches the 2-week window the Steam column shows.
       var presById={}; (presence&&presence.players||[]).forEach(function(p){presById[p.id]=p;});
 
-      var nextPlayers=steam.players.map(function(p){
-        var t=trById[p.id]||{};
-        return { id:p.id, name:p.name, team:p.team, region:REGION[p.team]||null, status:p.status,
+      // The board is every player either collector knows about, not just the
+      // ones Steam has seen. The two run on different clocks - Steam hourly,
+      // the tracker every couple of minutes - so a player added to the roster
+      // would otherwise be missing from the site for up to an hour despite
+      // having MMR and games already.
+      var steamById={}; steam.players.forEach(function(p){steamById[p.id]=p;});
+      var ids=steam.players.map(function(p){return p.id;});
+      (tracker&&tracker.players||[]).forEach(function(p){ if(!steamById[p.id])ids.push(p.id); });
+
+      var nextPlayers=ids.map(function(id){
+        var p=steamById[id]||trById[id]||{};
+        var t=trById[id]||{};
+        return { id:id, name:p.name, team:p.team, region:REGION[p.team]||null,
+          status:steamById[id]?steamById[id].status:'unknown',
           mmr:(t.mmr&&t.mmr.twos!=null)?t.mmr:(t.mmr||null),
           hasMmr:!!(t.mmr&&(t.mmr.ones!=null||t.mmr.twos!=null||t.mmr.threes!=null)),
           seasonGames:t.seasonGames?t.seasonGames.total:null,
@@ -235,18 +246,29 @@
           // rather than only the profiles Steam lets us watch.
           lastPlayedAt:(function(){var v=t.lastPlayedAt?Date.parse(t.lastPlayedAt):NaN;return isNaN(v)?null:v;})(),
           session:t.session?{startedAt:Date.parse(t.session.startedAt),games:t.session.games}:null,
-          hours2wk:p.steam2wkHours,
+          // Hours only ever come from the Steam side; a player the hourly job
+          // has not reached yet simply has none, which the cells already know
+          // how to say.
+          hours2wk:p.steam2wkHours!=null?p.steam2wkHours:null,
           estHours2wk:(function(){
             if(p.steam2wkHours!=null)return null; // never shadow a measured reading
-            var e=presById[p.id];
+            var e=presById[id];
             return (e&&e.presenceHours&&e.presenceHours.d14)?e.presenceHours.d14:null;
           })(),
-          totalHours:p.totalHours, totalFrozenAt:p.totalHoursFrozenAt||null };
+          totalHours:p.totalHours!=null?p.totalHours:null, totalFrozenAt:p.totalHoursFrozenAt||null };
       });
 
+      // Same union on the teams tab: team-hours comes from the hourly Steam job
+      // and team-tracker from the two-minute one, so a new org would otherwise
+      // be missing here too.
       var ttByTeam={}; (teamT&&teamT.teams||[]).forEach(function(t){ttByTeam[t.team]=t;});
-      var nextTeams=teamH.teams.map(function(t){
-        var tt=ttByTeam[t.team]||{};
+      var thByTeam={}; teamH.teams.forEach(function(t){thByTeam[t.team]=t;});
+      var teamNames=teamH.teams.map(function(t){return t.team;});
+      (teamT&&teamT.teams||[]).forEach(function(t){ if(!thByTeam[t.team])teamNames.push(t.team); });
+
+      var nextTeams=teamNames.map(function(name){
+        var t=thByTeam[name]||{team:name,players:(ttByTeam[name]||{}).players||0,tracked:0,steam2wkHours:null,totalHours:null};
+        var tt=ttByTeam[name]||{};
         return { team:t.team, region:REGION[t.team]||null, players:t.players, tracked:t.tracked, ranked:tt.ranked||0,
           avgMmr:tt.avgMmr||null, seasonGames:tt.seasonGames!=null?tt.seasonGames:null,
           hours2wk:t.steam2wkHours, totalHours:t.totalHours };
@@ -502,7 +524,7 @@
         // right.
         '<td class="c-rg">'+regionChip(p.region)+'<span class="chip-pair">'+statusChip(p.status)+'</span></td>'+
         '<td class="c-st">'+statusChip(p.status)+'</td>'+mmr+
-        '<td class="c-sg" data-l="season">'+(p.seasonGames!=null?'<span class="sgv">'+nf(p.seasonGames)+'</span>':'<span class="dash">&middot;</span>')+'</td>'+
+        '<td class="c-sg" data-l="games">'+(p.seasonGames!=null?'<span class="sgv">'+nf(p.seasonGames)+'</span>':'<span class="dash">&middot;</span>')+'</td>'+
         '<td class="c-g14" data-l="'+esc(WIN_LABEL[win]||win)+'">'+fmtGames(p.games,win)+'</td>'+
         '<td class="c-hr c-hr2" data-l="2wk h">'+hours2wkCell(p)+'</td>'+
         '<td class="c-hr c-hrt" data-l="total h">'+totalHoursCell(p)+'</td>'+
@@ -602,14 +624,14 @@
     // filter, so it is always the head of the list below it rather than a
     // second, competing ranking.
     var podEl=document.getElementById('podium');
-    var METRIC_LABEL={twos:'2v2 MMR',ones:'1v1 MMR',threes:'3v3 MMR',sg:'games this season',g14:'games',h2:'hours, 2wk',ht:'hours total',name:'',region:'',status:''};
+    var METRIC_LABEL={twos:'2v2 MMR',ones:'1v1 MMR',threes:'3v3 MMR',sg:'games',g14:'games in the window',h2:'hours, 2wk',ht:'hours total',name:'',region:'',status:''};
     // Every podium card carries the same six figures the table columns do, so
     // reading across the top three is the same job as reading down the list.
     var POD_STATS=[
       {k:'ones',  lab:'1v1',    get:function(p){ return p.mmr&&p.mmr.ones!=null?nf(p.mmr.ones):null; }},
       {k:'twos',  lab:'2v2',    get:function(p){ return p.mmr&&p.mmr.twos!=null?nf(p.mmr.twos):null; }},
       {k:'threes',lab:'3v3',    get:function(p){ return p.mmr&&p.mmr.threes!=null?nf(p.mmr.threes):null; }},
-      {k:'sg',    lab:'season', get:function(p){ return p.seasonGames!=null?nf(p.seasonGames):null; }},
+      {k:'sg',    lab:'games', get:function(p){ return p.seasonGames!=null?nf(p.seasonGames):null; }},
       {k:'g14',   lab:null,     get:function(p){ var g=p.games&&p.games[win]; return g&&g.games!=null&&!g.partial?nf(g.games):null; }},
       {k:'h2',    lab:'2wk h',  get:function(p){ var h=p.hours2wk!=null?p.hours2wk:p.estHours2wk; return h!=null?(p.hours2wk!=null?hf(h):'~'+hf(h)):null; }}
     ];
@@ -782,7 +804,7 @@
       if(!regionSeg)return;
       var counts={};
       players.forEach(function(p){ if(p.region)counts[p.region]=(counts[p.region]||0)+1; });
-      var order=['EU','NA','SAM','MENA','OCE','APAC'].filter(function(r){return counts[r];});
+      var order=['EU','NA','SAM','MENA','APAC','OCE','SSA'].filter(function(r){return counts[r];});
       regionSeg.innerHTML='<button data-r="" aria-pressed="'+(regionQ?'false':'true')+'">All<span class="rn">'+players.length+'</span></button>'+
         order.map(function(r){
           return '<button data-r="'+r+'" aria-pressed="'+(regionQ===r?'true':'false')+'">'+r+'<span class="rn">'+counts[r]+'</span></button>';
