@@ -166,6 +166,12 @@
   .wseg button{appearance:none;border:0;background:transparent;cursor:pointer;border-radius:6px;font-family:var(--mono);font-size:12px;font-weight:500;color:var(--slate);padding:5px 13px;transition:color .15s,background .15s}
   .wseg button:hover{color:var(--bone)}
   .wseg button[aria-pressed="true"]{background:var(--accent);color:var(--ink);font-weight:700}
+  /* The MMR button carries the playlist it is showing, and cycles it on click. */
+  .wseg button .mpl{
+    display:inline-block;margin-left:7px;padding:1px 5px;border-radius:4px;
+    background:var(--panel2);color:var(--slate);font-size:11px;font-weight:600;letter-spacing:.02em;
+  }
+  .wseg button[aria-pressed="true"] .mpl{background:rgba(12,14,19,.22);color:var(--ink)}
   .whint{font-size:11.5px;color:var(--dim)}
 
   /* ---- Podium: the top three of whatever the table is ranked by ---- */
@@ -583,7 +589,7 @@
 
   <div class="wrow" id="wrow">
     <div class="wseg" id="metricSeg" role="group" aria-label="Order the board by">
-      <button data-k="mmr" aria-pressed="true">MMR</button>
+      <button data-k="mmr" aria-pressed="true" title="Click to switch playlist">MMR<span class="mpl" id="mmrPl">2v2</span></button>
       <button data-k="g14" data-w="d1" aria-pressed="false">Games 24h</button>
       <button data-k="g14" data-w="d7" aria-pressed="false">Games 7d</button>
       <button data-k="h2" aria-pressed="false">Hours 2wk</button>

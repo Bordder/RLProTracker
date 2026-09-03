@@ -614,9 +614,11 @@
     var podStat=function(label,value,active){
       return '<div'+(active?' class="on"':'')+'><b'+(value==null?' class="na"':'')+'>'+(value==null?'hidden':value)+'</b><span>'+label+'</span></div>';
     };
-    var renderPodium=function(){
+    // `nextKey` lets a caller render the podium for an order it is about to
+    // apply, rather than the one the table is still in.
+    var renderPodium=function(nextKey){
       if(!podEl)return;
-      var k=paintP.sortKey(), acc=pAcc[k];
+      var k=nextKey||paintP.sortKey(), acc=pAcc[k];
       // Ranking by name or region is a lookup, not a leaderboard, so no podium.
       if(!acc||k==='name'||k==='region'||k==='status'||searchQ){ podEl.innerHTML=''; podiumIds={}; return; }
       var arr=players.filter(function(p){
@@ -693,21 +695,37 @@
         b.setAttribute('aria-pressed',mine?'true':'false');
       });
     };
-    var setMetric=function(btn){
+    // MMR is one button holding three playlists. Clicking it while it is
+    // already the active order steps 1v1 -> 2v2 -> 3v3 and back, so the
+    // playlist is switched where it is read rather than in a separate control.
+    var PLAYLISTS=['ones','twos','threes'];
+    var PL_LABEL={ones:'1v1',twos:'2v2',threes:'3v3'};
+    var showMmrPlaylist=function(){
+      var el=document.getElementById('mmrPl');
+      if(el)el.textContent=PL_LABEL[mmrKey];
+    };
+    var setMetric=function(btn,fromClick){
       var k=btn.dataset.k, w=btn.dataset.w;
       if(w){
         win=w;
         var th=pv.querySelector('th.c-g14 span'); if(th)th.textContent=WIN_LABEL[w];
       }
-      // MMR is a mode, not a playlist: it orders by whichever of 1v1 / 2v2 /
-      // 3v3 is currently in play, which a click on that column sets.
-      if(k==='mmr')k=mmrKey;
+      if(k==='mmr'){
+        var cur=paintP.sortKey();
+        // Already ranking by MMR, so this click means "next playlist". Only a
+        // real click advances it: the first paint sets the mode, not the step.
+        if(fromClick&&(cur==='ones'||cur==='twos'||cur==='threes')){
+          mmrKey=PLAYLISTS[(PLAYLISTS.indexOf(mmrKey)+1)%PLAYLISTS.length];
+        }
+        k=mmrKey;
+        showMmrPlaylist();
+      }
       markMetric(k);
-      renderPodium();
+      renderPodium(k);
       paintP.setSort(k,'desc');
     };
     Array.prototype.forEach.call(metricBtns,function(b){
-      b.addEventListener('click',function(){setMetric(b);});
+      b.addEventListener('click',function(){setMetric(b,true);});
     });
 
     // A header click still sorts, so the buttons drop their highlight rather
@@ -716,7 +734,7 @@
       var th=e.target.closest?e.target.closest('th.sortable'):null;
       if(!th)return;
       var k=paintP.sortKey();
-      if(k==='ones'||k==='twos'||k==='threes')mmrKey=k;
+      if(k==='ones'||k==='twos'||k==='threes'){ mmrKey=k; showMmrPlaylist(); }
       markMetric(k);
       renderPodium();
       paintP();
@@ -749,6 +767,7 @@
     };
     buildRegions();
 
+    showMmrPlaylist();
     setMetric(metricBtns[0]);
 
     // ---- live filter ----
