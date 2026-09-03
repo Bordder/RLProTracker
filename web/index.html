@@ -372,8 +372,10 @@
   table.mini tr:last-child td{border-bottom:0}
   table.mini .pl{text-align:left;color:var(--bone);font-family:var(--body);font-weight:600;font-size:14.5px}
   table.mini th.pl{font-family:var(--display);font-size:11px;color:var(--slate);font-weight:600}
-  table.mini .best{position:relative}
-  table.mini .best::after{content:"";position:absolute;right:6px;top:50%;width:3px;height:3px;border-radius:50%;background:var(--accent);transform:translateY(-50%)}
+  /* Best in its column. A dot floating beside the number read as a smudge, so
+     the cell itself carries a wash instead. */
+  table.mini .best{background:rgba(255,90,31,.06)}
+  table.mini .best>*{font-weight:700}
 
   /* ---- Team marks: a real logo when one is supplied, else a tinted monogram ---- */
   .av.mk{background:var(--mk,var(--panel2));color:var(--mkfg,var(--slate));border-color:var(--mkline,var(--line2))}
