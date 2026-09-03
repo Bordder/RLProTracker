@@ -227,8 +227,8 @@
   @keyframes lpulse{0%{box-shadow:0 0 0 0 rgba(94,200,255,.5)}70%{box-shadow:0 0 0 9px rgba(94,200,255,0)}100%{box-shadow:0 0 0 0 rgba(94,200,255,0)}}
   /* The one control: a chip beside the regions, so the board can be narrowed to
      whoever is on the ladder without a menu to open. */
-  /* Just another button in the same pill; the blue is what marks it out. */
-  #playingSlot{display:inline-flex}
+  /* Its own pill, first in the row: it filters the board rather than ordering it. */
+  .pseg{border-color:rgba(94,200,255,.32);background:rgba(94,200,255,.05)}
   .wseg button.pbtn{
     display:inline-flex;align-items:center;gap:7px;
     font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:11.5px;font-weight:700;color:var(--playing);
@@ -607,13 +607,13 @@
   </div>
 
   <div class="wrow" id="wrow">
+    <div class="wseg pseg" id="playingSeg" role="group" aria-label="Currently playing" hidden></div>
     <div class="wseg" id="metricSeg" role="group" aria-label="Order the board by">
       <button data-k="mmr" aria-pressed="true" title="Click to switch playlist">MMR<span class="mpl" id="mmrPl">2v2</span></button>
       <button data-k="g14" data-w="d1" aria-pressed="false">Games 24h</button>
       <button data-k="g14" data-w="d7" aria-pressed="false">Games 7d</button>
       <button data-k="h2" aria-pressed="false">Hours 2wk</button>
       <button data-k="sg" aria-pressed="false">Season</button>
-      <span id="playingSlot"></span>
     </div>
     <div class="wseg rseg" id="regionSeg" role="group" aria-label="Region"></div>
   </div>

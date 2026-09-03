@@ -756,16 +756,17 @@
     // Playing belongs with the buttons that decide what the board shows, not
     // with the regions, which answer a different question. It only exists while
     // somebody is actually on the ladder.
-    var playingSlot=document.getElementById('playingSlot');
+    var playingSeg=document.getElementById('playingSeg');
     var buildPlaying=function(){
-      if(!playingSlot)return;
+      if(!playingSeg)return;
       var live=players.filter(isLive).length;
       if(!live){
-        playingSlot.innerHTML='';
+        playingSeg.hidden=true; playingSeg.innerHTML='';
         if(liveOnly){ liveOnly=false; renderPodium(); paintP(); }
         return;
       }
-      playingSlot.innerHTML='<button class="pbtn" id="playingBtn" aria-pressed="'+(liveOnly?'true':'false')+'">Playing<span class="rn">'+live+'</span></button>';
+      playingSeg.hidden=false;
+      playingSeg.innerHTML='<button class="pbtn" id="playingBtn" aria-pressed="'+(liveOnly?'true':'false')+'">Playing<span class="rn">'+live+'</span></button>';
       document.getElementById('playingBtn').addEventListener('click',function(){
         liveOnly=!liveOnly;
         this.setAttribute('aria-pressed',liveOnly?'true':'false');
