@@ -71,8 +71,12 @@ createServer(async (req, res) => {
   const file = normalize(join(WEB, path));
   if (!file.startsWith(WEB)) { res.writeHead(403); return res.end("forbidden"); }
   try {
-    const body = await readFile(file);
-    res.writeHead(200, { "content-type": TYPES[extname(file)] || "application/octet-stream", "cache-control": "no-store" });
+    // Cloudflare Pages serves /how-it-works from how-it-works.html, so the
+    // local preview has to as well or every footer link 404s here only.
+    const body = extname(file)
+      ? await readFile(file)
+      : await readFile(file + ".html").catch(() => readFile(file));
+    res.writeHead(200, { "content-type": TYPES[extname(file) || ".html"] || "application/octet-stream", "cache-control": "no-store" });
     res.end(body);
   } catch {
     res.writeHead(404, { "content-type": "text/plain" });
