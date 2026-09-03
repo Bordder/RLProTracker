@@ -473,6 +473,22 @@
         {label:'2v2',val:function(p){return p.mmr?p.mmr.twos:null;},fmt:mmrSpan},
         {label:'3v3',val:function(p){return p.mmr?p.mmr.threes:null;},fmt:mmrSpan},
         {label:'Games',val:function(p){return p.seasonGames;},fmt:function(v){return '<span class="sgv">'+nf(v)+'</span>';}},
+        // Fixed at 24h rather than following the main table's window toggle:
+        // that control belongs to the players view and is hidden behind this
+        // panel, so a label here that could silently mean 7d would mislead.
+        {label:WIN_LABEL.d1,val:function(p){
+          var g=p.games?p.games.d1:null;
+          // A partial window is not a low number, it is no number yet.
+          return (g&&g.games!=null&&!g.partial)?g.games:null;
+        },fmt:function(v){return '<span class="g14v">'+nf(v)+'</span>';}},
+        // Same order of preference as the main table: measured Steam hours,
+        // then the sampled estimate, marked so the two are never confused.
+        {label:'2wk h',val:function(p){return p.hours2wk!=null?p.hours2wk:p.estHours2wk;},fmt:function(v,p){
+          var body=hf(v);
+          return p.hours2wk!=null
+            ? '<span class="c-hr" style="display:inline">'+body+'</span>'
+            : '<span class="est" title="Estimated, not measured: sampled every few minutes from live status. Always low, since sessions between checks are missed.">'+body+'</span>';
+        }},
         {label:'Total h',val:function(p){return p.totalHours!=null?Math.round(p.totalHours):null;},fmt:function(v){return '<span class="c-hr" style="display:inline">'+nf(v)+'</span>';}}
       ];
       // Best value per column, so each metric highlights its leader.
@@ -481,7 +497,7 @@
       var body=roster.map(function(p){
         return '<tr><td class="pl">'+esc(p.name)+'</td>'+METRICS.map(function(m,i){
           var v=m.val(p);
-          return '<td'+(v!=null&&v===bests[i]?' class="best"':'')+'>'+(v!=null?m.fmt(v):'&middot;')+'</td>';
+          return '<td'+(v!=null&&v===bests[i]?' class="best"':'')+'>'+(v!=null?m.fmt(v,p):'&middot;')+'</td>';
         }).join('')+'</tr>';
       }).join('');
       return '<div class="exp-wrap"><div class="exp-h">Roster comparison</div><div class="scroll" style="border-radius:8px"><table class="mini"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div></div>';
