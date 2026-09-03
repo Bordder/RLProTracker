@@ -482,6 +482,7 @@
     }
 
     var win='d1'; // recent-games window: d1 (24h, live now) / d7 / d14
+    var mmrKey='twos'; // which playlist the MMR mode ranks on: ones / twos / threes
     var pCols=[{label:'#',cls:'c-rk'},{label:'Player',cls:'c-who',k:'name'},{label:'Region',cls:'c-rg',k:'region'},{label:'Status',cls:'c-st',k:'status'},{label:'1v1',cls:'c-mmr',k:'ones',num:true},{label:'2v2',cls:'c-mmr',k:'twos',num:true},{label:'3v3',cls:'c-mmr',k:'threes',num:true},{label:'Games',cls:'c-sg',k:'sg',num:true,title:'Total ranked games played since the current competitive season began'},{label:WIN_LABEL[win],cls:'c-g14',k:'g14',num:true},{label:'2wk h',cls:'c-hr',k:'h2',num:true},{label:'Total h',cls:'c-hr',k:'ht',num:true}];
     var pAcc={name:function(p){return(p.name||'').toLowerCase();},region:function(p){return p.region||null;},status:function(p){return p.status?String(p.status).toLowerCase():null;},ones:function(p){return p.mmr?p.mmr.ones:null;},twos:function(p){return p.mmr?p.mmr.twos:null;},threes:function(p){return p.mmr?p.mmr.threes:null;},sg:function(p){return p.seasonGames;},g14:function(p){return p.games&&p.games[win]?p.games[win].games:null;},h2:function(p){return p.hours2wk!=null?p.hours2wk:p.estHours2wk;},ht:function(p){return p.totalHours;}};
     var playerRow=function(p){
@@ -593,6 +594,16 @@
     // second, competing ranking.
     var podEl=document.getElementById('podium');
     var METRIC_LABEL={twos:'2v2 MMR',ones:'1v1 MMR',threes:'3v3 MMR',sg:'games this season',g14:'games',h2:'hours, 2wk',ht:'hours total',name:'',region:'',status:''};
+    // Every podium card carries the same six figures the table columns do, so
+    // reading across the top three is the same job as reading down the list.
+    var POD_STATS=[
+      {k:'ones',  lab:'1v1',    get:function(p){ return p.mmr&&p.mmr.ones!=null?nf(p.mmr.ones):null; }},
+      {k:'twos',  lab:'2v2',    get:function(p){ return p.mmr&&p.mmr.twos!=null?nf(p.mmr.twos):null; }},
+      {k:'threes',lab:'3v3',    get:function(p){ return p.mmr&&p.mmr.threes!=null?nf(p.mmr.threes):null; }},
+      {k:'sg',    lab:'season', get:function(p){ return p.seasonGames!=null?nf(p.seasonGames):null; }},
+      {k:'g14',   lab:null,     get:function(p){ var g=p.games&&p.games[win]; return g&&g.games!=null&&!g.partial?nf(g.games):null; }},
+      {k:'h2',    lab:'2wk h',  get:function(p){ var h=p.hours2wk!=null?p.hours2wk:p.estHours2wk; return h!=null?(p.hours2wk!=null?hf(h):'~'+hf(h)):null; }}
+    ];
     var podFigure=function(p,k){
       if(k==='g14'){ var g=p.games&&p.games[win]; return g&&g.games!=null&&!g.partial?nf(g.games):null; }
       if(k==='h2'){ var h=p.hours2wk!=null?p.hours2wk:p.estHours2wk; return h!=null?hf(h):null; }
@@ -600,8 +611,8 @@
       if(k==='sg') return p.seasonGames!=null?nf(p.seasonGames):null;
       var v=p.mmr?p.mmr[k]:null; return v!=null?nf(v):null;
     };
-    var podStat=function(label,value){
-      return '<div><b'+(value==null?' class="na"':'')+'>'+(value==null?'hidden':value)+'</b><span>'+label+'</span></div>';
+    var podStat=function(label,value,active){
+      return '<div'+(active?' class="on"':'')+'><b'+(value==null?' class="na"':'')+'>'+(value==null?'hidden':value)+'</b><span>'+label+'</span></div>';
     };
     var renderPodium=function(){
       if(!podEl)return;
@@ -622,13 +633,9 @@
       podiumIds={}; arr.forEach(function(p){ if(p.id)podiumIds[p.id]=1; });
       podEl.innerHTML='<div class="pod">'+arr.map(function(p,i){
         var fig=podFigure(p,k);
-        // The two figures a reader wants next are the ones the podium is not
-        // already ranked by, so pick around the current metric.
-        var stats=[];
-        if(k!=='twos') stats.push(podStat('2v2 MMR',p.mmr&&p.mmr.twos!=null?nf(p.mmr.twos):null));
-        if(k!=='g14'){ var g=p.games&&p.games[win]; stats.push(podStat(WIN_LABEL[win]||win,g&&g.games!=null&&!g.partial?nf(g.games):null)); }
-        if(k!=='sg'&&stats.length<2) stats.push(podStat('season',p.seasonGames!=null?nf(p.seasonGames):null));
-        if(k!=='h2'&&stats.length<2){ var h=p.hours2wk!=null?p.hours2wk:p.estHours2wk; stats.push(podStat('2wk h',h!=null?hf(h):null)); }
+        var stats=POD_STATS.map(function(st){
+          return podStat(st.lab||WIN_LABEL[win]||win, st.get(p), st.k===k);
+        });
         return '<div class="pc p'+(i+1)+'">'+
           '<div class="ptop">'+
             '<span class="pnum">'+String(i+1).padStart(2,'0')+'</span>'+
@@ -637,7 +644,7 @@
             (isLive(p)?'<span class="plive">In ranked</span>':'')+
           '</div>'+
           '<div class="pfig"><b>'+(fig==null?'&middot;':fig)+'</b><span>'+(METRIC_LABEL[k]||'')+'</span></div>'+
-          '<div class="prow">'+stats.slice(0,2).join('')+'</div>'+
+          '<div class="prow">'+stats.join('')+'</div>'+
         '</div>';
       }).join('')+'</div>';
     };
@@ -678,13 +685,24 @@
     // options it also sets which window that column shows. Ordering by a
     // column that is not on screen would be the confusing version.
     var metricBtns=document.querySelectorAll('#metricSeg button');
+    var markMetric=function(k){
+      Array.prototype.forEach.call(metricBtns,function(b){
+        var mine=(b.dataset.k==='mmr')
+          ? (k==='ones'||k==='twos'||k==='threes')
+          : (b.dataset.k===k&&(!b.dataset.w||b.dataset.w===win));
+        b.setAttribute('aria-pressed',mine?'true':'false');
+      });
+    };
     var setMetric=function(btn){
       var k=btn.dataset.k, w=btn.dataset.w;
       if(w){
         win=w;
         var th=pv.querySelector('th.c-g14 span'); if(th)th.textContent=WIN_LABEL[w];
       }
-      Array.prototype.forEach.call(metricBtns,function(b){b.setAttribute('aria-pressed',b===btn?'true':'false');});
+      // MMR is a mode, not a playlist: it orders by whichever of 1v1 / 2v2 /
+      // 3v3 is currently in play, which a click on that column sets.
+      if(k==='mmr')k=mmrKey;
+      markMetric(k);
       renderPodium();
       paintP.setSort(k,'desc');
     };
@@ -698,12 +716,10 @@
       var th=e.target.closest?e.target.closest('th.sortable'):null;
       if(!th)return;
       var k=paintP.sortKey();
+      if(k==='ones'||k==='twos'||k==='threes')mmrKey=k;
+      markMetric(k);
       renderPodium();
       paintP();
-      Array.prototype.forEach.call(metricBtns,function(b){
-        var mine=b.dataset.k===k&&(!b.dataset.w||b.dataset.w===win);
-        b.setAttribute('aria-pressed',mine?'true':'false');
-      });
     });
 
     // ---- region filter ----

@@ -191,10 +191,12 @@
   .pod .pfig b{font-family:var(--mono);font-weight:600;font-size:30px;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
   .pod .pc:not(.p1) .pfig b{color:var(--bone)}
   .pod .pfig span{font-family:var(--display);text-transform:uppercase;letter-spacing:.14em;font-size:10.5px;font-weight:600;color:var(--slate)}
-  .pod .prow{display:flex;gap:14px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:9px;margin-top:auto}
-  .pod .prow div{display:flex;flex-direction:column;gap:1px}
-  .pod .prow b{font-family:var(--mono);font-size:13px;color:var(--bone);font-variant-numeric:tabular-nums}
+  .pod .prow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px 10px;border-top:1px solid var(--line);padding-top:9px;margin-top:auto}
+  .pod .prow div{display:flex;flex-direction:column;gap:1px;min-width:0}
+  .pod .prow b{font-family:var(--mono);font-size:13px;color:var(--bone);font-variant-numeric:tabular-nums;white-space:nowrap}
   .pod .prow b.na{color:var(--dim);font-size:11px}
+  .pod .prow div.on b{color:var(--accent)}
+  .pod .prow div.on span{color:var(--slate)}
   .pod .prow span{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:9.5px;font-weight:600;color:var(--dim)}
   .pod .plive{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:10px;font-weight:700;color:var(--live);border:1px solid rgba(72,201,138,.35);background:rgba(72,201,138,.08);border-radius:4px;padding:2px 6px;margin-left:auto;white-space:nowrap}
   @media (max-width:820px){
@@ -580,9 +582,8 @@
   </div>
 
   <div class="wrow" id="wrow">
-    <span class="wlbl">Rank by</span>
-    <div class="wseg" id="metricSeg" role="group" aria-label="Rank players by">
-      <button data-k="twos" aria-pressed="true">2v2 MMR</button>
+    <div class="wseg" id="metricSeg" role="group" aria-label="Order the board by">
+      <button data-k="mmr" aria-pressed="true">MMR</button>
       <button data-k="g14" data-w="d1" aria-pressed="false">Games 24h</button>
       <button data-k="g14" data-w="d7" aria-pressed="false">Games 7d</button>
       <button data-k="h2" aria-pressed="false">Hours 2wk</button>
