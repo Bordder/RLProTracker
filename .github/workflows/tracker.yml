@@ -34,9 +34,14 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: "24"
+          # Without this the install re-resolves Playwright and the stealth
+          # plugin from the registry on every run. Measured 2026-09-03: 271s of
+          # install against a 29s scrape, which pushed runs past the 2-minute
+          # dispatch interval and left GitHub cancelling the queued one.
+          cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci --no-audit --no-fund
 
       # Chromium is 22s of a ~65s run, which is the single biggest fixed cost in
       # the cadence. The browser binaries are cached on the Playwright version, so

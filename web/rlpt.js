@@ -190,6 +190,9 @@
       var rankedFig=ranked.length===players.length
         ? String(ranked.length)
         : ranked.length+' <small>/ '+players.length+'</small>';
+      var teamsFig=rankedTeams===teams.length
+        ? String(rankedTeams)
+        : rankedTeams+' <small>/ '+teams.length+'</small>';
       document.getElementById('stats').innerHTML=
         card('Players Ranked', rankedFig, 'pros with ranked data', false)+
         card('Total Ranked Games', nf(totalGames)+' <small>games</small>', 'this season, across all tracked pros', false)+
@@ -197,7 +200,7 @@
         card('Avg 2v2 MMR', avg2v2!=null?nf(avg2v2):'&middot;', avg2v2!=null?('average of '+ranked.length+' pros'):'no data yet', false)+
         // The teams count is a click away on its own tab, and on a phone it was
         // the card pushing everything else down.
-        '<div class="card no-phone"><div class="k">Teams</div><div class="v">'+rankedTeams+' <small>/ '+teams.length+'</small></div><div class="s">with ranked players</div></div>';
+        '<div class="card no-phone"><div class="k">Teams</div><div class="v">'+teamsFig+'</div><div class="s">with ranked players</div></div>';
     }
 
     // ---- merge into unified models ----
