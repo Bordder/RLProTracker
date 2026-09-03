@@ -1,5 +1,5 @@
 {
-  "at": "2026-09-03T00:12:27.796Z",
+  "at": "2026-09-03T00:14:28.748Z",
   "proxyCount": 15,
   "players": 60,
   "use": [
@@ -31,18 +31,18 @@
       "i": 4,
       "attempts": 4,
       "retries": 0,
-      "fails": 0
-    },
-    {
-      "i": 5,
-      "attempts": 4,
-      "retries": 0,
       "fails": 4
     },
     {
-      "i": 6,
+      "i": 5,
       "attempts": 8,
       "retries": 4,
+      "fails": 1
+    },
+    {
+      "i": 6,
+      "attempts": 5,
+      "retries": 1,
       "fails": 0
     },
     {
