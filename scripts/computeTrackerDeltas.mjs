@@ -20,6 +20,13 @@ const HOUR = 3600e3;
 const WINDOWS = { d1: 24 * HOUR, d7: 7 * 24 * HOUR, d14: 14 * 24 * HOUR };
 const PL = { ones: "d1", twos: "d2", threes: "d3" }; // output key -> snapshot key
 
+// Two readings of the same player belong to one session while the gap between
+// the games they record is under this. Rocket League matches run about five to
+// seven minutes and the collector samples every few minutes, so half an hour is
+// comfortably longer than a queue plus a match and short enough that yesterday
+// evening never merges into this morning.
+export const SESSION_GAP_MS = 30 * 60e3;
+
 // Pure core (no IO) so it can be unit-tested. `snaps` is [{ t, rows }] in any
 // order; returns { now, players } where now is the latest snapshot time and
 // players is the derived per-player MMR/tier/games-per-window array.
@@ -76,7 +83,50 @@ export function computeTrackerPlayers(snaps) {
     const sVals = ["ones", "twos", "threes"].map((k) => seasonGames[k]).filter((v) => v != null);
     seasonGames.total = sVals.length ? sVals.reduce((a, b) => a + b, 0) : null;
 
-    players.push({ ...meta, updatedAt: new Date(latest.t).toISOString(), mmr, tier, seasonGames, games });
+    // When a player last actually played, and the session that is still running.
+    //
+    // The board's headline question is who is on the ladder now, and Steam
+    // cannot answer it: presence is only visible for profiles that already
+    // publish playtime. Cumulative match counts can. A count that moved between
+    // two readings is a game finished in that gap, which works for every
+    // tracked player regardless of their Steam privacy.
+    const totals = readings.map((r) => {
+      const vals = Object.values(PL)
+        .map((k) => r.playlists?.[k]?.matches)
+        .filter((v) => v != null);
+      return { t: r.t, m: vals.length ? vals.reduce((a, b) => a + b, 0) : null };
+    });
+
+    const bumps = [];
+    for (let i = 1; i < totals.length; i++) {
+      const prev = totals[i - 1], cur = totals[i];
+      if (prev.m == null || cur.m == null) continue;
+      // A season reset drops the count; that is not games played.
+      if (cur.m > prev.m) bumps.push({ at: cur.t, since: prev.t, games: cur.m - prev.m });
+    }
+
+    let lastPlayedAt = null, session = null;
+    if (bumps.length) {
+      const last = bumps[bumps.length - 1];
+      lastPlayedAt = new Date(last.at).toISOString();
+      let start = last.since, played = 0, newer = null;
+      for (let i = bumps.length - 1; i >= 0; i--) {
+        const b = bumps[i];
+        // Idle stretch between two bursts of games: the session ended there.
+        if (newer && newer.since - b.at > SESSION_GAP_MS) break;
+        played += b.games;
+        // The games in this bump happened somewhere inside its own window. If
+        // that window is longer than a session, we only know the player was
+        // playing when we saw it, so the session starts there and nothing
+        // earlier joins it.
+        if (b.at - b.since > SESSION_GAP_MS) { start = b.at; break; }
+        start = b.since;
+        newer = b;
+      }
+      session = { startedAt: new Date(start).toISOString(), games: played };
+    }
+
+    players.push({ ...meta, updatedAt: new Date(latest.t).toISOString(), lastPlayedAt, session, mmr, tier, seasonGames, games });
   }
 
   return { now, players };

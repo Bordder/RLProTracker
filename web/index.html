@@ -151,13 +151,39 @@
   .search .clr{position:absolute;right:8px;background:none;border:0;color:var(--dim);cursor:pointer;font-size:16px;line-height:1;padding:4px;display:none}
   .search .clr:hover{color:var(--bone)}
   .search.has .clr{display:block}
-  .wrow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 10px}
+  .wrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}
   .wlbl{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:11px;font-weight:600;color:var(--slate)}
+  /* Region filter sits with the search so it applies to players and teams alike. */
+  .rseg button{font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:11.5px;font-weight:600;padding:5px 10px}
+  .rseg button[aria-pressed="true"]{background:var(--panel2);color:var(--bone);box-shadow:inset 0 0 0 1px var(--accent-line)}
+  .rseg button .rn{font-family:var(--mono);font-size:10px;font-weight:400;color:var(--dim);margin-left:5px;letter-spacing:0}
+  .rseg button[aria-pressed="true"] .rn{color:var(--slate)}
   .wseg{display:inline-flex;background:var(--surface);border:1px solid var(--line2);border-radius:8px;padding:2px}
   .wseg button{appearance:none;border:0;background:transparent;cursor:pointer;border-radius:6px;font-family:var(--mono);font-size:12px;font-weight:500;color:var(--slate);padding:5px 13px;transition:color .15s,background .15s}
   .wseg button:hover{color:var(--bone)}
   .wseg button[aria-pressed="true"]{background:var(--accent);color:var(--ink);font-weight:700}
   .whint{font-size:11.5px;color:var(--dim)}
+
+  /* ---- Live now band ---- */
+  .lnow{
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:0 0 12px;
+    border:1px solid rgba(72,201,138,.28);background:rgba(72,201,138,.06);border-radius:10px;padding:10px 14px;
+  }
+  .lnow .lh{
+    font-family:var(--display);text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-weight:700;
+    color:var(--live);display:flex;align-items:center;gap:9px;white-space:nowrap;
+  }
+  .lnow .lp{width:8px;height:8px;border-radius:50%;background:var(--live);box-shadow:0 0 0 0 rgba(72,201,138,.55);animation:lpulse 2.6s infinite}
+  @keyframes lpulse{0%{box-shadow:0 0 0 0 rgba(72,201,138,.5)}70%{box-shadow:0 0 0 10px rgba(72,201,138,0)}100%{box-shadow:0 0 0 0 rgba(72,201,138,0)}}
+  .lnow .lwho{display:flex;gap:16px;flex-wrap:wrap;font-size:13.5px}
+  .lnow .lwho b{font-weight:600}
+  .lnow .lwho em{font-style:normal;font-family:var(--mono);font-size:11.5px;color:var(--slate);margin-left:6px}
+  .lnow .lmore{font-family:var(--mono);font-size:11.5px;color:var(--dim)}
+  .livedot{
+    display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--live);
+    margin-right:6px;vertical-align:1px;flex:none;
+  }
+  @media (max-width:640px){ .lnow{gap:8px;padding:9px 12px} .lnow .lwho{font-size:13px;gap:12px} }
 
   /* ---- Table / feed ---- */
   .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
@@ -523,11 +549,15 @@
   </div>
 
   <div class="wrow" id="wrow">
-    <span class="wlbl">Recent ranked games</span>
-    <div class="wseg" role="group" aria-label="Recent games window">
-      <button data-w="d1" aria-pressed="true">24h</button>
-      <button data-w="d7" aria-pressed="false">7d</button>
+    <span class="wlbl">Rank by</span>
+    <div class="wseg" id="metricSeg" role="group" aria-label="Rank players by">
+      <button data-k="twos" aria-pressed="true">2v2 MMR</button>
+      <button data-k="g14" data-w="d1" aria-pressed="false">Games 24h</button>
+      <button data-k="g14" data-w="d7" aria-pressed="false">Games 7d</button>
+      <button data-k="h2" aria-pressed="false">Hours 2wk</button>
+      <button data-k="sg" aria-pressed="false">Season</button>
     </div>
+    <div class="wseg rseg" id="regionSeg" role="group" aria-label="Region"></div>
   </div>
 
   <noscript>
@@ -539,6 +569,7 @@
     </div>
   </noscript>
 
+  <div id="liveNow"></div>
   <div id="dataStatus"></div>
 
   <section id="playersView" role="tabpanel"></section>

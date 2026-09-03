@@ -197,6 +197,10 @@
           seasonGames:t.seasonGames?t.seasonGames.total:null,
           games:t.games?t.games.total:null,
           updatedAt:(function(){var v=t.updatedAt?Date.parse(t.updatedAt):NaN;return isNaN(v)?null:v;})(),
+          // Derived from cumulative match counts, so it covers every player
+          // rather than only the profiles Steam lets us watch.
+          lastPlayedAt:(function(){var v=t.lastPlayedAt?Date.parse(t.lastPlayedAt):NaN;return isNaN(v)?null:v;})(),
+          session:t.session?{startedAt:Date.parse(t.session.startedAt),games:t.session.games}:null,
           hours2wk:p.steam2wkHours,
           estHours2wk:(function(){
             if(p.steam2wkHours!=null)return null; // never shadow a measured reading
@@ -264,6 +268,43 @@
       if(h<24)return h+' hour'+(h===1?'':'s');
       var d=Math.round(h/24);
       return d+' day'+(d===1?'':'s');
+    };
+
+    // ---- who is on the ladder right now -------------------------------------
+    //
+    // A player counts as live when their match count moved within LIVE_MS of
+    // the data being collected, and that collection is itself recent. Both
+    // halves matter: without the second, a stalled collector would keep
+    // insisting a session from an hour ago is still running.
+    var LIVE_MS=10*60e3;
+    var isLive=function(p){
+      if(!p.lastPlayedAt||collectedAt==null)return false;
+      if(Date.now()-collectedAt>LIVE_MS)return false;
+      return collectedAt-p.lastPlayedAt<=LIVE_MS;
+    };
+    var sessionMins=function(p){
+      if(!p.session||collectedAt==null)return null;
+      return Math.max(1,Math.round((collectedAt-p.session.startedAt)/60000));
+    };
+    var durWords=function(m){ return m<60?m+'m':(Math.floor(m/60)+'h '+String(m%60).padStart(2,'0')+'m'); };
+
+    var renderLive=function(){
+      var box=document.getElementById('liveNow');
+      if(!box)return;
+      var live=players.filter(isLive).sort(function(a,b){
+        return ((b.session&&b.session.games)||0)-((a.session&&a.session.games)||0);
+      });
+      if(!live.length){ box.innerHTML=''; return; }
+      var shown=live.slice(0,6);
+      box.innerHTML='<div class="lnow">'+
+        '<span class="lh"><span class="lp" aria-hidden="true"></span>'+live.length+' in ranked now</span>'+
+        '<span class="lwho">'+shown.map(function(p){
+          var m=sessionMins(p), g=p.session?p.session.games:null;
+          var d=[]; if(m!=null)d.push(durWords(m)); if(g!=null)d.push(g+(g===1?' game':' games'));
+          return '<span><b>'+esc(p.name)+'</b>'+(d.length?'<em>'+d.join(' &middot; ')+'</em>':'')+'</span>';
+        }).join('')+'</span>'+
+        (live.length>shown.length?'<span class="lmore">+'+(live.length-shown.length)+' more</span>':'')+
+        '</div>';
     };
 
     var renderStatus=function(){
@@ -339,7 +380,7 @@
           // the previous copy for any feed that did not come back rather than
           // discarding a good board over one bad response.
           for(var i=0;i<next.length;i++) if(!next[i]) next[i]=latest[i];
-          if(hydrate(next)){ latest=next; if(full)lastFull=Date.now(); paintP(); paintT(); restoreOpenTeam(); }
+          if(hydrate(next)){ latest=next; if(full)lastFull=Date.now(); paintP(); paintT(); renderLive(); restoreOpenTeam(); }
         })
         .catch(function(){})
         .then(function(){ refreshing=false; renderStatus(); });
@@ -364,12 +405,17 @@
     };
 
     renderStatus();
+    renderLive();
+    // A live session goes stale on its own, so re-check on the same beat as
+    // the freshness line rather than waiting for the next fetch.
+    setInterval(renderLive,60000);
     // A tab left open must not keep claiming the data is fresh.
     setInterval(renderStatus,60000);
 
     // ---- sortable + searchable feed ----
     var pv=document.getElementById('playersView'), tv=document.getElementById('teamsView');
     var searchQ='';
+  var regionQ='';   // '' = every region
 
     function buildTable(mount, columns, items, accessors, rowFn, def, matchFn){
       var sk=def.k, sd=def.dir;
@@ -391,7 +437,10 @@
       thead.appendChild(trh); tbl.appendChild(thead);
       var tb=document.createElement('tbody'); tbl.appendChild(tb);
       function paint(){
-        var arr=items.filter(function(x){return !searchQ||matchFn(x,searchQ);});
+        var arr=items.filter(function(x){
+          if(regionQ&&x.region!==regionQ)return false;
+          return !searchQ||matchFn(x,searchQ);
+        });
         var acc=accessors[sk];
         if(acc){ arr=arr.slice().sort(function(a,b){
           var av=acc(a),bv=acc(b),an=(av==null||av===''),bn=(bv==null||bv==='');
@@ -405,6 +454,10 @@
         trh.querySelectorAll('th').forEach(function(th){ th.classList.remove('s-asc','s-desc'); if(th.dataset.k===sk)th.classList.add(sd==='asc'?'s-asc':'s-desc'); });
       }
       scroll.appendChild(tbl); mount.innerHTML=''; mount.appendChild(scroll);
+      // The metric buttons drive the same sort the column headers do, so the
+      // two controls can never disagree about what the table is ordered by.
+      paint.setSort=function(k,dir){ sk=k; sd=dir||'desc'; paint(); };
+      paint.sortKey=function(){ return sk; };
       paint();
       return paint;
     }
@@ -416,7 +469,7 @@
       var mmr=p.hasMmr?(mmrCell(p.mmr.ones,'m1')+mmrCell(p.mmr.twos,'m2')+mmrCell(p.mmr.threes,'m3')):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
       return '<tr class="'+(p.hasMmr?'':'isnorank')+'">'+
         '<td class="c-rk">'+rankMark(p.__rank)+'</td>'+
-        '<td class="c-who">'+teamMark(p.team)+'<span class="nm"><b>'+esc(p.name)+'</b><i>'+esc(p.team||'Free agent')+'</i></span></td>'+
+        '<td class="c-who">'+teamMark(p.team)+'<span class="nm"><b>'+(isLive(p)?'<span class="livedot" title="In a ranked session right now"></span>':'')+esc(p.name)+'</b><i>'+esc(p.team||'Free agent')+'</i></span></td>'+
         // The phone layout needs both chips in one container so they can sit
         // flush against the right edge together; as separate grid cells they
         // could be adjacent or right aligned, never both. The duplicate is
@@ -542,16 +595,66 @@
     tv.addEventListener('click',function(e){ var tr=e.target.closest?e.target.closest('tr.team-row'):null; if(tr)toggleTeam(tr); });
     tv.addEventListener('keydown',function(e){ if(e.key!=='Enter'&&e.key!==' ')return; var tr=e.target.closest?e.target.closest('tr.team-row'):null; if(tr){ e.preventDefault(); toggleTeam(tr); } });
 
-    // ---- recent-games window toggle (24h is live; 7d/14d fill over time) ----
-    var winBtns=document.querySelectorAll('#wrow .wseg button');
-    var setWin=function(w){
-      win=w;
-      Array.prototype.forEach.call(winBtns,function(b){b.setAttribute('aria-pressed',b.dataset.w===w?'true':'false');});
-      var th=pv.querySelector('th.c-g14 span'); if(th)th.textContent=WIN_LABEL[w];
-      paintP();
+    // ---- rank-by buttons ----
+    //
+    // One control does two jobs, because to a reader they are the same job:
+    // it sets which column the table is ordered by, and for the two games
+    // options it also sets which window that column shows. Ordering by a
+    // column that is not on screen would be the confusing version.
+    var metricBtns=document.querySelectorAll('#metricSeg button');
+    var setMetric=function(btn){
+      var k=btn.dataset.k, w=btn.dataset.w;
+      if(w){
+        win=w;
+        var th=pv.querySelector('th.c-g14 span'); if(th)th.textContent=WIN_LABEL[w];
+      }
+      Array.prototype.forEach.call(metricBtns,function(b){b.setAttribute('aria-pressed',b===btn?'true':'false');});
+      paintP.setSort(k,'desc');
     };
-    Array.prototype.forEach.call(winBtns,function(b){b.addEventListener('click',function(){setWin(b.dataset.w);});});
-    setWin('d1');
+    Array.prototype.forEach.call(metricBtns,function(b){
+      b.addEventListener('click',function(){setMetric(b);});
+    });
+
+    // A header click still sorts, so the buttons drop their highlight rather
+    // than claiming an order the table is no longer in.
+    pv.addEventListener('click',function(e){
+      var th=e.target.closest?e.target.closest('th.sortable'):null;
+      if(!th)return;
+      var k=paintP.sortKey();
+      Array.prototype.forEach.call(metricBtns,function(b){
+        var mine=b.dataset.k===k&&(!b.dataset.w||b.dataset.w===win);
+        b.setAttribute('aria-pressed',mine?'true':'false');
+      });
+    });
+
+    // ---- region filter ----
+    //
+    // Sixty players is a lot to read at once and region is how people ask the
+    // question ("who is grinding in NA"). Counts sit on the buttons so an
+    // empty region is obvious before it is clicked.
+    var regionSeg=document.getElementById('regionSeg');
+    var buildRegions=function(){
+      if(!regionSeg)return;
+      var counts={};
+      players.forEach(function(p){ if(p.region)counts[p.region]=(counts[p.region]||0)+1; });
+      var order=['EU','NA','SAM','MENA','OCE','APAC'].filter(function(r){return counts[r];});
+      regionSeg.innerHTML='<button data-r="" aria-pressed="'+(regionQ?'false':'true')+'">All<span class="rn">'+players.length+'</span></button>'+
+        order.map(function(r){
+          return '<button data-r="'+r+'" aria-pressed="'+(regionQ===r?'true':'false')+'">'+r+'<span class="rn">'+counts[r]+'</span></button>';
+        }).join('');
+      Array.prototype.forEach.call(regionSeg.querySelectorAll('button'),function(b){
+        b.addEventListener('click',function(){
+          regionQ=b.dataset.r||'';
+          Array.prototype.forEach.call(regionSeg.querySelectorAll('button'),function(x){
+            x.setAttribute('aria-pressed',(x.dataset.r||'')===regionQ?'true':'false');
+          });
+          paintP(); paintT();
+        });
+      });
+    };
+    buildRegions();
+
+    setMetric(metricBtns[0]);
 
     // ---- search ----
     var input=document.getElementById('search'), wrap=document.getElementById('searchWrap');

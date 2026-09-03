@@ -95,3 +95,40 @@ test("d7/d14 windows without deep history are flagged partial", () => {
   assert.equal(p.games.twos.d7.partial, true);
   assert.equal(p.games.twos.d14.partial, true);
 });
+
+// ---- session detection ----------------------------------------------------
+// A session is the run of readings whose match counts kept moving, with no gap
+// longer than SESSION_GAP_MS. It is what tells the board who is playing now.
+
+const MIN = 60e3;
+const sess = (times) => {
+  // times: [[t, matches], ...] for one player, in order
+  const snaps = times.map(([t, m]) => ({ t, rows: [row("p", { d2: pl(1500, m) })] }));
+  return computeTrackerPlayers(snaps).players[0];
+};
+
+test("a run of readings with rising matches is one session", () => {
+  const p = sess([[T0, 100], [T0 + 5 * MIN, 102], [T0 + 10 * MIN, 105]]);
+  assert.equal(p.session.games, 5);           // 2 + 3
+  assert.equal(p.session.startedAt, new Date(T0).toISOString());
+  assert.equal(p.lastPlayedAt, new Date(T0 + 10 * MIN).toISOString());
+});
+
+test("a gap longer than the session gap starts a new session", () => {
+  const p = sess([[T0, 100], [T0 + 5 * MIN, 110], [T0 + 90 * MIN, 112], [T0 + 95 * MIN, 115]]);
+  assert.equal(p.session.games, 5);           // only the later block
+  assert.equal(p.session.startedAt, new Date(T0 + 90 * MIN).toISOString()); // seen playing then, nothing earlier joins
+  assert.equal(p.lastPlayedAt, new Date(T0 + 95 * MIN).toISOString());
+});
+
+test("readings that never move report no session", () => {
+  const p = sess([[T0, 100], [T0 + 5 * MIN, 100], [T0 + 10 * MIN, 100]]);
+  assert.equal(p.session, null);
+  assert.equal(p.lastPlayedAt, null);
+});
+
+test("a season reset is not counted as games played", () => {
+  const p = sess([[T0, 900], [T0 + 5 * MIN, 4], [T0 + 10 * MIN, 6]]);
+  assert.equal(p.session.games, 2);           // the drop is ignored, the rise is not
+  assert.equal(p.lastPlayedAt, new Date(T0 + 10 * MIN).toISOString());
+});
