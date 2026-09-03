@@ -159,3 +159,21 @@ test("a hidden zero cannot overwrite a real capture", () => {
   assert.equal(store.p.foreverMin, 6000);
   assert.equal(store.p.at, "2026-08-30T10:00:00.000Z");
 });
+
+test("a rate-limited run keeps the last state Steam reported", () => {
+  const { byId } = run([
+    { t: T0, rows: [r("a", 6000, 300, "public")] },
+    { t: T25, rows: [r("a", null, null, "error: HTTP 420 for ...")] },
+  ], { a: { foreverMin: 6000, at: "2026-01-01T00:00:00.000Z" } });
+  const p = byId.get("a");
+  assert.equal(p.status, "public");
+  assert.equal(p.totalHours, 100); // frozen reading, not a blank
+});
+
+test("a player who has only ever errored still shows the error", () => {
+  const { byId } = run([
+    { t: T0, rows: [r("a", null, null, "error: HTTP 420 for ...")] },
+    { t: T25, rows: [r("a", null, null, "error: HTTP 420 for ...")] },
+  ], {});
+  assert.match(byId.get("a").status, /^error:/);
+});

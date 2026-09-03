@@ -27,9 +27,27 @@ const api = (iface, method, ver, params) => {
   return `https://api.steampowered.com/${iface}/${method}/${ver}/?${qs}`;
 };
 
-async function getJson(url) {
+// Steam answers a burst of calls with 429, and sometimes with the older 420
+// "Enhance Your Calm". Both are transient and say nothing about the player, so
+// they are retried with backoff rather than published as a per-player status.
+const RETRY_STATUS = new Set([408, 420, 429, 500, 502, 503, 504]);
+const RETRIES = 4;
+const BACKOFF_MS = 1500;
+const PACE_MS = 250;
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+async function getJson(url, attempt = 0) {
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status} for ${url.replace(KEY, "***")}`);
+  if (!res.ok) {
+    if (RETRY_STATUS.has(res.status) && attempt < RETRIES) {
+      // 1.5s, 3s, 6s, 12s. A whole roster is ~70 calls, so the budget resets
+      // well inside a run even when several players back up behind one limit.
+      await sleep(BACKOFF_MS * 2 ** attempt);
+      return getJson(url, attempt + 1);
+    }
+    throw new Error(`HTTP ${res.status} for ${url.replace(KEY, "***")}`);
+  }
   return res.json();
 }
 
@@ -120,6 +138,10 @@ async function main() {
       out.status = `error: ${e.message}`;
     }
     rows.push(out);
+    // One player per quarter second. Slower than Steam strictly requires, but
+    // a full roster still finishes in under half a minute and no run has to
+    // spend its way into a rate limit first.
+    await sleep(PACE_MS);
   }
 
   // Rolling history rather than a file per run: see scripts/steamHistory.mjs.

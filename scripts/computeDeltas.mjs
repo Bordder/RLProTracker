@@ -34,6 +34,20 @@ function snapAtOrBefore(snaps, target) {
 
 const foreverFor = (snap, id) => snap.rows.find((r) => r.id === id)?.foreverMin ?? null;
 
+// A run can fail for one player and succeed for the rest: Steam rate-limits a
+// burst with 429/420, and the collector records that as `error: ...`. That says
+// nothing about the profile, so the last state Steam actually reported is used
+// instead, and only a player who has never had one shows the error itself.
+const isError = (status) => String(status ?? "").startsWith("error");
+
+function lastGoodStatus(sorted, id) {
+  for (let i = sorted.length - 2; i >= 0; i--) {
+    const row = sorted[i].rows.find((r) => r.id === id);
+    if (row && !isError(row.status)) return row.status;
+  }
+  return null;
+}
+
 // Merge the newest readings into the durable last-known store. Playtime only
 // ever grows, so a reading is kept when it beats the stored one; equal values
 // leave the recorded date alone so "as of" reflects when the number last moved.
@@ -66,10 +80,11 @@ export function computeSteamPlayers(snaps, lastKnown = {}) {
   const players = [];
 
   for (const row of latest.rows) {
+    const status = isError(row.status) ? (lastGoodStatus(sorted, row.id) ?? row.status) : row.status;
     // A profile with its total kept private reports 0 rather than withholding
     // the game, so that zero is treated as "no reading" throughout: it must not
     // become a published figure, a window diff, or a stored capture.
-    const cur = row.status === "playtime-hidden" ? null : row.foreverMin;
+    const cur = status === "playtime-hidden" ? null : row.foreverMin;
     const windows = {};
     for (const [key, span] of Object.entries(WINDOWS)) {
       const past = snapAtOrBefore(sorted, now - span);
@@ -86,12 +101,12 @@ export function computeSteamPlayers(snaps, lastKnown = {}) {
     // caught a real figure it stays on the board, dated, rather than vanishing.
     const frozen = cur == null ? lastKnown[row.id] : null;
     players.push({
-      id: row.id, name: row.name, team: row.team, status: row.status,
+      id: row.id, name: row.name, team: row.team, status,
       totalHours: cur != null ? +(cur / 60).toFixed(1) : (frozen ? +(frozen.foreverMin / 60).toFixed(1) : null),
       totalHoursFrozenAt: frozen ? frozen.at : null,
       // The fortnight figure is never carried over: it describes a rolling two
       // weeks, so an old value would read as recent activity.
-      steam2wkHours: row.status === "playtime-hidden" || row.twoWeeksMin == null ? null : +(row.twoWeeksMin / 60).toFixed(1),
+      steam2wkHours: status === "playtime-hidden" || row.twoWeeksMin == null ? null : +(row.twoWeeksMin / 60).toFixed(1),
       windows,
     });
   }
