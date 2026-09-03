@@ -483,7 +483,7 @@
     var pAcc={name:function(p){return(p.name||'').toLowerCase();},region:function(p){return p.region||null;},status:function(p){return p.status?String(p.status).toLowerCase():null;},ones:function(p){return p.mmr?p.mmr.ones:null;},twos:function(p){return p.mmr?p.mmr.twos:null;},threes:function(p){return p.mmr?p.mmr.threes:null;},sg:function(p){return p.seasonGames;},g14:function(p){return p.games&&p.games[win]?p.games[win].games:null;},h2:function(p){return p.hours2wk!=null?p.hours2wk:p.estHours2wk;},ht:function(p){return p.totalHours;}};
     var playerRow=function(p){
       var mmr=p.hasMmr?(mmrCell(p.mmr.ones,'m1')+mmrCell(p.mmr.twos,'m2')+mmrCell(p.mmr.threes,'m3')):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
-      return '<tr class="'+(p.hasMmr?'':'isnorank')+'">'+
+      return '<tr class="'+(p.hasMmr?'':'isnorank')+'" data-player="'+esc(p.name)+'">'+
         '<td class="c-rk">'+rankMark(p.__rank)+'</td>'+
         '<td class="c-who">'+teamMark(p.team)+'<span class="nm"><b>'+esc(p.name)+(isLive(p)?playMark(p):'')+'</b><i>'+esc(p.team||'Free agent')+'</i></span></td>'+
         // The phone layout needs both chips in one container so they can sit
@@ -579,7 +579,11 @@
       return '<div class="exp-wrap"><div class="exp-h">Roster comparison</div><div class="scroll" style="border-radius:8px"><table class="mini"><thead>'+head+'</thead><tbody>'+body+'</tbody></table></div></div>';
     };
 
-    var paintP=buildTable(pv,pCols,players,pAcc,playerRow,{k:'twos',dir:'desc'},pMatch);
+    var paintPRaw=buildTable(pv,pCols,players,pAcc,playerRow,{k:'twos',dir:'desc'},pMatch);
+    var paintP=function(){ paintPRaw(); if(typeof applyOpenPlayer==='function')applyOpenPlayer(); };
+    paintP.setSort=function(k,dir){ paintPRaw.setSort(k,dir); if(typeof applyOpenPlayer==='function')applyOpenPlayer(); };
+    paintP.sortKey=paintPRaw.sortKey;
+    paintP.sortDir=paintPRaw.sortDir;
     var paintT=buildTable(tv,tCols,teams,tAcc,teamRow,{k:'twos',dir:'desc'},tMatch);
 
     // ---- podium ----
@@ -648,6 +652,27 @@
         '</div>';
       }).join('')+'</div>';
     };
+
+    // ---- player rows open for the rest of their numbers ----
+    //
+    // The phone list shows two figures; the other nine are a tap away rather
+    // than a screen away. One row at a time, and the open one is restored after
+    // a repaint so a refresh does not close it under the reader.
+    var openPlayer=null;
+    var applyOpenPlayer=function(){
+      var rows=pv.querySelectorAll('tbody tr');
+      Array.prototype.forEach.call(rows,function(tr){
+        tr.classList.toggle('open',!!openPlayer&&tr.getAttribute('data-player')===openPlayer);
+      });
+    };
+    pv.addEventListener('click',function(e){
+      if(e.target.closest&&e.target.closest('a'))return;
+      var tr=e.target.closest?e.target.closest('tbody tr'):null;
+      if(!tr)return;
+      var name=tr.getAttribute('data-player');
+      openPlayer=(openPlayer===name)?null:name;
+      applyOpenPlayer();
+    });
 
     // ---- team drilldown: click a team to compare its roster; only one open at a time ----
     var openTeam=null; // team name of the expanded row, so refreshes can restore it

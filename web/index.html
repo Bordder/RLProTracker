@@ -518,11 +518,60 @@
     .feed>tbody>tr>td.c-hr{font-size:13px}
     .feed>tbody>tr>td.c-hr .na{font-size:10px}
 
-    /* Region, status and the rest of the numbers belong to the wide view. The
-       playing mark stays, because it rides the name. */
+    /* Region, status and the rest of the numbers are one tap away rather than
+       gone: a row opens into the full set. */
     .feed>tbody>tr>td.c-rg,
     .feed>tbody>tr>td.c-st,
     .feed>tbody>tr>td.c-fill{display:none}
+    .feed>tbody>tr{cursor:pointer}
+    .feed>tbody>tr>td.c-rk{position:relative}
+    .feed>tbody>tr>td.c-rk::after{
+      content:"";position:absolute;left:2px;top:calc(50% + 10px);
+      width:5px;height:5px;border-right:1.5px solid var(--dim);border-bottom:1.5px solid var(--dim);
+      transform:rotate(45deg);transition:transform .15s;
+    }
+    .feed>tbody>tr.open>td.c-rk::after{transform:rotate(-135deg);border-color:var(--accent)}
+
+    /* Open: the row keeps its first line and lays the rest out underneath, the
+       same tiles the phone used to show for every player at once. */
+    .feed>tbody>tr.open{
+      grid-template-columns:repeat(12,minmax(0,1fr));
+      grid-template-areas:
+        "rk  who who who who who  who  rg   rg  rg  rg  rg"
+        "m1  m1  m1  m1  mm2 mm2  mm2  mm2  m3  m3  m3  m3"
+        "g14 g14 g14 sea sea sea  hr2  hr2  hr2 hrt hrt hrt";
+      gap:8px;background:var(--surface);border:1px solid var(--line2);border-radius:12px;
+      padding:12px 13px;margin:0 0 9px;
+    }
+    .feed>tbody>tr.open>td.c-rk{grid-area:rk;justify-self:start;margin-right:-6px}
+    .feed>tbody>tr.open>td.c-who{grid-area:who}
+    .feed>tbody>tr.open>td.c-rg{
+      grid-area:rg;display:flex;align-items:center;gap:6px;justify-self:end;white-space:nowrap;
+    }
+    .feed>tbody>tr.open>td.c-rg .chip-pair{display:inline-flex}
+    .feed>tbody>tr.open>td .sx,.feed>tbody>tr.open>td .rg{font-size:9.5px;padding:3px 7px;letter-spacing:.06em}
+    /* The collapsed line hides 2v2 when it is ordering by another playlist.
+       An open row shows everything, so it says so more specifically. */
+    .feed[data-sort]>tbody>tr.open>td.c-mmr.m2{display:block}
+    .feed>tbody>tr.open>td.c-mmr.m1{grid-area:m1}
+    .feed>tbody>tr.open>td.c-mmr.m2{grid-area:mm2}
+    .feed>tbody>tr.open>td.c-mmr.m3{grid-area:m3}
+    .feed>tbody>tr.open>td.c-g14{grid-area:g14}
+    .feed>tbody>tr.open>td.c-sg{grid-area:sea}
+    .feed>tbody>tr.open>td.c-hr2{grid-area:hr2}
+    .feed>tbody>tr.open>td.c-hrt{grid-area:hrt}
+    .feed>tbody>tr.open>td.c-mmr,
+    .feed>tbody>tr.open>td.c-g14,
+    .feed>tbody>tr.open>td.c-sg,
+    .feed>tbody>tr.open>td.c-hr{
+      display:block;text-align:left;min-width:0;overflow:hidden;
+      background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:6px 9px 7px;
+    }
+    .feed>tbody>tr.open>td.c-mmr::before,
+    .feed>tbody>tr.open>td.c-g14::before,
+    .feed>tbody>tr.open>td.c-sg::before,
+    .feed>tbody>tr.open>td.c-hr::before{text-align:left;font-size:9px}
+    .feed>tbody>tr.open>td.c-hr .na,.feed>tbody>tr.open>td.c-hr .frozen{overflow:hidden;text-overflow:ellipsis}
 
     /* A player with no ranked data has one cell spanning the three MMR slots. */
         /* No ranked data: there are no m1/mm2/m3 cells to place, so the strip takes
