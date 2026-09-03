@@ -179,12 +179,19 @@
       var withTwos=ranked.filter(function(p){return p.mmr.twos!=null;});
       var avg2v2=withTwos.length?Math.round(withTwos.reduce(function(a,p){return a+(p.mmr.twos||0);},0)/withTwos.length):null;
       var rankedTeams=teams.filter(function(t){return t.ranked>0;}).length;
+      // "60 / 60" is a fraction whose halves are the same number; it only earns
+      // the denominator when somebody is missing.
+      var rankedFig=ranked.length===players.length
+        ? String(ranked.length)
+        : ranked.length+' <small>/ '+players.length+'</small>';
       document.getElementById('stats').innerHTML=
-        card('Players Ranked', ranked.length+' <small>/ '+players.length+'</small>', 'pros with ranked data', false)+
+        card('Players Ranked', rankedFig, 'pros with ranked data', false)+
         card('Total Ranked Games', nf(totalGames)+' <small>games</small>', 'this season, across all tracked pros', false)+
         card('Most Active This Season', top?(nf(top.seasonGames)+' <small>games</small>'):'&middot;', top?('<b>'+esc(top.name)+'</b> &middot; '+esc(top.team||'')):'no data yet', true)+
         card('Avg 2v2 MMR', avg2v2!=null?nf(avg2v2):'&middot;', avg2v2!=null?('average of '+ranked.length+' pros'):'no data yet', false)+
-        card('Teams', rankedTeams+' <small>/ '+teams.length+'</small>', 'with ranked players', false);
+        // The teams count is a click away on its own tab, and on a phone it was
+        // the card pushing everything else down.
+        '<div class="card no-phone"><div class="k">Teams</div><div class="v">'+rankedTeams+' <small>/ '+teams.length+'</small></div><div class="s">with ranked players</div></div>';
     }
 
     // ---- merge into unified models ----
@@ -625,13 +632,15 @@
           return podStat(st.lab||WIN_LABEL[win]||win, st.get(p), st.k===k);
         });
         return '<div class="pc p'+(i+1)+'">'+
-          '<div class="ptop">'+
-            '<span class="pnum">'+String(i+1).padStart(2,'0')+'</span>'+
-            teamMark(p.team)+
-            '<span class="pwho"><b>'+esc(p.name)+'</b><i>'+esc(p.team||'Free agent')+'</i></span>'+
-            (isLive(p)?'<span class="plive">Playing</span>':'')+
+          '<div class="phead">'+
+            '<div class="ptop">'+
+              '<span class="pnum">'+String(i+1).padStart(2,'0')+'</span>'+
+              teamMark(p.team)+
+              '<span class="pwho"><b>'+esc(p.name)+'</b><i>'+esc(p.team||'Free agent')+'</i></span>'+
+              (isLive(p)?'<span class="plive">Playing</span>':'')+
+            '</div>'+
+            '<div class="pfig"><b>'+(fig==null?'&middot;':fig)+'</b><span>'+(METRIC_LABEL[k]||'')+'</span></div>'+
           '</div>'+
-          '<div class="pfig"><b>'+(fig==null?'&middot;':fig)+'</b><span>'+(METRIC_LABEL[k]||'')+'</span></div>'+
           '<div class="prow">'+stats.join('')+'</div>'+
         '</div>';
       }).join('')+'</div>';
