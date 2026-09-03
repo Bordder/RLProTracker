@@ -330,7 +330,9 @@
     var liveChip=function(p){
       var m=sessionMins(p), g=p.session?p.session.games:null;
       var hint='Playing ranked right now'+(m!=null?', '+durWords(m)+' into the session':'')+(g!=null?', '+g+(g===1?' game':' games')+' so far':'')+'.';
-      return '<span class="sx sx-now" title="'+esc(hint)+'">Playing'+(m!=null?'<span class="t">'+durWords(m)+'</span>':'')+'</span>';
+      // Just the state. How long they have been at it is on hover, and in full
+      // in the session list, where there is room to read it.
+      return '<span class="sx sx-now" title="'+esc(hint)+'">Playing</span>';
     };
 
     var renderStatus=function(){
@@ -656,7 +658,7 @@
             '<span class="pnum">'+String(i+1).padStart(2,'0')+'</span>'+
             teamMark(p.team)+
             '<span class="pwho"><b>'+esc(p.name)+'</b><i>'+esc(p.team||'Free agent')+'</i></span>'+
-            (isLive(p)?'<span class="plive">In ranked</span>':'')+
+            (isLive(p)?'<span class="plive">Playing</span>':'')+
           '</div>'+
           '<div class="pfig"><b>'+(fig==null?'&middot;':fig)+'</b><span>'+(METRIC_LABEL[k]||'')+'</span></div>'+
           '<div class="prow">'+stats.join('')+'</div>'+
