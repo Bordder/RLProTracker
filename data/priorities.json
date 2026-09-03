@@ -1,6 +1,6 @@
 {
   "note": "Tracker update scheduling. Runs are 2 minutes apart (dispatched by the Cloudflare Worker in worker/, not by the cron in tracker.yml) and RUN_SPACING_MS matches. A player is scraped when its interval has elapsed AND its slot matches the run, where slots = round(interval / RUN_SPACING_MS). The 0.025h (90s) interval below is deliberately SHORTER than the 120s spacing: that gives 1 slot, so every player is due on every run, and it leaves margin for dispatch jitter (at exactly 120s a run arriving a second early skips the whole roster and doubles the gap). Measured cost: ~0.55s per player, so all 60 scrape in ~35s inside a ~65s run. intervalMultiplier multiplies EVERY interval - keep it at 1 unless deliberately throttling.",
-  "perRun": 60,
+  "perRun": 110,
   "intervalMultiplier": 1,
   "defaultHours": 0.025,
   "hotIntervalMinutes": 2,

@@ -1,26 +1,297 @@
 {
-  "note": "RLCS 2026 World Championship field (20 teams). Source: Liquipedia. players[] holds the Liquipedia page title used to resolve each SteamID; fix a title here if the roster fetcher reports no-steam-link / error for it.",
+  "note": "RLCS 2026 field. The first twenty are the World Championship teams; the rest are regional sides tracked for coverage. players[] holds the Liquipedia page title used to resolve each SteamID; fix a title here if the roster fetcher reports no-steam-link / error for it.",
   "season": "RLCS 2026",
   "teams": [
-    { "name": "Karmine Corp",        "stage": "group",   "players": ["Vatira", "Atow.", "juicy"] },
-    { "name": "Gentle Mates",        "stage": "group",   "players": ["Archie", "nass", "Oski"] },
-    { "name": "Team Vitality",       "stage": "group",   "players": ["Zen", "ExoTiiK", "stizzy"] },
-    { "name": "Ninjas in Pyjamas",   "stage": "group",   "players": ["Joreuz", "crr", "oaly."] },
-    { "name": "Man City Esports",    "stage": "group",   "players": ["ejby", "accro", "Seikoo"] },
-    { "name": "NRG",                 "stage": "group",   "players": ["Atomic", "BeastMode", "Daniel"] },
-    { "name": "Shopify Rebellion",   "stage": "group",   "players": ["Firstkiller", "kofyr", "Lj"] },
-    { "name": "Spacestation Gaming", "stage": "group",   "players": ["zach", "diaz", "reveal"] },
-    { "name": "MIBR",                "stage": "group",   "players": ["Sad", "Reysbull", "Aztrø"] },
-    { "name": "FURIA",               "stage": "group",   "players": ["yANXNZ", "Lostt", "swiftt"] },
-    { "name": "Twisted Minds",       "stage": "group",   "players": ["Nwpo", "M0nkey M00n", "trk511"] },
-    { "name": "Wildcard",            "stage": "group",   "players": ["Torsos", "Fever", "Bananahead"] },
-    { "name": "Virtus.pro",          "stage": "play-in", "players": ["2Piece", "Tawk", "Wahvey"] },
-    { "name": "Team Falcons",        "stage": "play-in", "players": ["Rw9", "Kiileerrz", "dralii"] },
-    { "name": "TSM",                 "stage": "play-in", "players": ["Kevin", "Catalysm", "Sphinx"] },
-    { "name": "Five Fears",          "stage": "play-in", "players": ["tehqoz", "Snowyy", "gunz"] },
-    { "name": "Mate y Tapa",         "stage": "play-in", "players": ["ajg", "Dorito", "AtomiK"] },
-    { "name": "R8 Esports",          "stage": "play-in", "players": ["Abdullah", "M7md", "Ghaazi"] },
-    { "name": "FUT Esports",         "stage": "play-in", "players": ["jstn", "Chronic", "CHEESE."] },
-    { "name": "Bigodes",             "stage": "play-in", "players": ["nxghtt", "DRUFINHO", "Bemmz"] }
+    {
+      "name": "Karmine Corp",
+      "stage": "group",
+      "players": [
+        "Vatira",
+        "Atow.",
+        "juicy"
+      ]
+    },
+    {
+      "name": "Gentle Mates",
+      "stage": "group",
+      "players": [
+        "Archie",
+        "nass",
+        "Oski"
+      ]
+    },
+    {
+      "name": "Team Vitality",
+      "stage": "group",
+      "players": [
+        "Zen",
+        "ExoTiiK",
+        "stizzy"
+      ]
+    },
+    {
+      "name": "Ninjas in Pyjamas",
+      "stage": "group",
+      "players": [
+        "Joreuz",
+        "crr",
+        "oaly."
+      ]
+    },
+    {
+      "name": "Man City Esports",
+      "stage": "group",
+      "players": [
+        "ejby",
+        "accro",
+        "Seikoo"
+      ]
+    },
+    {
+      "name": "NRG",
+      "stage": "group",
+      "players": [
+        "Atomic",
+        "BeastMode",
+        "Daniel"
+      ]
+    },
+    {
+      "name": "Shopify Rebellion",
+      "stage": "group",
+      "players": [
+        "Firstkiller",
+        "kofyr",
+        "Lj"
+      ]
+    },
+    {
+      "name": "Spacestation Gaming",
+      "stage": "group",
+      "players": [
+        "zach",
+        "diaz",
+        "reveal"
+      ]
+    },
+    {
+      "name": "MIBR",
+      "stage": "group",
+      "players": [
+        "Sad",
+        "Reysbull",
+        "Aztrø"
+      ]
+    },
+    {
+      "name": "FURIA",
+      "stage": "group",
+      "players": [
+        "yANXNZ",
+        "Lostt",
+        "swiftt"
+      ]
+    },
+    {
+      "name": "Twisted Minds",
+      "stage": "group",
+      "players": [
+        "Nwpo",
+        "M0nkey M00n",
+        "trk511"
+      ]
+    },
+    {
+      "name": "Wildcard",
+      "stage": "group",
+      "players": [
+        "Torsos",
+        "Fever",
+        "Bananahead"
+      ]
+    },
+    {
+      "name": "Virtus.pro",
+      "stage": "play-in",
+      "players": [
+        "2Piece",
+        "Tawk",
+        "Wahvey"
+      ]
+    },
+    {
+      "name": "Team Falcons",
+      "stage": "play-in",
+      "players": [
+        "Rw9",
+        "Kiileerrz",
+        "dralii"
+      ]
+    },
+    {
+      "name": "TSM",
+      "stage": "play-in",
+      "players": [
+        "Kevin",
+        "Catalysm",
+        "Sphinx"
+      ]
+    },
+    {
+      "name": "Five Fears",
+      "stage": "play-in",
+      "players": [
+        "tehqoz",
+        "Snowyy",
+        "gunz"
+      ]
+    },
+    {
+      "name": "Mate y Tapa",
+      "stage": "play-in",
+      "players": [
+        "ajg",
+        "Dorito",
+        "AtomiK"
+      ]
+    },
+    {
+      "name": "R8 Esports",
+      "stage": "play-in",
+      "players": [
+        "Abdullah",
+        "M7md",
+        "Ghaazi"
+      ]
+    },
+    {
+      "name": "FUT Esports",
+      "stage": "play-in",
+      "players": [
+        "jstn",
+        "Chronic",
+        "CHEESE."
+      ]
+    },
+    {
+      "name": "Bigodes",
+      "stage": "play-in",
+      "players": [
+        "nxghtt",
+        "DRUFINHO",
+        "Bemmz"
+      ]
+    },
+    {
+      "name": "Geekay Esports",
+      "stage": "regional",
+      "players": [
+        "TempoH",
+        "mtzr",
+        "Alpha54"
+      ]
+    },
+    {
+      "name": "Team BSK",
+      "stage": "regional",
+      "players": [
+        "Rxii",
+        "Gawfs"
+      ]
+    },
+    {
+      "name": "Novo Esports",
+      "stage": "regional",
+      "players": [
+        "rehzzy",
+        "Nico",
+        "GiuK"
+      ]
+    },
+    {
+      "name": "FN",
+      "stage": "regional",
+      "players": [
+        "scream.",
+        "Rizex45",
+        "ivn"
+      ]
+    },
+    {
+      "name": "GHT",
+      "stage": "regional",
+      "players": [
+        "Hyderr",
+        "Tms",
+        "Gramma"
+      ]
+    },
+    {
+      "name": "Gen.G Mobil1 Racing",
+      "stage": "regional",
+      "players": [
+        "frosty"
+      ]
+    },
+    {
+      "name": "Dignitas",
+      "stage": "regional",
+      "players": [
+        "Fiv3Up",
+        "bora",
+        "ApparentlyJack"
+      ]
+    },
+    {
+      "name": "M80",
+      "stage": "regional",
+      "players": [
+        "Mech",
+        "life",
+        "PNDH"
+      ]
+    },
+    {
+      "name": "Rafha Esports",
+      "stage": "regional",
+      "players": [
+        "T7LM",
+        "M7sn",
+        "Nadr"
+      ]
+    },
+    {
+      "name": "DOS",
+      "stage": "regional",
+      "players": [
+        "ops",
+        "Suspect"
+      ]
+    },
+    {
+      "name": "Team Stallions",
+      "stage": "regional",
+      "players": [
+        "Nush",
+        "Twiz",
+        "Trook"
+      ]
+    },
+    {
+      "name": "KINOTROPE gaming",
+      "stage": "regional",
+      "players": [
+        "Kash",
+        "Maxeew"
+      ]
+    },
+    {
+      "name": "Pioneers",
+      "stage": "regional",
+      "players": [
+        "2Die4",
+        "Sweaty"
+      ]
+    }
   ]
 }
