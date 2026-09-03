@@ -126,6 +126,9 @@ async function main() {
     const out = { id: p.id, name: p.name, team: p.team, steamId64: null, visibility: null, status: "unknown", foreverMin: null, twoWeeksMin: null };
 
     try {
+      // Epic-only players are not a lookup failure: Steam has nothing to say
+      // about them by design, and the board should say so in those words.
+      if (p.epic) { out.status = "epic"; rows.push(out); continue; }
       if (!steamId64 && p.vanity) steamId64 = await resolveVanity(p.vanity);
       if (!steamId64) { out.status = "no-steam-id"; rows.push(out); continue; }
       out.steamId64 = steamId64;

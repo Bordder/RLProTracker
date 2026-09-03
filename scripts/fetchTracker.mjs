@@ -33,7 +33,11 @@ const ORIGIN = "https://rocketleague.tracker.network";
 // 200, exactly as it does after a full profile load. Warming on the API host
 // itself does NOT work - it answers 403 until the origin has cleared.
 const WARM_URL = `${ORIGIN}/robots.txt`;
-const API = (id) => `https://api.tracker.gg/api/v2/rocket-league/standard/profile/steam/${id}`;
+// tracker.gg keys a profile by platform. Steam id for most of the roster, Epic
+// display name for anyone who does not play on Steam at all.
+const API = (who) => typeof who === "string"
+  ? `https://api.tracker.gg/api/v2/rocket-league/standard/profile/steam/${who}`
+  : `https://api.tracker.gg/api/v2/rocket-league/standard/profile/${who.platform}/${encodeURIComponent(who.id)}`;
 const PLAYLISTS = { d1: "Ranked Duel 1v1", d2: "Ranked Doubles 2v2", d3: "Ranked Standard 3v3" };
 const STATE_FILE = join(ROOT, "data", "tracker-state.json");
 const ATTEMPTS = 5; // capped at proxy count in scrapePlayer; try every proxy before giving up
@@ -331,7 +335,7 @@ async function main() {
   const roster = await readJson(join(ROOT, "data", "roster.json"), { players: [] });
   const prio = await readJson(join(ROOT, "data", "priorities.json"), {});
   const state = await readJson(STATE_FILE, {});
-  const all = roster.players.filter((p) => p.steamId64);
+  const all = roster.players.filter((p) => p.steamId64 || p.epic);
   const now = Date.now();
   const players = selectDue(all, prio, state, now);
   const takenAt = new Date(now).toISOString();
@@ -370,9 +374,10 @@ async function main() {
       const idx = next++;
       if (idx >= players.length) break;
       const p = players[idx];
-      const row = { id: p.id, name: p.name, team: p.team, steamId64: p.steamId64, status: "ok", playlists: null };
+      const who = p.epic ? { platform: "epic", id: p.epic } : { platform: "steam", id: p.steamId64 };
+      const row = { id: p.id, name: p.name, team: p.team, steamId64: p.steamId64 ?? null, epic: p.epic ?? null, status: "ok", playlists: null };
       try {
-        row.playlists = await scrapePlayer(contexts, order, idx, p.steamId64);
+        row.playlists = await scrapePlayer(contexts, order, idx, who);
         if (!row.playlists) row.status = "no-data";
       } catch (e) {
         row.status = `error: ${e.message.split("\n")[0].slice(0, 50)}`;

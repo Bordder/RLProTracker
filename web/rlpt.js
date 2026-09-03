@@ -18,7 +18,7 @@
   var fmtGames=function(gs,win){ var g=gs?gs[win]:null; if(!g||g.games==null)return'<span class="dash">&middot;</span>'; if(g.partial)return'<span class="pending">pending</span>'; if(g.games===0)return'<span class="mv">0</span>'; return'<span class="g14v">'+nf(g.games)+'</span>'; };
   var WIN_LABEL={d1:'24h',d7:'7d',d14:'14d'};
   // Short chip labels, with the full meaning kept on hover.
-  var STATUS_LABEL={'hidden-details':'hidden','no-steam-id':'no steam','no-steam-link':'no steam','playtime-hidden':'hours hidden'};
+  var STATUS_LABEL={'hidden-details':'hidden','no-steam-id':'no steam','no-steam-link':'no steam','playtime-hidden':'hours hidden','epic':'epic'};
   var STATUS_HINT={
     'public':'Profile is public, so Steam publishes playtime.',
     'hidden-details':'Game details are switched off, so Steam publishes no playtime.',
@@ -26,6 +26,7 @@
     'no-steam-id':'No Steam account matched for this player.',
     'no-steam-link':'No Steam account matched for this player.',
     'playtime-hidden':'Profile is public but keeps total playtime private, a separate Steam setting.',
+    'epic':'Plays on Epic rather than Steam, so Steam publishes no hours. Ranked games and MMR are unaffected.',
     'unknown':'Steam did not return a profile state for this player.'
   };
   var statusChip=function(s){
@@ -50,7 +51,8 @@
     'private':{t:'private',h:'Profile is closed. Rechecked hourly, so hours appear if it opens.'},
     'playtime-hidden':{t:'hours hidden',h:'Total playtime is private. Rechecked hourly, so hours appear if it opens.'},
     'no-steam-id':{t:'no steam',h:'No Steam account matched yet.'},
-    'no-steam-link':{t:'no steam',h:'No Steam account matched yet.'}
+    'no-steam-link':{t:'no steam',h:'No Steam account matched yet.'},
+    'epic':{t:'epic',h:'Plays on Epic, so Steam has no hours to publish. Games and MMR are tracked as normal.'}
   };
   var hoursNA=function(status){
     var n=HOURS_NA[String(status||'').toLowerCase()];

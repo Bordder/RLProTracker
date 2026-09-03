@@ -1,7 +1,10 @@
 {
-  "note": "Manual SteamID64 corrections, applied after the roster build so they always win over Liquipedia (which sometimes links the wrong or an old account). Keyed by player id (slug of team-name).",
+  "note": "Manual corrections applied after the roster build so they always win over Liquipedia (which sometimes links the wrong or an old account). Keyed by player id (slug of team-name). steamId64 fixes a wrong Steam link; epic names a player who does not play on Steam at all, and takes precedence over any Steam id.",
   "steamId64": {
     "karmine-corp-juicy": "76561199013030566",
     "spacestation-gaming-diaz": "76561198880724484"
+  },
+  "epic": {
+    "geekay-esports-mtzr": "mtzr_."
   }
 }

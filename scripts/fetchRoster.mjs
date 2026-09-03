@@ -70,8 +70,8 @@ async function loadResolved() {
 async function loadOverrides() {
   try {
     const o = JSON.parse(await readFile(join(ROOT, "data", "overrides.json"), "utf8"));
-    return o.steamId64 ?? {};
-  } catch { return {}; }
+    return { steam: o.steamId64 ?? {}, epic: o.epic ?? {} };
+  } catch { return { steam: {}, epic: {} }; }
 }
 
 async function main() {
@@ -84,7 +84,15 @@ async function main() {
   for (const team of teams) {
     for (const title of team.players) {
       const id = slug(`${team.name}-${title}`);
-      const override = overrides[id];
+      // A player who does not play on Steam is keyed by their Epic name instead.
+      // tracker.gg serves the same profile either way, and Steam's playtime API
+      // has nothing to say about them, so there is no id to look up.
+      const epic = overrides.epic[id];
+      if (epic) {
+        players.push({ id, name: title, team: team.name, stage: team.stage, steamId64: null, epic, vanity: null, liquipedia: title, status: "epic" });
+        continue;
+      }
+      const override = overrides.steam[id];
       if (override) {
         // manual correction always wins; no lookup needed
         players.push({ id, name: title, team: team.name, stage: team.stage, steamId64: override, vanity: null, liquipedia: title, status: "override" });
