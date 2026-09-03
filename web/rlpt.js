@@ -152,6 +152,24 @@
     // ---- rank by 2v2 MMR (players by their twos, teams by avg twos) ----
     var assignRank=function(arr,key){ arr.filter(function(x){return key(x)!=null;}).sort(function(a,b){return key(b)-key(a);}).forEach(function(x,i){x.__rank=i+1;}); };
 
+    // ---- who is on the ladder right now -------------------------------------
+    //
+    // A player counts as live when their match count moved within LIVE_MS of
+    // the data being collected, and that collection is itself recent. Both
+    // halves matter: without the second, a stalled collector would keep
+    // insisting a session from an hour ago is still running.
+    var LIVE_MS=10*60e3;
+    var isLive=function(p){
+      if(!p.lastPlayedAt||collectedAt==null)return false;
+      if(Date.now()-collectedAt>LIVE_MS)return false;
+      return collectedAt-p.lastPlayedAt<=LIVE_MS;
+    };
+    var sessionMins=function(p){
+      if(!p.session||collectedAt==null)return null;
+      return Math.max(1,Math.round((collectedAt-p.session.startedAt)/60000));
+    };
+    var durWords=function(m){ return m<60?m+'m':(Math.floor(m/60)+'h '+String(m%60).padStart(2,'0')+'m'); };
+
     // ---- stat cards (Grind dashboard summary) ----
     var card=function(k,v,s2,hot){return '<div class="card'+(hot?' hot':'')+'"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+s2+'</div></div>';};
     function renderCards(){
@@ -166,7 +184,25 @@
         card('Total Ranked Games', nf(totalGames)+' <small>games</small>', 'this season, across all tracked pros', false)+
         card('Most Active This Season', top?(nf(top.seasonGames)+' <small>games</small>'):'&middot;', top?('<b>'+esc(top.name)+'</b> &middot; '+esc(top.team||'')):'no data yet', true)+
         card('Avg 2v2 MMR', avg2v2!=null?nf(avg2v2):'&middot;', avg2v2!=null?('average of '+ranked.length+' pros'):'no data yet', false)+
+        liveCard()+
         card('Teams', rankedTeams+' <small>/ '+teams.length+'</small>', 'with ranked players', false);
+    }
+
+    // The live count is a card like the others, but it filters the board when
+    // clicked. Names and session lengths live on the rows themselves, so this
+    // says how many and gets out of the way.
+    function liveCard(){
+      var live=players.filter(isLive);
+      if(!live.length)return '';
+      var busiest=live.slice().sort(function(a,b){
+        return ((b.session&&b.session.games)||0)-((a.session&&a.session.games)||0);
+      })[0];
+      var g=busiest.session?busiest.session.games:null;
+      return '<button class="card live" id="liveCard" aria-pressed="'+(liveOnly?'true':'false')+'">'+
+        '<div class="k">In Ranked Now</div>'+
+        '<div class="v"><span class="lp" aria-hidden="true"></span>'+live.length+' <small>/ '+players.length+'</small></div>'+
+        '<div class="s">'+(g!=null?('<b>'+esc(busiest.name)+'</b> &middot; '+g+' games in')+' '+durWords(sessionMins(busiest)||1):'tap to show only these')+'</div>'+
+      '</button>';
     }
 
     // ---- merge into unified models ----
@@ -191,7 +227,7 @@
 
       var nextPlayers=steam.players.map(function(p){
         var t=trById[p.id]||{};
-        return { name:p.name, team:p.team, region:REGION[p.team]||null, status:p.status,
+        return { id:p.id, name:p.name, team:p.team, region:REGION[p.team]||null, status:p.status,
           mmr:(t.mmr&&t.mmr.twos!=null)?t.mmr:(t.mmr||null),
           hasMmr:!!(t.mmr&&(t.mmr.ones!=null||t.mmr.twos!=null||t.mmr.threes!=null)),
           seasonGames:t.seasonGames?t.seasonGames.total:null,
@@ -228,12 +264,15 @@
 
       assignRank(players,function(p){return p.mmr?p.mmr.twos:null;});
       assignRank(teams,function(t){return t.avgMmr?t.avgMmr.twos:null;});
-      renderCards();
 
       var iso=(tracker&&tracker.computedAt)||steam.computedAt;
       var d=iso?Date.parse(iso):NaN;
       collectedAt=isNaN(d)?null:d;
       if(collectedAt!=null&&(serverAt==null||collectedAt>serverAt))serverAt=collectedAt;
+
+      // Cards read live state, and live state is judged against the collection
+      // time, so this has to come after that timestamp is in place.
+      renderCards();
       return true;
     }
 
@@ -270,41 +309,15 @@
       return d+' day'+(d===1?'':'s');
     };
 
-    // ---- who is on the ladder right now -------------------------------------
-    //
-    // A player counts as live when their match count moved within LIVE_MS of
-    // the data being collected, and that collection is itself recent. Both
-    // halves matter: without the second, a stalled collector would keep
-    // insisting a session from an hour ago is still running.
-    var LIVE_MS=10*60e3;
-    var isLive=function(p){
-      if(!p.lastPlayedAt||collectedAt==null)return false;
-      if(Date.now()-collectedAt>LIVE_MS)return false;
-      return collectedAt-p.lastPlayedAt<=LIVE_MS;
-    };
-    var sessionMins=function(p){
-      if(!p.session||collectedAt==null)return null;
-      return Math.max(1,Math.round((collectedAt-p.session.startedAt)/60000));
-    };
-    var durWords=function(m){ return m<60?m+'m':(Math.floor(m/60)+'h '+String(m%60).padStart(2,'0')+'m'); };
 
-    var renderLive=function(){
-      var box=document.getElementById('liveNow');
-      if(!box)return;
-      var live=players.filter(isLive).sort(function(a,b){
-        return ((b.session&&b.session.games)||0)-((a.session&&a.session.games)||0);
-      });
-      if(!live.length){ box.innerHTML=''; return; }
-      var shown=live.slice(0,6);
-      box.innerHTML='<div class="lnow">'+
-        '<span class="lh"><span class="lp" aria-hidden="true"></span>'+live.length+' in ranked now</span>'+
-        '<span class="lwho">'+shown.map(function(p){
-          var m=sessionMins(p), g=p.session?p.session.games:null;
-          var d=[]; if(m!=null)d.push(durWords(m)); if(g!=null)d.push(g+(g===1?' game':' games'));
-          return '<span><b>'+esc(p.name)+'</b>'+(d.length?'<em>'+d.join(' &middot; ')+'</em>':'')+'</span>';
-        }).join('')+'</span>'+
-        (live.length>shown.length?'<span class="lmore">+'+(live.length-shown.length)+' more</span>':'')+
-        '</div>';
+    // In the row where the Steam privacy chip would sit: this player is on the
+    // ladder right now, and for how long. It replaces that chip rather than
+    // crowding in beside it, because while someone is playing that is the more
+    // useful of the two facts.
+    var liveChip=function(p){
+      var m=sessionMins(p), g=p.session?p.session.games:null;
+      var hint='In a ranked session'+(m!=null?' for '+durWords(m):'')+(g!=null?', '+g+(g===1?' game':' games')+' so far':'')+'.';
+      return '<span class="sx sx-now" title="'+esc(hint)+'">In ranked'+(m!=null?'<span class="t">'+durWords(m)+'</span>':'')+'</span>';
     };
 
     var renderStatus=function(){
@@ -380,7 +393,7 @@
           // the previous copy for any feed that did not come back rather than
           // discarding a good board over one bad response.
           for(var i=0;i<next.length;i++) if(!next[i]) next[i]=latest[i];
-          if(hydrate(next)){ latest=next; if(full)lastFull=Date.now(); paintP(); paintT(); renderLive(); renderPodium(); restoreOpenTeam(); }
+          if(hydrate(next)){ latest=next; if(full)lastFull=Date.now(); renderPodium(); paintP(); paintT(); restoreOpenTeam(); }
         })
         .catch(function(){})
         .then(function(){ refreshing=false; renderStatus(); });
@@ -405,10 +418,9 @@
     };
 
     renderStatus();
-    renderLive();
-    // A live session goes stale on its own, so re-check on the same beat as
-    // the freshness line rather than waiting for the next fetch.
-    setInterval(renderLive,60000);
+    // A live session goes stale on its own, so re-check on the same beat as the
+    // freshness line rather than waiting for the next fetch.
+    setInterval(function(){ renderCards(); renderPodium(); paintP(); },60000);
     // A tab left open must not keep claiming the data is fresh.
     setInterval(renderStatus,60000);
 
@@ -416,6 +428,8 @@
     var pv=document.getElementById('playersView'), tv=document.getElementById('teamsView');
     var searchQ='';
   var regionQ='';   // '' = every region
+  var liveOnly=false;
+  var podiumIds={};  // whoever is shown large above the table
 
     function buildTable(mount, columns, items, accessors, rowFn, def, matchFn){
       var sk=def.k, sd=def.dir;
@@ -439,6 +453,10 @@
       function paint(){
         var arr=items.filter(function(x){
           if(regionQ&&x.region!==regionQ)return false;
+          // Nobody appears twice: the three on the podium are not repeated in
+          // the table underneath it.
+          if(x.id&&podiumIds[x.id])return false;
+          if(liveOnly&&!isLive(x))return false;
           return !searchQ||matchFn(x,searchQ);
         });
         var acc=accessors[sk];
@@ -476,8 +494,8 @@
         // could be adjacent or right aligned, never both. The duplicate is
         // hidden on desktop, where the two columns stay sortable in their own
         // right.
-        '<td class="c-rg">'+regionChip(p.region)+'<span class="chip-pair">'+statusChip(p.status)+'</span></td>'+
-        '<td class="c-st">'+statusChip(p.status)+'</td>'+mmr+
+        '<td class="c-rg">'+regionChip(p.region)+'<span class="chip-pair">'+(isLive(p)?liveChip(p):statusChip(p.status))+'</span></td>'+
+        '<td class="c-st">'+(isLive(p)?liveChip(p):statusChip(p.status))+'</td>'+mmr+
         '<td class="c-sg" data-l="season">'+(p.seasonGames!=null?'<span class="sgv">'+nf(p.seasonGames)+'</span>':'<span class="dash">&middot;</span>')+'</td>'+
         '<td class="c-g14" data-l="'+esc(WIN_LABEL[win]||win)+'">'+fmtGames(p.games,win)+'</td>'+
         '<td class="c-hr c-hr2" data-l="2wk h">'+hours2wkCell(p)+'</td>'+
@@ -589,9 +607,10 @@
       if(!podEl)return;
       var k=paintP.sortKey(), acc=pAcc[k];
       // Ranking by name or region is a lookup, not a leaderboard, so no podium.
-      if(!acc||k==='name'||k==='region'||k==='status'||searchQ){ podEl.innerHTML=''; return; }
+      if(!acc||k==='name'||k==='region'||k==='status'||searchQ){ podEl.innerHTML=''; podiumIds={}; return; }
       var arr=players.filter(function(p){
-        return !regionQ||p.region===regionQ;
+        if(regionQ&&p.region!==regionQ)return false;
+        return !liveOnly||isLive(p);
       });
       var dir=paintP.sortDir();
       arr=arr.slice().sort(function(a,b){
@@ -599,7 +618,8 @@
         if(an&&bn)return 0; if(an)return 1; if(bn)return -1;
         return dir==='asc'?(av-bv):(bv-av);
       }).slice(0,3);
-      if(arr.length<3){ podEl.innerHTML=''; return; }
+      if(arr.length<3){ podEl.innerHTML=''; podiumIds={}; return; }
+      podiumIds={}; arr.forEach(function(p){ if(p.id)podiumIds[p.id]=1; });
       podEl.innerHTML='<div class="pod">'+arr.map(function(p,i){
         var fig=podFigure(p,k);
         // The two figures a reader wants next are the ones the podium is not
@@ -665,8 +685,8 @@
         var th=pv.querySelector('th.c-g14 span'); if(th)th.textContent=WIN_LABEL[w];
       }
       Array.prototype.forEach.call(metricBtns,function(b){b.setAttribute('aria-pressed',b===btn?'true':'false');});
-      paintP.setSort(k,'desc');
       renderPodium();
+      paintP.setSort(k,'desc');
     };
     Array.prototype.forEach.call(metricBtns,function(b){
       b.addEventListener('click',function(){setMetric(b);});
@@ -679,6 +699,7 @@
       if(!th)return;
       var k=paintP.sortKey();
       renderPodium();
+      paintP();
       Array.prototype.forEach.call(metricBtns,function(b){
         var mine=b.dataset.k===k&&(!b.dataset.w||b.dataset.w===win);
         b.setAttribute('aria-pressed',mine?'true':'false');
@@ -706,7 +727,7 @@
           Array.prototype.forEach.call(regionSeg.querySelectorAll('button'),function(x){
             x.setAttribute('aria-pressed',(x.dataset.r||'')===regionQ?'true':'false');
           });
-          paintP(); paintT(); renderPodium();
+          renderPodium(); paintP(); paintT();
         });
       });
     };
@@ -714,10 +735,22 @@
 
     setMetric(metricBtns[0]);
 
+    // ---- live filter ----
+    //
+    // The card is rebuilt on every refresh, so the click is caught on the row
+    // of cards rather than bound to a button that will be replaced.
+    document.getElementById('stats').addEventListener('click',function(e){
+      var b=e.target.closest?e.target.closest('#liveCard'):null;
+      if(!b)return;
+      liveOnly=!liveOnly;
+      b.setAttribute('aria-pressed',liveOnly?'true':'false');
+      renderPodium(); paintP();
+    });
+
     // ---- search ----
     var input=document.getElementById('search'), wrap=document.getElementById('searchWrap');
-    input.addEventListener('input',function(){ searchQ=input.value.trim().toLowerCase(); wrap.classList.toggle('has',!!searchQ); paintP(); paintT(); renderPodium(); });
-    document.getElementById('searchClear').addEventListener('click',function(){ input.value=''; searchQ=''; wrap.classList.remove('has'); paintP(); paintT(); renderPodium(); input.focus(); });
+    input.addEventListener('input',function(){ searchQ=input.value.trim().toLowerCase(); wrap.classList.toggle('has',!!searchQ); renderPodium(); paintP(); paintT(); });
+    document.getElementById('searchClear').addEventListener('click',function(){ input.value=''; searchQ=''; wrap.classList.remove('has'); renderPodium(); paintP(); paintT(); input.focus(); });
 
     // ---- view toggle ----
     var tabP=document.getElementById('tabPlayers'), tabT=document.getElementById('tabTeams');
