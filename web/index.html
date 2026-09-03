@@ -211,6 +211,11 @@
     .pod .pfig{margin-left:auto}
     .pod .pfig b{font-size:26px}
     .pod .prow{display:none}
+    /* The row layout has no width to spare: the name and team win, and the
+       playing mark shows on that player's own row in the table below. */
+    .pod .plive{display:none}
+    .pod .ptop{min-width:0;flex:1}
+    .pod .pwho{min-width:0}
   }
 
   /* ---- Playing: its own mark beside the name, never in place of a status ---- */
@@ -229,6 +234,8 @@
      whoever is on the ladder without a menu to open. */
   /* Its own pill, first in the row: it filters the board rather than ordering it. */
   .pseg{border-color:rgba(94,200,255,.32);background:rgba(94,200,255,.05)}
+  /* .wseg sets its own display, which an unqualified [hidden] cannot beat. */
+  .wseg[hidden]{display:none}
   .wseg button.pbtn{
     display:inline-flex;align-items:center;gap:7px;
     font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:11.5px;font-weight:700;color:var(--playing);
@@ -428,6 +435,8 @@
     #searchWrap{width:100%}
     #searchWrap input{width:100%}
     .wrow{margin:0 0 8px;gap:8px}
+    /* Thumbs, not cursors: the chips get taller targets on a phone. */
+    .wseg button{padding-top:9px;padding-bottom:9px}
     .wrow .wlbl{display:none}
     .dek{margin-top:10px}
     .dstatus{margin-top:12px}
