@@ -530,11 +530,11 @@
       width:5px;height:5px;border-right:1.5px solid var(--dim);border-bottom:1.5px solid var(--dim);
       transform:rotate(45deg);transition:transform .15s;
     }
-    .feed>tbody>tr.open>td.c-rk::after{transform:rotate(-135deg);border-color:var(--accent)}
+    #playersView .feed>tbody>tr.open>td.c-rk::after{transform:rotate(-135deg);border-color:var(--accent)}
 
     /* Open: the row keeps its first line and lays the rest out underneath, the
        same tiles the phone used to show for every player at once. */
-    .feed>tbody>tr.open{
+    #playersView .feed>tbody>tr.open{
       grid-template-columns:repeat(12,minmax(0,1fr));
       grid-template-areas:
         "rk  who who who who who  who  rg   rg  rg  rg  rg"
@@ -543,35 +543,35 @@
       gap:8px;background:var(--surface);border:1px solid var(--line2);border-radius:12px;
       padding:12px 13px;margin:0 0 9px;
     }
-    .feed>tbody>tr.open>td.c-rk{grid-area:rk;justify-self:start;margin-right:-6px}
-    .feed>tbody>tr.open>td.c-who{grid-area:who}
-    .feed>tbody>tr.open>td.c-rg{
+    #playersView .feed>tbody>tr.open>td.c-rk{grid-area:rk;justify-self:start;margin-right:-6px}
+    #playersView .feed>tbody>tr.open>td.c-who{grid-area:who}
+    #playersView .feed>tbody>tr.open>td.c-rg{
       grid-area:rg;display:flex;align-items:center;gap:6px;justify-self:end;white-space:nowrap;
     }
-    .feed>tbody>tr.open>td.c-rg .chip-pair{display:inline-flex}
-    .feed>tbody>tr.open>td .sx,.feed>tbody>tr.open>td .rg{font-size:9.5px;padding:3px 7px;letter-spacing:.06em}
+    #playersView .feed>tbody>tr.open>td.c-rg .chip-pair{display:inline-flex}
+    #playersView .feed>tbody>tr.open>td .sx,#playersView .feed>tbody>tr.open>td .rg{font-size:9.5px;padding:3px 7px;letter-spacing:.06em}
     /* The collapsed line hides 2v2 when it is ordering by another playlist.
        An open row shows everything, so it says so more specifically. */
-    .feed[data-sort]>tbody>tr.open>td.c-mmr.m2{display:block}
-    .feed>tbody>tr.open>td.c-mmr.m1{grid-area:m1}
-    .feed>tbody>tr.open>td.c-mmr.m2{grid-area:mm2}
-    .feed>tbody>tr.open>td.c-mmr.m3{grid-area:m3}
-    .feed>tbody>tr.open>td.c-g14{grid-area:g14}
-    .feed>tbody>tr.open>td.c-sg{grid-area:sea}
-    .feed>tbody>tr.open>td.c-hr2{grid-area:hr2}
-    .feed>tbody>tr.open>td.c-hrt{grid-area:hrt}
-    .feed>tbody>tr.open>td.c-mmr,
-    .feed>tbody>tr.open>td.c-g14,
-    .feed>tbody>tr.open>td.c-sg,
-    .feed>tbody>tr.open>td.c-hr{
+    #playersView .feed[data-sort]>tbody>tr.open>td.c-mmr.m2{display:block}
+    #playersView .feed>tbody>tr.open>td.c-mmr.m1{grid-area:m1}
+    #playersView .feed>tbody>tr.open>td.c-mmr.m2{grid-area:mm2}
+    #playersView .feed>tbody>tr.open>td.c-mmr.m3{grid-area:m3}
+    #playersView .feed>tbody>tr.open>td.c-g14{grid-area:g14}
+    #playersView .feed>tbody>tr.open>td.c-sg{grid-area:sea}
+    #playersView .feed>tbody>tr.open>td.c-hr2{grid-area:hr2}
+    #playersView .feed>tbody>tr.open>td.c-hrt{grid-area:hrt}
+    #playersView .feed>tbody>tr.open>td.c-mmr,
+    #playersView .feed>tbody>tr.open>td.c-g14,
+    #playersView .feed>tbody>tr.open>td.c-sg,
+    #playersView .feed>tbody>tr.open>td.c-hr{
       display:block;text-align:left;min-width:0;overflow:hidden;
       background:var(--bg2);border:1px solid var(--line);border-radius:9px;padding:6px 9px 7px;
     }
-    .feed>tbody>tr.open>td.c-mmr::before,
-    .feed>tbody>tr.open>td.c-g14::before,
-    .feed>tbody>tr.open>td.c-sg::before,
-    .feed>tbody>tr.open>td.c-hr::before{text-align:left;font-size:9px}
-    .feed>tbody>tr.open>td.c-hr .na,.feed>tbody>tr.open>td.c-hr .frozen{overflow:hidden;text-overflow:ellipsis}
+    #playersView .feed>tbody>tr.open>td.c-mmr::before,
+    #playersView .feed>tbody>tr.open>td.c-g14::before,
+    #playersView .feed>tbody>tr.open>td.c-sg::before,
+    #playersView .feed>tbody>tr.open>td.c-hr::before{text-align:left;font-size:9px}
+    #playersView .feed>tbody>tr.open>td.c-hr .na,#playersView .feed>tbody>tr.open>td.c-hr .frozen{overflow:hidden;text-overflow:ellipsis}
 
     /* A player with no ranked data has one cell spanning the three MMR slots. */
         /* No ranked data: there are no m1/mm2/m3 cells to place, so the strip takes
@@ -590,41 +590,42 @@
     .feed>tbody>tr>td.c-who .nm b{font-size:15px}
     .feed>tbody>tr>td.c-rk .rknum{font-size:12px}
 
-    /* Team names run long ("Spacestation Gaming", "Ninjas in Pyjamas") and a
-       figure sitting on the right was clipping them. The name gets the width to
-       itself, and the numbers drop to their own line under it, left aligned. */
+    /* Team rows read like the player list: name on the left with room to
+       truncate, figures right aligned in their own columns. The overlap came
+       from these rows still carrying the old twelve column areas while the list
+       had moved to four, so the cells were landing on top of each other. */
     #teamsView .feed>tbody>tr{
-      grid-template-columns:22px minmax(0,1fr);
-      grid-template-areas:
-        "rk  who"
-        "val val";
-      gap:6px 10px;
+      grid-template-columns:22px minmax(0,1fr) auto auto;
+      grid-template-areas:none;
+      gap:0 10px;
     }
     #teamsView .feed>tbody>tr>td.c-fill,
     #teamsView .feed>tbody>tr>td.c-mmr.m1,
     #teamsView .feed>tbody>tr>td.c-mmr.m3,
+    #teamsView .feed>tbody>tr>td.c-hr2,
     #teamsView .feed>tbody>tr>td.c-hrt{display:none}
+    /* The chevron lived inside the name, so a name long enough to be truncated
+       truncated the arrow away with it. It sits beside the name instead. */
+    /* Crest beside the name, not above it: making .nm a flex box turned it into
+       a block, which pushed the crest onto its own line. */
+    #teamsView .feed>tbody>tr>td.c-who{display:flex;align-items:center;gap:10px;min-width:0}
+    #teamsView .feed>tbody>tr>td.c-who .nm{min-width:0}
     #teamsView .feed>tbody>tr>td.c-who .nm b{
-      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;
     }
+    #teamsView .feed>tbody>tr>td.c-who .nm b::after{display:none}
+    /* On the cell, so a truncated name cannot truncate the arrow away with it. */
+    #teamsView .feed>tbody>tr>td.c-who::after{
+      content:"›";color:var(--dim);font-weight:700;flex:none;
+      transition:transform .18s;display:inline-block;
+    }
+    #teamsView .feed>tbody>tr.open>td.c-who::after{transform:rotate(90deg);color:var(--accent)}
+    #teamsView .feed>tbody>tr>td.c-sg{display:none}
+    #teamsView .feed>tbody>tr>td.c-mmr.m2{display:block;text-align:right;min-width:52px}
+    #teamsView .feed>tbody>tr>td.c-mmr .mv{font-size:14px}
     /* Team rows already carry a chevron on the name; the one the player list
        puts under the rank would be a second arrow for the same gesture. */
     #teamsView .feed>tbody>tr>td.c-rk::after{display:none}
-    #teamsView .feed>tbody>tr>td.c-mmr.m2,
-    #teamsView .feed>tbody>tr>td.c-sg,
-    #teamsView .feed>tbody>tr>td.c-hr2{
-      grid-area:val;display:inline-flex;align-items:baseline;gap:6px;
-      text-align:left;min-width:0;font-size:13px;
-    }
-    #teamsView .feed>tbody>tr>td.c-mmr.m2{justify-self:start}
-    #teamsView .feed>tbody>tr>td.c-sg{justify-self:center}
-    #teamsView .feed>tbody>tr>td.c-hr2{justify-self:end}
-    #teamsView .feed>tbody>tr>td.c-mmr.m2::before,
-    #teamsView .feed>tbody>tr>td.c-sg::before,
-    #teamsView .feed>tbody>tr>td.c-hr2::before{
-      display:inline;margin:0;font-size:9px;text-align:left;
-    }
-    #teamsView .feed>tbody>tr>td.c-mmr .mv{font-size:14px}
 
     /* An expanded roster panel spans the whole card. */
     .feed>tbody>tr.exp-row{display:block;padding:0;background:none;border:0;margin:-6px 0 10px}
