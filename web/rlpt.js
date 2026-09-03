@@ -18,7 +18,7 @@
   var fmtGames=function(gs,win){ var g=gs?gs[win]:null; if(!g||g.games==null)return'<span class="dash">&middot;</span>'; if(g.partial)return'<span class="pending">pending</span>'; if(g.games===0)return'<span class="mv">0</span>'; return'<span class="g14v">'+nf(g.games)+'</span>'; };
   var WIN_LABEL={d1:'24h',d7:'7d',d14:'14d'};
   // Short chip labels, with the full meaning kept on hover.
-  var STATUS_LABEL={'hidden-details':'hidden','no-steam-id':'no steam','no-steam-link':'no steam','playtime-hidden':'hours hidden','epic':'epic'};
+  var STATUS_LABEL={'hidden-details':'hidden','no-steam-id':'no steam','no-steam-link':'no steam','playtime-hidden':'hours hidden','epic':'epic','pending':'checking'};
   var STATUS_HINT={
     'public':'Profile is public, so Steam publishes playtime.',
     'hidden-details':'Game details are switched off, so Steam publishes no playtime.',
@@ -27,6 +27,7 @@
     'no-steam-link':'No Steam account matched for this player.',
     'playtime-hidden':'Profile is public but keeps total playtime private, a separate Steam setting.',
     'epic':'Plays on Epic rather than Steam, so Steam publishes no hours. Ranked games and MMR are unaffected.',
+    'pending':'Newly added. Ranked games and MMR are already tracked; the hourly Steam check has not reached this player yet.',
     'unknown':'Steam did not return a profile state for this player.'
   };
   var statusChip=function(s){
@@ -34,7 +35,7 @@
     var k=String(s).toLowerCase(),cls='';
     if(/public|active|online|grind/.test(k))cls='sx-live';
     else if(/priv|hidden|limit/.test(k))cls='sx-priv';
-    else if(/no-steam|unknown|error|none|idle|offline/.test(k))cls='sx-off';
+    else if(/no-steam|unknown|error|none|idle|offline|pending|epic/.test(k))cls='sx-off';
     var isErr=k.indexOf('error')===0;
     var label=isErr?'steam err':(STATUS_LABEL[k]||s);
     var hint=isErr?'Steam returned an error for this player on the last check.':(STATUS_HINT[k]||'');
@@ -52,7 +53,8 @@
     'playtime-hidden':{t:'hours hidden',h:'Total playtime is private. Rechecked hourly, so hours appear if it opens.'},
     'no-steam-id':{t:'no steam',h:'No Steam account matched yet.'},
     'no-steam-link':{t:'no steam',h:'No Steam account matched yet.'},
-    'epic':{t:'epic',h:'Plays on Epic, so Steam has no hours to publish. Games and MMR are tracked as normal.'}
+    'epic':{t:'epic',h:'Plays on Epic, so Steam has no hours to publish. Games and MMR are tracked as normal.'},
+    'pending':{t:'checking',h:'Newly added: the hourly Steam check has not reached this player yet.'}
   };
   var hoursNA=function(status){
     var n=HOURS_NA[String(status||'').toLowerCase()];
@@ -238,7 +240,9 @@
         var p=steamById[id]||trById[id]||{};
         var t=trById[id]||{};
         return { id:id, name:p.name, team:p.team, region:REGION[p.team]||null,
-          status:steamById[id]?steamById[id].status:'unknown',
+          // Not 'unknown', which means Steam answered oddly. This player has
+          // simply not been through the hourly Steam job yet.
+          status:steamById[id]?steamById[id].status:'pending',
           mmr:(t.mmr&&t.mmr.twos!=null)?t.mmr:(t.mmr||null),
           hasMmr:!!(t.mmr&&(t.mmr.ones!=null||t.mmr.twos!=null||t.mmr.threes!=null)),
           seasonGames:t.seasonGames?t.seasonGames.total:null,
