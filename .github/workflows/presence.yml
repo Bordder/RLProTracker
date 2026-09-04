@@ -30,6 +30,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+
+      # The data branch, checked out beside the code. Collector output lives
+      # there so main's history stays code only; the collectors still need the
+      # previous run's files as input, which is why it is fetched rather than
+      # just pushed to.
+      - uses: actions/checkout@v7
+        with:
+          ref: data
+          path: .databranch
+          fetch-depth: 1
+
+      - name: Take the previous run's data from the data branch
+        run: |
+          for p in data/presence data/derived/presence-hours.json; do
+            if [ -e ".databranch/$p" ]; then
+              mkdir -p "$(dirname "$p")"
+              cp -r ".databranch/$p" "$p"
+            fi
+          done
       - uses: actions/setup-node@v7
         with:
           node-version: "24"
@@ -42,28 +61,8 @@ jobs:
       - name: Recompute presence hours
         run: npm run poll:hours
 
-      - name: Commit presence data
-        run: |
-          git config user.name "rl-tracker-bot"
-          git config user.email "actions@github.com"
-          git add data/presence data/derived/presence-hours.json
-          git diff --staged --quiet && echo "no changes" && exit 0
-          git commit -m "[skip ci] data: presence poll"
-          # rebase+retry so a concurrent job's push can't reject ours
-          # Clear any half-finished rebase before retrying: without this, one
-          # conflict leaves unmerged files behind and every later attempt dies
-          # on them instead of trying again.
-          #
-          # -X theirs means the commit being replayed - our freshly computed
-          # data - wins a conflict. That is what we want: the file is
-          # regenerated from scratch each run, so the newer copy is correct and
-          # there is nothing in the older one worth merging.
-          for i in 1 2 3 4 5; do
-            git rebase --abort 2>/dev/null || true
-            if git pull --rebase --autostash -X theirs origin main && git push; then
-              exit 0
-            fi
-            echo "push retry $i"; sleep $((RANDOM % 8 + 3))
-          done
-          git rebase --abort 2>/dev/null || true
-          echo "push failed after retries"; exit 1
+      - name: Publish data to the data branch
+        run: >-
+          bash scripts/publish-data.sh "[skip ci] data: presence poll"
+          data/presence
+          data/derived/presence-hours.json

@@ -16,8 +16,10 @@
 // raw.githubusercontent.com: raw's CDN ignores query strings, so the cache
 // buster this used to rely on did nothing and this endpoint sat up to six
 // minutes behind the collectors.
-const API_URL = "https://api.github.com/repos/Bordder/RLProTracker/contents/data/derived/tracker.json?ref=main";
-const RAW_URL = "https://raw.githubusercontent.com/Bordder/RLProTracker/main/data/derived/tracker.json";
+// The `data` branch, not main: collector output moved there so main keeps a
+// history of code changes only.
+const API_URL = "https://api.github.com/repos/Bordder/RLProTracker/contents/data/derived/tracker.json?ref=data";
+const RAW_URL = "https://raw.githubusercontent.com/Bordder/RLProTracker/data/data/derived/tracker.json";
 
 async function fetchTracker(env) {
   const headers = {

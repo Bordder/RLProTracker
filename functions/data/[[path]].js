@@ -19,7 +19,9 @@
 // no-store and, when a token is present, is not shared with anonymous callers
 // at all.
 const API_BASE = "https://api.github.com/repos/Bordder/RLProTracker/contents/data/derived";
-const RAW_BASE = "https://raw.githubusercontent.com/Bordder/RLProTracker/main/data/derived";
+// Collector output lives on the `data` branch: main carries code only, so
+// its history is readable. Both URLs below have to point at the same branch.
+const RAW_BASE = "https://raw.githubusercontent.com/Bordder/RLProTracker/data/data/derived";
 
 async function fetchDerived(file, env) {
   const headers = {
@@ -28,7 +30,7 @@ async function fetchDerived(file, env) {
     "X-GitHub-Api-Version": "2022-11-28",
   };
   if (env && env.GH_TOKEN) headers.Authorization = `Bearer ${env.GH_TOKEN.trim()}`;
-  const res = await fetch(`${API_BASE}/${file}?ref=main`, { headers, cf: { cacheTtl: 20 } });
+  const res = await fetch(`${API_BASE}/${file}?ref=data`, { headers, cf: { cacheTtl: 20 } });
   if (res.ok) return { res, from: "github-api" };
   // The API can rate limit an unauthenticated caller; raw is stale but better
   // than nothing, so it stays as the fallback rather than the default.
