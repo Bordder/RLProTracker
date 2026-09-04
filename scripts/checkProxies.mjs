@@ -34,7 +34,33 @@ const TEST_URL = "https://rocketleague.tracker.network/rocket-league/profile/ste
 const IP_URL = "https://api.ipify.org?format=json";
 
 const proxies = parseProxies();
-if (!proxies.length) { console.error("No proxies configured (set PROXY_LIST or PROXY_HOST/PROXY_PORTS)."); process.exit(1); }
+if (!proxies.length) {
+  // The values live in GitHub Actions secrets, which are write-only: they
+  // cannot be read back out of GitHub, so they have to come from wherever they
+  // were kept when they were set (the provider's dashboard, a password
+  // manager). Say that here rather than leaving someone hunting for a settings
+  // page that will never show them.
+  console.error(
+    "No proxies configured in this shell.\n" +
+    "\n" +
+    "  PROXY_LIST='host:port:user:pass,...' node scripts/checkProxies.mjs\n" +
+    "or\n" +
+    "  PROXY_HOST=... PROXY_PORTS=1,2,3 PROXY_USER=... PROXY_PASS=... node scripts/checkProxies.mjs\n" +
+    "\n" +
+    "These are Actions secrets in CI and GitHub will not show them again, so use\n" +
+    "your own copy. Add --list to print the index of each one without testing it."
+  );
+  process.exit(1);
+}
+
+// --list answers "which proxy is index 8?" on its own. Mapping an index to an
+// endpoint needs no network calls, and separating it means the answer is
+// instant rather than a browser launch and fifteen page loads away.
+if (process.argv.includes("--list")) {
+  console.log("index  endpoint            (order comes from the secret; appending is safe, inserting renumbers)");
+  proxies.forEach((p, i) => console.log(`  ${String(i).padStart(3)}  ${p.server.replace(/^http:\/\//, "")}`));
+  process.exit(0);
+}
 
 console.log(`testing ${proxies.length} proxies. Indices below are the ones data/proxy-use.json reports.\n`);
 const browser = await chromium.launch({ headless: true });
