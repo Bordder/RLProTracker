@@ -127,14 +127,15 @@
      Below the width where all four fit, go straight to two rows of two. */
   @media (max-width:740px){ .stats>*{flex:1 1 calc(50% - 6px)} }
 
-  /* The season leader takes its own row underneath the other four. Stacked
-     label-over-number wastes a full-width strip, so this one lays its three
-     parts out along the row instead and keeps the height of a single line. */
-  .stats>.wide{flex-basis:100%}
-  .card.wide{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
-  .card.wide .k{margin:0}
-  .card.wide .v{margin-top:0}
-  .card.wide .s{margin-top:0;margin-left:auto}
+  /* The season leader sits on its own row underneath, two tiles wide and
+     centred: the width of two of the tiles above it plus the gap between them,
+     so its edges line up with the seam between the pairs. It keeps the ordinary
+     stacked card layout, since at this width the player and team fit on one
+     line without help. justify-content only bites on that second row - the four
+     above grow to fill, leaving no free space to centre. */
+  .stats{justify-content:center}
+  .stats>.wide{flex:0 1 calc(50% - 6px)}
+  @media (max-width:740px){ .stats>.wide{flex-basis:100%} }
   .card{
     background:var(--surface);border:1px solid var(--line);border-radius:12px;
     padding:14px 16px;position:relative;overflow:hidden;
