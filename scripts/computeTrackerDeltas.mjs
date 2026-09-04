@@ -27,6 +27,13 @@ const PL = { ones: "d1", twos: "d2", threes: "d3" }; // output key -> snapshot k
 // evening never merges into this morning.
 export const SESSION_GAP_MS = 30 * 60e3;
 
+// Nobody finishes a ranked match in under five minutes including the queue, so
+// twelve an hour is already generous and fifteen leaves room for a fast night.
+// A jump above that line is not play: it is the counter moving under us,
+// because the account changed or the wiki had linked the wrong one. Those
+// windows report as still filling rather than as a record-breaking day.
+export const MAX_GAMES_PER_HOUR = 15;
+
 // Pure core (no IO) so it can be unit-tested. `snaps` is [{ t, rows }] in any
 // order; returns { now, players } where now is the latest snapshot time and
 // players is the derived per-player MMR/tier/games-per-window array.
@@ -53,12 +60,15 @@ export function computeTrackerPlayers(snaps) {
   const players = [];
   for (const { meta, readings: allReadings } of byPlayer.values()) {
     allReadings.sort((a, b) => a.t - b.t);
-    // Only readings from the account we are currently following can be diffed
-    // against today's: a switch from a wrong Steam id to the right Epic profile
-    // would otherwise read as a few thousand games played in one window.
+    // Readings from a different account cannot be diffed against today's: a
+    // switch from a wrong Steam id to the right Epic profile would read as a
+    // few thousand games played. Readings from before this field existed carry
+    // no account at all, and those are kept: treating them as foreign would
+    // reset every window on the board the day it shipped.
     const currentWho = allReadings[allReadings.length - 1]?.who ?? null;
-    const sameAccount = allReadings.filter((r) => (r.who ?? null) === currentWho);
-    const readings = sameAccount.length ? sameAccount : allReadings;
+    const readings = currentWho
+      ? allReadings.filter((r) => !r.who || r.who === currentWho)
+      : allReadings;
     const latest = readings[readings.length - 1];
     const mmr = {}, tier = {}, games = { ones: {}, twos: {}, threes: {}, total: {} };
     // seasonGames = cumulative ranked matches this season (matchesPlayed from the
@@ -77,8 +87,13 @@ export function computeTrackerPlayers(snaps) {
         const haveHistory = past.t <= now - span;
         const curM = cur?.matches ?? null;
         const pastM = past.playlists?.[snapKey]?.matches ?? null;
-        const g = curM != null && pastM != null ? Math.max(0, curM - pastM) : null;
-        games[outKey][wk] = { games: g, partial: !haveHistory };
+        let g = curM != null && pastM != null ? Math.max(0, curM - pastM) : null;
+        let implausible = false;
+        if (g != null) {
+          const hours = Math.max(1 / 60, (now - past.t) / 3600e3);
+          if (g > MAX_GAMES_PER_HOUR * hours) { implausible = true; g = null; }
+        }
+        games[outKey][wk] = { games: g, partial: !haveHistory || implausible };
       }
     }
 

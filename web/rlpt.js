@@ -188,23 +188,26 @@
       var top=players.filter(function(p){return p.seasonGames!=null;}).sort(function(a,b){return b.seasonGames-a.seasonGames;})[0];
       var withTwos=ranked.filter(function(p){return p.mmr.twos!=null;});
       var avg2v2=withTwos.length?Math.round(withTwos.reduce(function(a,p){return a+(p.mmr.twos||0);},0)/withTwos.length):null;
-      var rankedTeams=teams.filter(function(t){return t.ranked>0;}).length;
       // "60 / 60" is a fraction whose halves are the same number; it only earns
       // the denominator when somebody is missing.
       var rankedFig=ranked.length===players.length
         ? String(ranked.length)
         : ranked.length+' <small>/ '+players.length+'</small>';
-      var teamsFig=rankedTeams===teams.length
-        ? String(rankedTeams)
-        : rankedTeams+' <small>/ '+teams.length+'</small>';
       document.getElementById('stats').innerHTML=
         card('Players Ranked', rankedFig, 'pros with ranked data', false)+
         card('Total Ranked Games', nf(totalGames)+' <small>games</small>', 'across all tracked pros', false)+
         card('Most Active This Season', top?(nf(top.seasonGames)+' <small>games</small>'):'&middot;', top?('<b>'+esc(top.name)+'</b> &middot; '+esc(top.team||'')):'no data yet', true)+
         card('Avg 2v2 MMR', avg2v2!=null?nf(avg2v2):'&middot;', avg2v2!=null?('average of '+ranked.length+' pros'):'no data yet', false)+
-        // The teams count is a click away on its own tab, and on a phone it was
-        // the card pushing everything else down.
-        '<div class="card no-phone"><div class="k">Teams</div><div class="v">'+teamsFig+'</div><div class="s">with ranked players</div></div>';
+        // Which roster is on the ladder today, rather than an inventory of how
+        // many orgs the board covers. The teams tab is a click away for that.
+        topTeamCard();
+    }
+
+    function topTeamCard(){
+      var withGames=teams.filter(function(t){return t.games&&t.games.d1!=null;});
+      if(!withGames.length)return '';
+      var top=withGames.slice().sort(function(a,b){return b.games.d1-a.games.d1;})[0];
+      return card('Most Active Team', nf(top.games.d1)+' <small>games</small>', '<b>'+esc(top.team)+'</b> &middot; today', false);
     }
 
     // ---- merge into unified models ----
@@ -276,7 +279,7 @@
         var t=thByTeam[name]||{team:name,players:(ttByTeam[name]||{}).players||0,tracked:0,steam2wkHours:null,totalHours:null};
         var tt=ttByTeam[name]||{};
         return { team:t.team, region:REGION[t.team]||null, players:t.players, tracked:t.tracked, ranked:tt.ranked||0,
-          avgMmr:tt.avgMmr||null, seasonGames:tt.seasonGames!=null?tt.seasonGames:null,
+          avgMmr:tt.avgMmr||null, seasonGames:tt.seasonGames!=null?tt.seasonGames:null, games:tt.games||null,
           hours2wk:t.steam2wkHours, totalHours:t.totalHours };
       });
 

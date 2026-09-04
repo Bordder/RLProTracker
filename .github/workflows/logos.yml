@@ -28,6 +28,9 @@ jobs:
           LIQUIPEDIA_UA: ${{ secrets.LIQUIPEDIA_UA }}
         run: node scripts/fetchTeamLogos.mjs
 
+      - name: Square and centre them
+        run: node scripts/squareLogos.mjs
+
       - name: Commit whatever came back
         run: |
           git config user.name "rl-tracker-bot"

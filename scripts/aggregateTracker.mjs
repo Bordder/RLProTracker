@@ -33,7 +33,13 @@ async function main() {
 
     const games = {};
     for (const w of WK) {
-      const vals = roster.map((p) => p.games?.total?.[w]?.games).filter((v) => v != null);
+      // A window still filling is not a count: a player added today reports his
+      // whole season as the diff, which would land in the team's total as a
+      // thousand games in a day.
+      const vals = roster
+        .map((p) => p.games?.total?.[w])
+        .filter((g) => g && g.games != null && !g.partial)
+        .map((g) => g.games);
       games[w] = vals.length ? vals.reduce((a, b) => a + b, 0) : null;
     }
     const seasonVals = roster.map((p) => p.seasonGames?.total).filter((v) => v != null);
