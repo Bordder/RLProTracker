@@ -113,7 +113,7 @@
   // inset it renders noticeably larger than marks that carry their own
   // whitespace. Nudging those individually keeps optical size consistent.
   var LOGO_INSET={'virtuspro':6};
-  var TEAM_LOGO={'geng-mobil1-racing':'png','karmine-corp':'png','lil-step-bros':'png','mibr':'png','nrg':'png','shopify-rebellion':'png','tsm':'png'};
+  var TEAM_LOGO={'geng-mobil1-racing':'png','karmine-corp':'png','lil-step-bros':'png','mibr':'png','nrg':'png','shopify-rebellion':'png','spacestation-gaming':'png','tsm':'png'};
   var LOGO_DIR='img/teams/';
 
   var teamSlug=function(name){
