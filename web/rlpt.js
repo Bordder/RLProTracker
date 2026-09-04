@@ -199,7 +199,7 @@
         : rankedTeams+' <small>/ '+teams.length+'</small>';
       document.getElementById('stats').innerHTML=
         card('Players Ranked', rankedFig, 'pros with ranked data', false)+
-        card('Total Ranked Games', nf(totalGames)+' <small>games</small>', 'this season, across all tracked pros', false)+
+        card('Total Ranked Games', nf(totalGames)+' <small>games</small>', 'across all tracked pros', false)+
         card('Most Active This Season', top?(nf(top.seasonGames)+' <small>games</small>'):'&middot;', top?('<b>'+esc(top.name)+'</b> &middot; '+esc(top.team||'')):'no data yet', true)+
         card('Avg 2v2 MMR', avg2v2!=null?nf(avg2v2):'&middot;', avg2v2!=null?('average of '+ranked.length+' pros'):'no data yet', false)+
         // The teams count is a click away on its own tab, and on a phone it was
