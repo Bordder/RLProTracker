@@ -740,8 +740,10 @@
       podiumIds={}; arr.forEach(function(p){ if(p.id)podiumIds[p.id]=1; });
       podEl.innerHTML='<div class="pod">'+arr.map(function(p,i){
         var fig=podFigure(p,k);
-        var stats=POD_STATS.map(function(st){
-          return podStat(st.lab||WIN_LABEL[win]||win, st.get(p), st.k===k);
+        // Skip the stat the card is already headlining: ranked by 2v2 MMR, the
+        // big figure and the 2v2 cell underneath were the same number twice.
+        var stats=POD_STATS.filter(function(st){ return st.k!==k; }).map(function(st){
+          return podStat(st.lab||WIN_LABEL[win]||win, st.get(p), false);
         });
         return '<div class="pc p'+(i+1)+'">'+
           '<div class="phead">'+
