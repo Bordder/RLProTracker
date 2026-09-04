@@ -127,14 +127,14 @@
      Below the width where all four fit, go straight to two rows of two. */
   @media (max-width:740px){ .stats>*{flex:1 1 calc(50% - 6px)} }
 
-  /* The season leader sits on its own row underneath, centred, at 1.75 times
+  /* The season leader sits on its own row underneath, centred, at 1.5 times
      the width of one tile above it. A tile is calc(25% - 9px) once the three
-     gaps are taken out of the row, so 1.75 of them is calc(43.75% - 15.75px).
+     gaps are taken out of the row, so 1.5 of them is calc(37.5% - 13.5px).
      It keeps the ordinary stacked card layout, since at this width the player
      and team fit on one line without help. justify-content only bites on that
      second row - the four above grow to fill, leaving no free space to centre. */
   .stats{justify-content:center}
-  .stats>.wide{flex:0 1 calc(43.75% - 15.75px)}
+  .stats>.wide{flex:0 1 calc(37.5% - 13.5px)}
   /* Centred inside the box as well as on the row: it is the only card that is
      not part of a run of equal tiles, so left-aligned text would pull against
      the centring rather than sit inside it. */
