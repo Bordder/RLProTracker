@@ -94,6 +94,17 @@
   .dstatus.halted{background:rgba(224,101,90,.10);border:1px solid rgba(224,101,90,.34);color:#EFA79E}
   /* Not a warning: the data is fine, this tab is simply old. */
   .dstatus.fresh-avail{background:rgba(72,201,138,.09);border:1px solid rgba(72,201,138,.32);color:#9BD9BA}
+  /* Developer note: GitHub's alert callout, themed to the board. A left rule
+     and a titled first line, so it reads as an aside from the author rather
+     than as a fault with the data. */
+  .devnote{display:flex;gap:10px;align-items:flex-start;margin:0 0 14px;padding:11px 13px;
+    border:1px solid var(--line2);border-left:3px solid var(--playing);border-radius:8px;
+    background:rgba(94,200,255,.055);font-size:13px;line-height:1.55;color:var(--slate)}
+  .devnote svg{flex:0 0 auto;width:15px;height:15px;margin-top:1px;
+    stroke:var(--playing);fill:none;stroke-width:2;stroke-linecap:round}
+  .devnote .dn-t{display:block;color:var(--playing);font-weight:700;font-size:11px;
+    letter-spacing:.09em;text-transform:uppercase;margin-bottom:3px}
+  .devnote b{color:var(--bone);font-weight:600}
   .linkish{background:none;border:0;padding:0;font:inherit;color:var(--bone);font-weight:600;
     text-decoration:underline;text-decoration-color:var(--accent-line);text-underline-offset:2px;cursor:pointer}
   .linkish:hover{color:var(--accent);text-decoration-color:var(--accent)}
@@ -683,6 +694,14 @@
       <input id="search" type="search" placeholder="Search player or team&hellip;" autocomplete="off" aria-label="Search player or team" />
       <button class="clr" id="searchClear" aria-label="Clear search">&times;</button>
     </div>
+  </div>
+
+  <div class="devnote" role="note">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 7.6v.1"></path></svg>
+    <span><span class="dn-t">Developer note</span>
+    Most teams show a <b>monogram</b> rather than a crest. Only logos cleared for use are
+    published, and permission for the rest is being requested from the orgs. Crests will
+    appear as they are granted.</span>
   </div>
 
   <div class="wrow" id="wrow">
