@@ -114,7 +114,7 @@
   // inset it renders noticeably larger than marks that carry their own
   // whitespace. Nudging those individually keeps optical size consistent.
   var LOGO_INSET={'virtuspro':6};
-  var TEAM_LOGO={'karmine-corp':'png','gentle-mates':'png','team-vitality':'png','ninjas-in-pyjamas':'png','man-city-esports':'png','nrg':'png','shopify-rebellion':'png','spacestation-gaming':'png','mibr':'png','furia':'png','twisted-minds':'png','wildcard':'png','virtuspro':'png','team-falcons':'png','tsm':'png','five-fears':'png','r8-esports':'png','fut-esports':'png'};
+  var TEAM_LOGO={'geng-mobil1-racing':'png','karmine-corp':'png','mibr':'png','nrg':'png','shopify-rebellion':'png','tsm':'png'};
   var LOGO_DIR='img/teams/';
 
   var teamSlug=function(name){
@@ -195,7 +195,7 @@
         : ranked.length+' <small>/ '+players.length+'</small>';
       document.getElementById('stats').innerHTML=
         card('Players Ranked', rankedFig, 'pros with ranked data', false)+
-        card('Total Ranked Games', nf(totalGames)+' <small>games</small>', 'across all tracked pros', false)+
+        card('Total Ranked Games', nf(totalGames), 'across all tracked pros', false)+
         card('Most Active This Season', top?(nf(top.seasonGames)+' <small>games</small>'):'&middot;', top?('<b>'+esc(top.name)+'</b> &middot; '+esc(top.team||'')):'no data yet', true)+
         card('Avg 2v2 MMR', avg2v2!=null?nf(avg2v2):'&middot;', avg2v2!=null?('average of '+ranked.length+' pros'):'no data yet', false)+
         // Which roster is on the ladder today, rather than an inventory of how

@@ -7,7 +7,7 @@ Drop a logo here to replace an org's monogram mark on the site.
    turned into hyphens: "Ninjas in Pyjamas" -> `ninjas-in-pyjamas`.
    Run `node scripts/teamSlugs.mjs` to print the exact slug for every team.
 
-2. Register it in `TEAM_LOGO` in `web/index.html`:
+2. Register it in `TEAM_LOGO` in `web/rlpt.js`:
 
        var TEAM_LOGO={'team-vitality':'svg','nrg':'png'};
 
@@ -22,6 +22,22 @@ rounded tile and are `object-fit: contain`, so wordmarks will letterbox - a
 square icon or badge version of the logo reads far better than a wide wordmark.
 
 ## Sourcing
+
+Everything currently here came from Wikimedia Commons and is tagged public
+domain there, because a mark made only of type and simple shapes falls below
+the threshold of originality and carries no copyright. `sources.json` records
+the file, its Commons page and its licence for each one. Keep that file in step
+with this directory: it is the answer if anyone ever asks where a crest came
+from.
+
+Do not take logos from a wiki or database that hosts them under its own fair
+use claim. Fair use is a defence attached to a user and a purpose, not a licence
+that travels with the file, so their claim covers them and not this site.
+
+An org whose mark is original artwork rather than plain lettering will not be on
+Commons at all, and that is the correct outcome: leave it on a monogram until
+the org's own press or brand kit can be used.
+
 
 Only add logos you have the right to use. Prefer an org's official press or
 brand kit, which usually states the terms; many clear their marks for editorial
