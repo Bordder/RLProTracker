@@ -75,18 +75,20 @@
 
   /* One cell per hour. Height is fixed and the fill is the only variable, so a
      partly covered hour reads as partly covered rather than as a small number. */
-  /* One flat block per hour, coloured by how that hour went.
-     It used to be a bar chart whose height was the share of expected
-     collections that landed. At a real uptime of 95%+ every bar stood between
-     90 and 100% of 46px, so the differences were three or four pixels and the
-     row read as one solid slab: it looked like a chart while telling you
-     nothing you could see. State reads instantly at a glance; the exact count
-     is on hover, where a precise number is actually legible. */
-  .strip{display:flex;gap:3px;align-items:stretch;height:26px;margin:2px 0 6px}
-  .strip span{flex:1 1 0;border-radius:3px;background:var(--line)}
-  .strip span.is-ok{background:var(--ok)}
+  /* One block per hour. The block is the hour; the dark part bitten out of the
+     top is what did not land.
+     Two earlier attempts failed for opposite reasons. Drawing the ratio as a
+     bar height put every hour between 90 and 100% of 46px, so real differences
+     were three pixels. Flat blocks coloured by threshold then threw the
+     variation away entirely: 25 of 30 and 30 of 30 were the same green.
+     Plotting the miss instead of the hit is what makes it legible, because the
+     miss is the small number. The scale is expanded so a third of an hour lost
+     fills the block, which is the range that actually occurs here. */
+  .strip{display:flex;gap:3px;align-items:stretch;height:34px;margin:2px 0 6px}
+  .strip span{flex:1 1 0;border-radius:3px;background:var(--ok);position:relative;overflow:hidden}
   .strip span.is-late{background:var(--warn)}
   .strip span.is-bad{background:var(--bad)}
+  .strip span i{position:absolute;left:0;right:0;top:0;display:block;background:#1B1F28}
   .strip span.is-unknown{background:repeating-linear-gradient(135deg,#171B24,#171B24 3px,#12151C 3px,#12151C 6px)}
   .axis{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;
     color:var(--dim);letter-spacing:.02em;margin:0 0 8px}
@@ -146,6 +148,6 @@
     A fan-made project, not affiliated with Psyonix, Epic Games or RLCS. Rocket League is a trademark of Psyonix LLC. Player and team names belong to their respective owners.</p>
   </footer>
 </div>
-<script src="status.js?v=5ec30ca0" defer></script>
+<script src="status.js?v=061f9770" defer></script>
 </body>
 </html>

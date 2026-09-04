@@ -184,8 +184,11 @@
       var ratio = Math.min(1, n / expect);
       known += expect; got += Math.min(n, expect);
       var st = ratio >= 0.8 ? "ok" : (ratio >= 0.4 ? "late" : "bad");
+      // The bite is the share that did not land, on a scale where losing a
+      // third of the hour fills the block. Anything worse is already red.
+      var miss = Math.min(100, Math.round(((1 - ratio) / 0.34) * 100));
       cells.push('<span class="is-' + st + '" title="' + hourLabel(from) + ": " + n + " of ~" + expect +
-        ' collections"></span>');
+        ' collections">' + (miss > 0 ? '<i style="height:' + miss + '%"></i>' : "") + "</span>");
     }
     strip.innerHTML = cells.join("");
 
@@ -197,7 +200,7 @@
     for (var j = 1; j < runs.length; j++) gap = Math.max(gap, runs[j] - runs[j - 1]);
 
     var hours = Math.min(24, Math.max(1, Math.round((nowMin - firstKnown) / 60)));
-    legend.textContent = "One block per hour. Green kept up, amber slipped, red lost most of the hour." +
+    legend.textContent = "One block per hour; the dark part is what did not land. Amber slipped, red lost most of the hour." +
       (firstKnown > start ? " Hatched hours are before records began." : "");
     hist.innerHTML =
       '<div><span class="k">Collections landed</span><span class="v">' + (pct == null ? "&mdash;" : pct + "<small>%</small>") + "</span></div>" +
