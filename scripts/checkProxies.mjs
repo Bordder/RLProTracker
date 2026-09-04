@@ -17,6 +17,7 @@
 //   PROXY_LIST="host:port:user:pass,..."   or
 //   PROXY_HOST=... PROXY_PORTS=1,2,3 PROXY_USER=... PROXY_PASS=...
 
+import { parseProxies } from "./proxies.mjs";
 import { chromium } from "playwright-extra";
 import stealth from "puppeteer-extra-plugin-stealth";
 chromium.use(stealth());
@@ -32,30 +33,10 @@ if (process.env.CI && process.env.ALLOW_CI_PROXY_DUMP !== "1") {
 const TEST_URL = "https://rocketleague.tracker.network/rocket-league/profile/steam/76561198960239428/overview";
 const IP_URL = "https://api.ipify.org?format=json";
 
-function parseProxies() {
-  const out = [];
-  const list = process.env.PROXY_LIST;
-  if (list) {
-    for (const raw of list.split(",").map((s) => s.trim()).filter(Boolean)) {
-      const url = raw.match(/^https?:\/\/([^:]+):([^@]+)@([^:]+):(\d+)$/);
-      if (url) { out.push({ server: `http://${url[3]}:${url[4]}`, username: url[1], password: url[2] }); continue; }
-      const p = raw.split(":");
-      if (p.length >= 4) out.push({ server: `http://${p[0]}:${p[1]}`, username: p[2], password: p.slice(3).join(":") });
-    }
-    return out;
-  }
-  const host = process.env.PROXY_HOST, ports = process.env.PROXY_PORTS;
-  if (host && ports) {
-    const username = process.env.PROXY_USER, password = process.env.PROXY_PASS;
-    for (const pt of ports.split(",")) out.push({ server: `http://${host}:${pt.trim()}`, username, password });
-  }
-  return out;
-}
-
 const proxies = parseProxies();
 if (!proxies.length) { console.error("No proxies configured (set PROXY_LIST or PROXY_HOST/PROXY_PORTS)."); process.exit(1); }
 
-console.log(`testing ${proxies.length} proxies\n`);
+console.log(`testing ${proxies.length} proxies. Indices below are the ones data/proxy-use.json reports.\n`);
 const browser = await chromium.launch({ headless: true });
 const results = [];
 
@@ -92,7 +73,7 @@ for (const [i, proxy] of proxies.entries()) {
     row.tunnel = e.message.slice(0, 40);
   } finally { await ctx?.close(); }
   results.push(row);
-  console.log(`  ${String(i + 1).padStart(2)}. ${label.padEnd(24)} tunnel=${row.tunnel.padEnd(22)} exit=${row.exitIp.padEnd(16)} tracker=${row.tracker}`);
+  console.log(`  index ${String(i).padStart(2)}  ${label.padEnd(24)} tunnel=${row.tunnel.padEnd(22)} exit=${row.exitIp.padEnd(16)} tracker=${row.tracker}`);
 }
 
 await browser.close();

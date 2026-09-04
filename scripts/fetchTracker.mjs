@@ -20,6 +20,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import { appendRows, countReadings } from "./trackerHistory.mjs";
+import { parseProxies as parseProxyList } from "./proxies.mjs";
 import { chromium } from "playwright-extra";
 import stealth from "puppeteer-extra-plugin-stealth";
 
@@ -328,34 +329,12 @@ const readJson = async (f, fallback) => { try { return JSON.parse(await readFile
 
 // Proxies (Oxylabs) from env, rotated across players to spread load and clear
 // Cloudflare from trusted IPs. All values come from CI secrets, never the repo.
+// Parsing lives in ./proxies.mjs so the diagnostic tool numbers the list exactly
+// as this does; data/proxy-use.json identifies a proxy only by that index.
 // Returns [null] (direct connection) when no proxy is configured.
 function parseProxies() {
-  const out = [];
-  // Format A: PROXY_LIST - one proxy per line or comma. Accepts "host:port:user:pass",
-  // "host:port" (uses PROXY_USER/PASS), or "http://user:pass@host:port". Lets us mix
-  // proxies from several providers to spread bandwidth across their separate caps.
-  const list = process.env.PROXY_LIST;
-  if (list) {
-    for (const raw of list.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean)) {
-      const url = raw.match(/^https?:\/\/(?:([^:@]+):([^@]+)@)?([^:/]+):(\d+)/);
-      if (url) { out.push({ server: `http://${url[3]}:${url[4]}`, username: url[1], password: url[2] }); continue; }
-      const p = raw.split(":");
-      if (p.length >= 4) out.push({ server: `http://${p[0]}:${p[1]}`, username: p[2], password: p.slice(3).join(":") });
-      else if (p.length === 2) out.push({ server: `http://${p[0]}:${p[1]}` }); // public/no-auth proxy - never attach our creds
-    }
-  }
-  // Format B: PROXY_HOST + PROXY_PORTS (one host, many ports, shared creds).
-  //
-  // Only consulted when PROXY_LIST is absent. These used to be concatenated,
-  // which meant a stale secret from a previous provider quietly rejoined the
-  // rotation and every player unlucky enough to draw one of those slots spent
-  // its attempts on a dead tunnel.
-  const host = process.env.PROXY_HOST, ports = process.env.PROXY_PORTS;
-  if (!out.length && host && ports) {
-    const username = process.env.PROXY_USER, password = process.env.PROXY_PASS;
-    for (const pt of ports.split(",")) out.push({ server: `http://${host}:${pt.trim()}`, username, password });
-  }
-  if (out.length && host && ports && process.env.PROXY_LIST) {
+  const out = parseProxyList();
+  if (out.length && process.env.PROXY_HOST && process.env.PROXY_PORTS && process.env.PROXY_LIST) {
     console.log("note: PROXY_LIST is set, so PROXY_HOST/PROXY_PORTS are ignored");
   }
   return out.length ? out : [null];
