@@ -1,9 +1,16 @@
 // Pad every team crest onto a square transparent canvas at 256px, centred.
-// The source files are 128 wide with whatever height Liquipedia had, so a
-// wordmark like NRG (128x30) renders seven pixels tall inside a 32px tile and a
-// tall mark like FUT (128x242) sits off to one side. object-fit can only centre
-// what it is given; making the file square fixes both, and 256 gives retina
-// tiles something to work with.
+// A wordmark like NRG (128x30) renders seven pixels tall inside a 32px tile and
+// a tall mark sits off to one side. object-fit can only centre what it is
+// given; making the file square fixes both, and 256 gives retina tiles
+// something to work with.
+//
+// Run this by hand on a crest we are allowed to publish: one that is public
+// domain on Wikimedia Commons, from the org's own press kit, or supplied by the
+// org. It is deliberately not wired to a workflow. The Liquipedia fetcher that
+// used to feed it was removed, because Liquipedia hosts logos under its own
+// fair use assertion, which covers Liquipedia and not this site, and a
+// dispatchable workflow meant that whole policy was one click from being undone.
+// See web/img/teams/sources.json for the basis of each published mark.
 import { readFile, writeFile, readdir } from "node:fs/promises";
 import { inflateSync, deflateSync, crc32 } from "node:zlib";
 
