@@ -93,7 +93,7 @@
   /* Developer note: GitHub's alert callout, themed to the board. A left rule
      and a titled first line, so it reads as an aside from the author rather
      than as a fault with the data. */
-  .devnote{display:flex;gap:10px;align-items:flex-start;margin:0 0 14px;padding:11px 13px;
+  .devnote{display:flex;gap:10px;align-items:flex-start;margin:26px 0 0;padding:11px 13px;
     border:1px solid var(--line2);border-left:3px solid var(--playing);border-radius:8px;
     background:rgba(94,200,255,.055);font-size:13px;line-height:1.55;color:var(--slate)}
   .devnote svg{flex:0 0 auto;width:15px;height:15px;margin-top:1px;
@@ -691,6 +691,14 @@
     <h1 class="headline">Who&rsquo;s Grinding<span class="accent">?</span></h1>
     <p class="dek" id="dek">Ranked-ladder activity for RLCS pros <b>outside</b> official tournaments: who&rsquo;s actually queuing, ranked by <b>2v2 MMR</b>, with games this season and MMR per playlist.</p>
 
+    <div class="devnote" role="note">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 7.6v.1"></path></svg>
+      <span><span class="dn-t">Developer note</span>
+      Most teams show their <b>initials</b> instead of a logo. Only logos cleared for use are
+      published, and permission for the rest is being requested from the orgs. Logos will
+      appear as they are granted.</span>
+    </div>
+
     <div class="stats" id="stats"></div>
   </header>
 
@@ -704,14 +712,6 @@
       <input id="search" type="search" placeholder="Search player or team&hellip;" autocomplete="off" aria-label="Search player or team" />
       <button class="clr" id="searchClear" aria-label="Clear search">&times;</button>
     </div>
-  </div>
-
-  <div class="devnote" role="note">
-    <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 11v5"></path><path d="M12 7.6v.1"></path></svg>
-    <span><span class="dn-t">Developer note</span>
-    Most teams show their <b>initials</b> instead of a logo. Only logos cleared for use are
-    published, and permission for the rest is being requested from the orgs. Logos will
-    appear as they are granted.</span>
   </div>
 
   <div class="wrow" id="wrow">
