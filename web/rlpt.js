@@ -706,7 +706,12 @@
       {k:'twos',  lab:'2v2',    get:function(p){ return p.mmr&&p.mmr.twos!=null?nf(p.mmr.twos):null; }},
       {k:'threes',lab:'3v3',    get:function(p){ return p.mmr&&p.mmr.threes!=null?nf(p.mmr.threes):null; }},
       {k:'sg',    lab:'games', get:function(p){ return p.seasonGames!=null?nf(p.seasonGames):null; }},
-      {k:'g14',   lab:null,     get:function(p){ var g=p.games&&p.games[win]; return g&&g.games!=null&&!g.partial?nf(g.games):null; }},
+      {k:'g14',   lab:null, na:'pending', get:function(p){ var g=p.games&&p.games[win]; return g&&g.games!=null&&!g.partial?nf(g.games):null; }},
+      // A second window beside the one the board is ranked by, so a card says
+      // whether today is a burst or a habit. It is 7d normally, and 24h when
+      // the board is already showing 7d, which keeps the row six cells wide
+      // whatever the ranking and never prints the same window twice.
+      {k:'g2nd',  lab:null, na:'pending', get:function(p){ var w=(win==='d7'?'d1':'d7'); var g=p.games&&p.games[w]; return g&&g.games!=null&&!g.partial?nf(g.games):null; }},
       {k:'h2',    lab:'2wk h',  get:function(p){ var h=p.hours2wk!=null?p.hours2wk:p.estHours2wk; return h!=null?(p.hours2wk!=null?hf(h):'~'+hf(h)):null; }}
     ];
     var podFigure=function(p,k){
@@ -716,8 +721,8 @@
       if(k==='sg') return p.seasonGames!=null?nf(p.seasonGames):null;
       var v=p.mmr?p.mmr[k]:null; return v!=null?nf(v):null;
     };
-    var podStat=function(label,value,active){
-      return '<div'+(active?' class="on"':'')+'><b'+(value==null?' class="na"':'')+'>'+(value==null?'hidden':value)+'</b><span>'+label+'</span></div>';
+    var podStat=function(label,value,active,na){
+      return '<div'+(active?' class="on"':'')+'><b'+(value==null?' class="na"':'')+'>'+(value==null?(na||'hidden'):value)+'</b><span>'+label+'</span></div>';
     };
     // `nextKey` lets a caller render the podium for an order it is about to
     // apply, rather than the one the table is still in.
@@ -743,7 +748,9 @@
         // Skip the stat the card is already headlining: ranked by 2v2 MMR, the
         // big figure and the 2v2 cell underneath were the same number twice.
         var stats=POD_STATS.filter(function(st){ return st.k!==k; }).map(function(st){
-          return podStat(st.lab||WIN_LABEL[win]||win, st.get(p), false);
+          var lab=st.lab;
+          if(!lab) lab=(st.k==='g2nd') ? (WIN_LABEL[win==='d7'?'d1':'d7']) : (WIN_LABEL[win]||win);
+          return podStat(lab, st.get(p), false, st.na);
         });
         return '<div class="pc p'+(i+1)+'">'+
           '<div class="phead">'+
