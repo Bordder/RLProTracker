@@ -385,7 +385,12 @@
      broken-image icon. Inset the artwork so a tall logo does not run edge to
      edge - square marks carry their own whitespace, portrait ones (Vitality,
      Falcons) would otherwise sit noticeably larger than everything around them. */
-  .av.mk.logo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;padding:3px;background:var(--panel2)}
+  /* A crest is a square mark, so its tile is a rounded square rather than a
+     circle: a circular mask with overflow:hidden clipped the ends off wide
+     wordmarks like NRG and MIBR, which read as the logo sitting off centre.
+     The inset keeps a portrait mark from touching the edges. */
+  .av.mk.logo{border-radius:8px}
+  .av.mk.logo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;padding:8%;background:var(--panel2)}
 
   /* ---- Footer extras: links, feedback, credit ---- */
   .note .deflist{margin:0 0 8px;padding-left:18px;list-style:none}

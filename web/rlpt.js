@@ -207,7 +207,7 @@
       var withGames=teams.filter(function(t){return t.games&&t.games.d1!=null;});
       if(!withGames.length)return '';
       var top=withGames.slice().sort(function(a,b){return b.games.d1-a.games.d1;})[0];
-      return card('Most Active Team', nf(top.games.d1)+' <small>games</small>', '<b>'+esc(top.team)+'</b> &middot; today', false);
+      return card('Most Active Team', nf(top.games.d1)+' <small>games</small>', '<b>'+esc(top.team)+'</b>', false);
     }
 
     // ---- merge into unified models ----
