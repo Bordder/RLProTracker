@@ -212,8 +212,13 @@
   .pod .pfig b{font-family:var(--mono);font-weight:600;font-size:34px;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
   .pod .pc:not(.p1) .pfig b{color:var(--bone)}
   .pod .pfig span{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:600;color:var(--slate)}
-  .pod .prow{display:flex;flex-wrap:wrap;gap:10px 12px;border-top:1px solid var(--line);padding-top:9px;margin-top:auto}
-  .pod .prow div{display:flex;flex-direction:column;gap:1px;min-width:0;flex:1 1 26%}
+  /* Kept a grid, not a flex line. With five cells a flex row stretches the
+     last two to half width each, so their labels sit at 0 and 50% while the
+     row above sits at 0, 33 and 66: the columns stop lining up and the card
+     reads as broken. A fixed three columns keeps the alignment and simply
+     leaves the last slot empty, which reads as the end of a list. */
+  .pod .prow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 12px;border-top:1px solid var(--line);padding-top:9px;margin-top:auto}
+  .pod .prow div{display:flex;flex-direction:column;gap:1px;min-width:0}
   .pod .prow b{font-family:var(--mono);font-size:15px;color:var(--bone);font-variant-numeric:tabular-nums;white-space:nowrap}
   .pod .prow b.na{color:var(--bone);font-size:12.5px}
   .pod .prow div.on b{color:var(--accent)}
@@ -232,7 +237,7 @@
     .pod .pfig{margin-left:auto;flex-direction:column;align-items:flex-end;gap:0}
     .pod .pfig b{font-size:24px}
     .pod .pfig span{font-size:9.5px;letter-spacing:.1em}
-    .pod .prow{gap:7px 10px;padding-top:8px}
+    .pod .prow{grid-template-columns:repeat(3,1fr);gap:7px 10px;padding-top:8px}
     .pod .prow b{font-size:14px}
     .pod .prow span{font-size:9.5px;letter-spacing:.08em}
     /* No width to spare on the head row: the mark shows on that player's own
