@@ -79,9 +79,19 @@ await writeFile(join(ROOT, "web", "_headers"), [
   "/data/derived/*",
   "  Cache-Control: no-cache",
   "",
-  "# Fonts are content-addressed by name and never change under the same name.",
-  "/fonts/*",
+  "# Font FILES are content-addressed by name and never change under the same name.",
+  "/fonts/*.woff2",
   "  Cache-Control: public, max-age=31536000, immutable",
+  "",
+  "# The stylesheet is NOT content-addressed: it keeps one URL and its contents",
+  "# change. It used to be swept up by the /fonts/* rule above and served",
+  "# immutable for a year, which is how a fixed stylesheet stayed broken: after",
+  "# the deploy that repaired it, the edge was still answering with a copy 2.3",
+  "# days old (cf-cache-status HIT, Age 200452) and would have done so until",
+  "# 2027. The pages request it with a ?v= stamp, so this only has to be short",
+  "# enough that an unstamped request cannot pin a stale copy.",
+  "/fonts/fonts.css",
+  "  Cache-Control: public, max-age=300",
   "",
 ].join("\n"));
 console.log("web/_headers -> CSP written");
@@ -113,4 +123,31 @@ for (const [page, script] of [["index.html", "rlpt.js"], ["status.html", "status
   } else {
     console.log(`${script}?v=${hash} (unchanged)`);
   }
+}
+
+// ---- cache-bust the font stylesheet --------------------------------------
+//
+// Same problem as the page script, and it had already bitten. fonts/fonts.css
+// keeps one URL while its contents change, so the immutable header it used to
+// inherit meant a corrected stylesheet never reached anyone: the deploy that
+// fixed the subpage font paths went out and the edge kept answering with a copy
+// 2.3 days old. index.html is immune because it inlines its own @font-face,
+// which is exactly why the breakage was invisible on the page people look at.
+//
+// The woff2 files need no stamp: one file per family now, named for the family,
+// and a different font would be a different name.
+{
+  const css = (await readFile(join(ROOT, "web", "fonts", "fonts.css"), "utf8")).replace(/\r\n/g, "\n");
+  const hash = createHash("sha256").update(css).digest("hex").slice(0, 8);
+  const pattern = /href="fonts\/fonts\.css(?:\?v=[0-9a-f]+)?"/;
+  let stamped = 0;
+  for (const page of await readdir(join(ROOT, "web"))) {
+    if (!page.endsWith(".html")) continue;
+    const pagePath = join(ROOT, "web", page);
+    const html = await readFile(pagePath, "utf8");
+    if (!pattern.test(html)) continue;               // index.html inlines its faces
+    const out = html.replace(pattern, `href="fonts/fonts.css?v=${hash}"`);
+    if (out !== html) { await writeFile(pagePath, out); stamped++; }
+  }
+  console.log(`fonts.css?v=${hash} -> ${stamped} page(s) restamped`);
 }
