@@ -97,7 +97,7 @@
     'Five Fears':'OCE',
     // Regional sides, tracked beyond the World Championship field.
     'Geekay Esports':'EU','Team BSK':'EU','Novo Esports':'EU','FN':'EU','GHT':'EU',
-    'Gen.G Mobil1 Racing':'NA','Dignitas':'NA','M80':'NA',
+    'Gen.G Mobil1 Racing':'NA','Dignitas':'NA','M80':'NA','Lil Step Bros':'NA','S.O.S.':'NA',
     'Rafha Esports':'MENA','DOS':'MENA','Team Stallions':'MENA',
     'KINOTROPE gaming':'APAC',
     'Pioneers':'SSA'
