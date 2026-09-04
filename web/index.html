@@ -114,32 +114,17 @@
   .dek b{color:var(--bone);font-weight:700}
 
   /* ---- Stat cards ---- */
-  /* Five cards normally, six while someone is playing: let them flow rather
-     than stranding the sixth on a row of its own. */
-  /* Flex rather than grid, because there are five tiles and a grid leaves a
-     hole whenever five does not divide by the column count: at ~800px the
-     auto-fit grid fitted four and left the fifth alone beside an empty cell.
-     Flex items that can grow share out the last row instead, so a leftover
-     tile widens rather than stranding a gap. */
+  /* Flex rather than grid, so a row that does not divide evenly shares out the
+     leftover width instead of stranding a gap beside it. That mattered when
+     there were five tiles: an auto-fit grid fitted four at ~800px and left the
+     fifth alone next to an empty cell. There are four now, which divides, but
+     flex still handles the wrap better than a fixed column count. */
   .stats{display:flex;flex-wrap:wrap;gap:12px;margin:28px 0 8px}
   .stats>*{flex:1 1 158px;min-width:0}
   /* Four narrow tiles divide evenly, so the only bad wrap is three plus one.
      Below the width where all four fit, go straight to two rows of two. */
   @media (max-width:740px){ .stats>*{flex:1 1 calc(50% - 6px)} }
 
-  /* The season leader sits on its own row underneath, centred, at 1.5 times
-     the width of one tile above it. A tile is calc(25% - 9px) once the three
-     gaps are taken out of the row, so 1.5 of them is calc(37.5% - 13.5px).
-     It keeps the ordinary stacked card layout, since at this width the player
-     and team fit on one line without help. justify-content only bites on that
-     second row - the four above grow to fill, leaving no free space to centre. */
-  .stats{justify-content:center}
-  .stats>.wide{flex:0 1 calc(37.5% - 13.5px)}
-  /* Centred inside the box as well as on the row: it is the only card that is
-     not part of a run of equal tiles, so left-aligned text would pull against
-     the centring rather than sit inside it. */
-  .card.wide{text-align:center}
-  @media (max-width:740px){ .stats>.wide{flex-basis:100%} }
   .card{
     background:var(--surface);border:1px solid var(--line);border-radius:12px;
     padding:14px 16px;position:relative;overflow:hidden;
@@ -462,8 +447,7 @@
        first player appeared, which on a board whose whole job is answering one
        question is the wrong thing to spend the screen on.
        Tiles lose their descriptions and keep label plus number, so the rows are
-       equal height; the fifth, which would otherwise sit alone on its own row,
-       becomes a one line strip. */
+       equal height. */
     .stats{gap:8px;margin:16px 0 6px}
     .stats>*{flex:1 1 140px}
     .card{padding:10px 12px;border-radius:10px}
@@ -797,6 +781,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=38ad4e4b" defer></script>
+<script src="rlpt.js?v=af610143" defer></script>
 </body>
 </html>
