@@ -84,6 +84,11 @@
 
   // Total playtime, flagged when it is a stored reading from before the profile closed.
   var totalHoursCell=function(p){
+    // An Epic player's Steam total is not their playtime. mtzr showed 1,173
+    // hours: real enough as a Steam figure, and nothing to do with the account
+    // they actually play on, so the number was simply wrong. Say "epic" instead,
+    // as the other hours cells already do for this status.
+    if(String(p.status||'').toLowerCase()==='epic')return hoursNA(p.status);
     if(p.totalHours==null)return hoursNA(p.status);
     var v=nf(Math.round(p.totalHours));
     if(!p.totalFrozenAt)return v;
@@ -91,8 +96,8 @@
     var on=isNaN(d)?'an earlier check':d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
     // Covers both routes to a frozen figure: a profile that went private, and
     // one that switched its total playtime to private. The reader only needs to
-    // know the number is real, when it was taken, and why it has stopped moving.
-    return'<span class="frozen" title="Real total, captured '+esc(on)+'. Frozen until this profile publishes hours again.">'+v+'</span>';
+    // know when it was taken and why it has stopped moving.
+    return'<span class="frozen" title="Captured '+esc(on)+'. Frozen until this profile publishes hours again.">'+v+'</span>';
   };
   // The 2-week hours cell, in order of preference: Steam's own figure, then a
   // sampled estimate, then a note saying why there is neither.
