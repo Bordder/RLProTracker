@@ -239,7 +239,7 @@
       document.getElementById('stats').innerHTML=
         card('Players Ranked', rankedFig, 'pros with ranked data', false)+
         card('Total Ranked Games', nf(totalGames), 'across all tracked pros', false)+
-        card('Most Active This Season', top?(nf(top.seasonGames)+' <small>games</small>'):'&middot;', top?('<b>'+esc(top.name)+'</b> &middot; '+esc(top.team||'')):'no data yet', false)+
+        card('Most Active Pro', top?(nf(top.seasonGames)+' <small>games this season</small>'):'&middot;', top?('<b>'+esc(top.name)+'</b> &middot; '+esc(top.team||'')):'no data yet', false)+
         // Which roster is on the ladder today, rather than an inventory of how
         // many orgs the board covers. The teams tab is a click away for that.
         topTeamCard();
@@ -259,7 +259,7 @@
       var withGames=teams.filter(function(t){return t.seasonGames!=null;});
       if(!withGames.length)return '';
       var top=withGames.slice().sort(function(a,b){return b.seasonGames-a.seasonGames;})[0];
-      return card('Most Active Team', nf(top.seasonGames)+' <small>games</small>', '<b>'+esc(top.team)+'</b> &middot; this season', false);
+      return card('Most Active Team', nf(top.seasonGames)+' <small>games this season</small>', '<b>'+esc(top.team)+'</b>', false);
     }
 
     // ---- merge into unified models ----
