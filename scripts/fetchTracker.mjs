@@ -219,22 +219,109 @@ const noteUse = (i, isRetry) => {
   if (isRetry) proxyUse[i].retries++;
 };
 
-async function scrapePlayer(contexts, order, startIdx, id) {
+// Whether a failure blames the tunnel or the profile.
+//
+// The distinction is the whole point of benching: a wrong Epic id 404s on every
+// proxy in the rotation, so counting that against a proxy would bench healthy
+// tunnels one bad player at a time. A refused connection or a 403 is the other
+// way round - it says nothing about the player and everything about the IP.
+//
+// 403/429/503 are Cloudflare declining this address specifically, which is what
+// a burned proxy looks like from here. 404 and a malformed body are about the id
+// and are deliberately absent. Browser-level failures ("Target closed") are
+// absent too: those are the run dying, not one tunnel, and benching on them
+// would empty the rotation.
+export function isProxyFault(err) {
+  const m = String(err?.message ?? err ?? "");
+  if (/^api-(403|407|408|429|500|502|503|504)$/.test(m)) return true;
+  if (/net::|ERR_[A-Z_]+|ECONN|ETIMEDOUT|EAI_AGAIN|socket hang up|tunnel/i.test(m)) return true;
+  if (/timeout|timed out|aborted/i.test(m) && !/Target closed|browser has been closed/i.test(m)) return true;
+  return false;
+}
+
+// Take a proxy out of the rotation for the rest of the run once it has failed
+// three times in a row on faults that are its own.
+//
+// Measured 2026-09-04: one proxy of fifteen failed 5 of its 6 attempts while the
+// other fourteen were clean. Every player it drew paid a failed attempt and a
+// 1.5s wait before being retried elsewhere, and it kept being handed new players
+// as their first choice all run, because nothing remembered.
+//
+// Deliberately per run and never persisted: an IP that is refused now is usually
+// fine an hour later, and a bench that survived restarts would need an unbench
+// rule, a store, and a way to be wrong for days. The worst case here is one bad
+// run. A success clears the counter, so a proxy that merely stumbles is never
+// benched, and MIN_LIVE keeps a site-wide outage (where every proxy fails for
+// reasons that are not the proxy) from emptying the rotation.
+const BENCH_AFTER = 3;
+const MIN_LIVE = 2;
+
+export function proxyHealth(count, { benchAfter = BENCH_AFTER, minLive = MIN_LIVE } = {}) {
+  const streak = new Array(count).fill(0);
+  const benched = new Set();
+  return {
+    benched,
+    isBenched: (i) => benched.has(i),
+    ok(i) { streak[i] = 0; },
+    fail(i, err) {
+      // Reaching the API and being told "no such profile" proves the tunnel
+      // works, so a profile-level failure clears the streak rather than being
+      // ignored: three different bad ids in a row must not look like a bad IP.
+      if (!isProxyFault(err)) { streak[i] = 0; return false; }
+      if (++streak[i] < benchAfter) return false;
+      if (benched.has(i)) return false;
+      if (count - benched.size <= minLive) return false;
+      benched.add(i);
+      console.log(`proxy ${i}: benched for the rest of this run after ${streak[i]} connection failures in a row`);
+      return true;
+    },
+  };
+}
+
+// Which proxies this player will be offered to, in order, skipping any that are
+// benched. Pure and exported so the skipping can be tested without a browser:
+// getting this wrong stops players being scraped at all, and the symptom would
+// be a quietly emptier board rather than an error.
+//
+// The scan is one lap of the rotation, so a player is never offered the same
+// slot twice, and it stops at `tries`. If every proxy is benched the lap returns
+// nothing; the caller falls back to the unbenched rotation rather than skipping
+// the player, because collecting through a bad proxy still beats not trying.
+export function attemptOrder(order, startIdx, tries, isBenched = () => false) {
+  const out = [];
+  for (let step = 0; step < order.length && out.length < tries; step++) {
+    const i = order[(startIdx + step) % order.length];
+    if (!isBenched(i)) out.push(i);
+  }
+  return out;
+}
+
+async function scrapePlayer(contexts, order, startIdx, id, health) {
   let lastErr;
   const tries = Math.min(ATTEMPTS, contexts.length);
-  for (let a = 0; a < tries; a++) {
-    const ctxIdx = order[(startIdx + a) % order.length];
+  let plan = attemptOrder(order, startIdx, tries, (i) => health.isBenched(i));
+  if (!plan.length) plan = attemptOrder(order, startIdx, tries);
+  let attempted = 0;
+  for (const ctxIdx of plan) {
     const ctx = contexts[ctxIdx];
-    noteUse(ctxIdx, a > 0);
+    noteUse(ctxIdx, attempted > 0);
+    attempted++;
     try {
       const d = await scrapeOnce(ctx, id);
-      if (d) return d;
+      if (d) { health.ok(ctxIdx); return d; }
+      // A 200 that carries no playlists is the profile's answer, not the
+      // tunnel's, so it counts as a miss without counting against the proxy.
       lastErr = new Error("no-data");
       proxyUse[ctxIdx].fails++;
-    } catch (e) { lastErr = e; proxyUse[ctxIdx].fails++; }
-    if (a < tries - 1) await sleep(1500);
+      health.ok(ctxIdx);
+    } catch (e) {
+      lastErr = e;
+      proxyUse[ctxIdx].fails++;
+      health.fail(ctxIdx, e);
+    }
+    if (attempted < plan.length) await sleep(1500);
   }
-  throw lastErr;
+  throw lastErr ?? new Error("no-proxy-available");
 }
 
 const readJson = async (f, fallback) => { try { return JSON.parse(await readFile(f, "utf8")); } catch { return fallback; } };
@@ -364,6 +451,7 @@ async function main() {
   // its own tasks, not the whole run.
   const weights = parseWeights(contexts.length);
   const order = weightedOrder(weights || contexts.map(() => 1));
+  const health = proxyHealth(contexts.length);
   if (weights) console.log(`proxy weights: ${weights.join(",")}`);
 
   const pool = process.env.POOL ? +process.env.POOL : Math.min(DEFAULT_POOL, contexts.length);
@@ -377,7 +465,7 @@ async function main() {
       const who = p.epic ? { platform: "epic", id: p.epic } : { platform: "steam", id: p.steamId64 };
       const row = { id: p.id, name: p.name, team: p.team, steamId64: p.steamId64 ?? null, epic: p.epic ?? null, status: "ok", playlists: null };
       try {
-        row.playlists = await scrapePlayer(contexts, order, idx, who);
+        row.playlists = await scrapePlayer(contexts, order, idx, who, health);
         if (!row.playlists) row.status = "no-data";
       } catch (e) {
         row.status = `error: ${e.message.split("\n")[0].slice(0, 50)}`;
@@ -421,7 +509,11 @@ async function main() {
       at: takenAt,
       proxyCount: contexts.length,
       players: players.length,
-      use: proxyUse.map((u, i) => ({ i, ...(u || { attempts: 0, retries: 0, fails: 0 }) })),
+      // benched says the failures on this index were the tunnel's own and it
+      // was dropped from the rotation part-way through. One run of it is noise;
+      // the same index benched run after run is a proxy to replace.
+      benched: [...health.benched].sort((a, b) => a - b),
+      use: proxyUse.map((u, i) => ({ i, ...(u || { attempts: 0, retries: 0, fails: 0 }), benched: health.isBenched(i) })),
     }, null, 2) + "\n"
   );
 
@@ -429,7 +521,7 @@ async function main() {
   // is the thing that shows up as a lopsided bill.
   if (contexts.length > 1) {
     const line = proxyUse
-      .map((u, i) => `${i}:${u ? u.attempts : 0}${u && u.retries ? `(+${u.retries}r)` : ""}${u && u.fails ? `!${u.fails}` : ""}`)
+      .map((u, i) => `${i}:${u ? u.attempts : 0}${u && u.retries ? `(+${u.retries}r)` : ""}${u && u.fails ? `!${u.fails}` : ""}${health.isBenched(i) ? "[benched]" : ""}`)
       .join("  ");
     console.log(`proxy use (index:attempts(+retries)!failures)
   ${line}`);
