@@ -245,11 +245,21 @@
         topTeamCard();
     }
 
+    // Ranked on the season total, not the last 24 hours.
+    //
+    // The 24h figure it used to show was a bare "128 games" with nothing saying
+    // over what, sitting beside a card that says "this season" in its own
+    // label, so the obvious reading was the wrong one. Season totals also make
+    // the two cards a matched pair: the most active player this season, and the
+    // most active team this season.
+    //
+    // It is the sum across a team's tracked players, so a team with fewer of
+    // them tracked is at a disadvantage. Most carry three.
     function topTeamCard(){
-      var withGames=teams.filter(function(t){return t.games&&t.games.d1!=null;});
+      var withGames=teams.filter(function(t){return t.seasonGames!=null;});
       if(!withGames.length)return '';
-      var top=withGames.slice().sort(function(a,b){return b.games.d1-a.games.d1;})[0];
-      return card('Most Active Team', nf(top.games.d1)+' <small>games</small>', '<b>'+esc(top.team)+'</b>', false);
+      var top=withGames.slice().sort(function(a,b){return b.seasonGames-a.seasonGames;})[0];
+      return card('Most Active Team', nf(top.seasonGames)+' <small>games</small>', '<b>'+esc(top.team)+'</b> &middot; this season', false);
     }
 
     // ---- merge into unified models ----
