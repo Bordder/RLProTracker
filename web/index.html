@@ -135,6 +135,10 @@
      second row - the four above grow to fill, leaving no free space to centre. */
   .stats{justify-content:center}
   .stats>.wide{flex:0 1 calc(43.75% - 15.75px)}
+  /* Centred inside the box as well as on the row: it is the only card that is
+     not part of a run of equal tiles, so left-aligned text would pull against
+     the centring rather than sit inside it. */
+  .card.wide{text-align:center}
   @media (max-width:740px){ .stats>.wide{flex-basis:100%} }
   .card{
     background:var(--surface);border:1px solid var(--line);border-radius:12px;
