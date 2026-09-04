@@ -200,7 +200,7 @@
   .pod .prow{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 12px;border-top:1px solid var(--line);padding-top:9px;margin-top:auto}
   .pod .prow div{display:flex;flex-direction:column;gap:1px;min-width:0}
   .pod .prow b{font-family:var(--mono);font-size:15px;color:var(--bone);font-variant-numeric:tabular-nums;white-space:nowrap}
-  .pod .prow b.na{color:var(--dim);font-size:12.5px}
+  .pod .prow b.na{color:var(--bone);font-size:12.5px}
   .pod .prow div.on b{color:var(--accent)}
   .pod .prow div.on span{color:var(--slate)}
   .pod .prow span{font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:11px;font-weight:600;color:var(--slate)}
@@ -316,7 +316,7 @@
   .pending{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;font-size:10px;font-weight:600;color:var(--slate);border:1px dashed var(--line2);border-radius:4px;padding:2px 7px}
   .c-hr{width:84px;font-family:var(--mono);font-variant-numeric:tabular-nums;color:var(--slate);font-weight:400}
   /* A total carried over from before a profile closed: real, but no longer moving. */
-  .frozen{color:var(--dim);position:relative;cursor:help}
+  .frozen{color:var(--bone);position:relative;cursor:help}
   .frozen::after{content:"\2731";font-size:8px;vertical-align:super;margin-left:2px;color:var(--t-gc)}
   .c-ros{width:132px;font-size:12.5px;color:var(--slate)}
   .rk-b{font-family:var(--mono);font-weight:700;color:var(--bone)}
@@ -324,14 +324,14 @@
   /* Presence-derived hours. Deliberately unlike a measured reading: dimmer, a
      tilde, and a dotted underline, so an estimate can never be mistaken for
      Steam's own number. */
-  .est{color:var(--dim);border-bottom:1px dotted var(--dim);cursor:help}
+  .est{color:var(--bone);border-bottom:1px dotted var(--slate);cursor:help}
   .est::before{content:"~";opacity:.7;margin-right:1px}
   /* Says why a figure is missing. Quieter than a real number, but readable,
      because a bare dot here reads as "no activity" when the truth is "Steam is
      not telling us". */
   /* A partial team total: real, but not the whole roster. */
   .part{border-bottom:1px dotted rgba(139,144,160,.5);cursor:help}
-  .na{color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.04em;
+  .na{color:var(--bone);font-family:var(--mono);font-size:11px;letter-spacing:.04em;
     text-transform:uppercase;cursor:help;border-bottom:1px dotted rgba(86,94,106,.55)}
   .empty{padding:56px 20px;text-align:center;color:var(--slate);font-family:var(--display);text-transform:uppercase;letter-spacing:.16em}
 

@@ -21,11 +21,11 @@
   var STATUS_LABEL={'hidden-details':'hidden','no-steam-id':'no steam','no-steam-link':'no steam','playtime-hidden':'hours hidden','epic':'epic','pending':'checking'};
   var STATUS_HINT={
     'public':'Profile is public, so Steam publishes playtime.',
-    'hidden-details':'Game details are switched off, so Steam publishes no playtime.',
-    'private':'Profile is closed, so Steam publishes nothing.',
+    'hidden-details':'Game details are toggled off.',
+    'private':'Profile is fully private.',
     'no-steam-id':'No Steam account matched for this player.',
     'no-steam-link':'No Steam account matched for this player.',
-    'playtime-hidden':'Profile is public but keeps total playtime private, a separate Steam setting.',
+    'playtime-hidden':'Profile is public but keeps total playtime private.',
     'epic':'Plays on Epic rather than Steam, so Steam publishes no hours. Ranked games and MMR are unaffected.',
     'pending':'Newly added. Ranked games and MMR are already tracked; the hourly Steam check has not reached this player yet.',
     'unknown':'Steam did not return a profile state for this player.'
@@ -48,9 +48,9 @@
   // is not reporting them, and the profile is re-checked every hour, so a
   // number appears on its own if the setting ever changes.
   var HOURS_NA={
-    'hidden-details':{t:'hidden',h:'Game details are off. Rechecked hourly, so hours appear if that changes.'},
-    'private':{t:'private',h:'Profile is closed. Rechecked hourly, so hours appear if it opens.'},
-    'playtime-hidden':{t:'hours hidden',h:'Total playtime is private. Rechecked hourly, so hours appear if it opens.'},
+    'hidden-details':{t:'hidden',h:'Game details are toggled off.'},
+    'private':{t:'private',h:'Profile is fully private.'},
+    'playtime-hidden':{t:'hours hidden',h:'Profile is public but keeps total playtime private.'},
     'no-steam-id':{t:'no steam',h:'No Steam account matched yet.'},
     'no-steam-link':{t:'no steam',h:'No Steam account matched yet.'},
     'epic':{t:'epic',h:'Plays on Epic, so Steam has no hours to publish. Games and MMR are tracked as normal.'},
@@ -83,7 +83,7 @@
   var hours2wkCell=function(p){
     if(p.hours2wk!=null)return hf(p.hours2wk);
     if(p.estHours2wk!=null){
-      return '<span class="est" title="Estimated, not measured: sampled every few minutes from live status. Always low, since sessions between checks are missed.">'+hf(p.estHours2wk)+'</span>';
+      return '<span class="est" title="Rough estimate from live-status checks every few minutes.">'+hf(p.estHours2wk)+'</span>';
     }
     return hoursNA(p.status);
   };
@@ -597,7 +597,7 @@
           var body=hf(v);
           return p.hours2wk!=null
             ? '<span class="c-hr" style="display:inline">'+body+'</span>'
-            : '<span class="est" title="Estimated, not measured: sampled every few minutes from live status. Always low, since sessions between checks are missed.">'+body+'</span>';
+            : '<span class="est" title="Rough estimate from live-status checks every few minutes.">'+body+'</span>';
         },na:function(p){return hoursNA(p.status);}},
         {label:'Total h',val:function(p){return p.totalHours!=null?Math.round(p.totalHours):null;},fmt:function(v){return '<span class="c-hr" style="display:inline">'+nf(v)+'</span>';},na:function(p){return hoursNA(p.status);}}
       ];
