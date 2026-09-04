@@ -15,11 +15,11 @@
   // collector does.
   var FEEDS = [
     { file: "tracker.json", name: "Ranked stats",
-      sub: "MMR per playlist and games played, for every tracked pro", late: 8, bad: 30 },
+      sub: "MMR per playlist and games played", late: 8, bad: 30 },
     { file: "steam-hours.json", name: "Steam playtime",
-      sub: "Total and two-week hours, where the profile publishes them", late: 90, bad: 240 },
+      sub: "Total and two-week hours", late: 90, bad: 240 },
     { file: "presence-hours.json", name: "Presence poll",
-      sub: "Estimates hours for players whose playtime is private", late: 20, bad: 75 },
+      sub: "Estimates hours for players whose playtime is hidden", late: 20, bad: 75 },
     { file: "team-tracker.json", name: "Team aggregates",
       sub: "Roster averages built from the ranked stats above", late: 10, bad: 40 }
   ];
@@ -105,7 +105,7 @@
       sub = "The published files did not load. The site itself may be down.";
     } else if (worst === "ok") {
       title = "Everything is running";
-      sub = "Every collector has reported recently and the board is current.";
+      sub = "Everything is up to date.";
     } else if (worst === "late") {
       title = "Running behind";
       sub = "A collector has missed several runs. Numbers are still shown but may be a little old.";
@@ -185,7 +185,7 @@
       known += expect; got += Math.min(n, expect);
       var st = ratio >= 0.8 ? "ok" : (ratio >= 0.4 ? "late" : "bad");
       cells.push('<span class="is-' + st + '" title="' + hourLabel(from) + ": " + n + " of ~" + expect +
-        ' collections"><i style="height:' + Math.max(6, Math.round(ratio * 100)) + '%"></i></span>');
+        ' collections"></span>');
     }
     strip.innerHTML = cells.join("");
 
@@ -197,7 +197,7 @@
     for (var j = 1; j < runs.length; j++) gap = Math.max(gap, runs[j] - runs[j - 1]);
 
     var hours = Math.min(24, Math.max(1, Math.round((nowMin - firstKnown) / 60)));
-    legend.textContent = "Each bar is one hour. Full height means every expected collection landed." +
+    legend.textContent = "One block per hour. Green kept up, amber slipped, red lost most of the hour." +
       (firstKnown > start ? " Hatched hours are before records began." : "");
     hist.innerHTML =
       '<div><span class="k">Collections landed</span><span class="v">' + (pct == null ? "&mdash;" : pct + "<small>%</small>") + "</span></div>" +

@@ -75,12 +75,21 @@
 
   /* One cell per hour. Height is fixed and the fill is the only variable, so a
      partly covered hour reads as partly covered rather than as a small number. */
-  .strip{display:flex;gap:3px;align-items:stretch;height:46px;margin:2px 0 8px}
-  .strip span{flex:1 1 0;border-radius:3px;background:var(--line);position:relative;overflow:hidden}
-  .strip span i{position:absolute;left:0;right:0;bottom:0;background:var(--ok);display:block}
-  .strip span.is-late i{background:var(--warn)}
-  .strip span.is-bad i{background:var(--bad)}
+  /* One flat block per hour, coloured by how that hour went.
+     It used to be a bar chart whose height was the share of expected
+     collections that landed. At a real uptime of 95%+ every bar stood between
+     90 and 100% of 46px, so the differences were three or four pixels and the
+     row read as one solid slab: it looked like a chart while telling you
+     nothing you could see. State reads instantly at a glance; the exact count
+     is on hover, where a precise number is actually legible. */
+  .strip{display:flex;gap:3px;align-items:stretch;height:26px;margin:2px 0 6px}
+  .strip span{flex:1 1 0;border-radius:3px;background:var(--line)}
+  .strip span.is-ok{background:var(--ok)}
+  .strip span.is-late{background:var(--warn)}
+  .strip span.is-bad{background:var(--bad)}
   .strip span.is-unknown{background:repeating-linear-gradient(135deg,#171B24,#171B24 3px,#12151C 3px,#12151C 6px)}
+  .axis{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;
+    color:var(--dim);letter-spacing:.02em;margin:0 0 8px}
   .legend{font-size:12.5px;color:var(--dim);margin:0 0 10px}
   .note{font-size:13.5px;color:var(--dim);margin-top:14px}
   footer.legal{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:13px}
@@ -118,6 +127,7 @@
 
   <h2>Last 24 hours</h2>
   <div class="strip" id="strip" aria-hidden="true"></div>
+  <div class="axis" aria-hidden="true"><span>24h ago</span><span>now</span></div>
   <p class="legend" id="legend">&nbsp;</p>
   <div class="cov" id="hist"></div>
 
@@ -125,7 +135,7 @@
   <p>Ranked stats are collected every <b>2 minutes</b> and every tracked player is refreshed on
   every run. Steam playtime is hourly, because Steam only recomputes the two-week figure a few
   times a day. Presence polling runs every 5 minutes and exists to estimate hours for players
-  whose Steam playtime is private.</p>
+  whose Steam playtime is hidden.</p>
   <p class="note">This page reads the same published data the board does, so it cannot show a
   problem the board would hide. It refreshes itself every 30 seconds. The raw figures behind it
   are at <code>/api/status</code>.</p>
@@ -136,6 +146,6 @@
     A fan-made project, not affiliated with Psyonix, Epic Games or RLCS. Rocket League is a trademark of Psyonix LLC. Player and team names belong to their respective owners.</p>
   </footer>
 </div>
-<script src="status.js?v=a0e57f96" defer></script>
+<script src="status.js?v=5ec30ca0" defer></script>
 </body>
 </html>
