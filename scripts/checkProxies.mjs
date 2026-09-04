@@ -2,6 +2,17 @@
 // and does tracker.gg accept it? Reads the same env vars as the scraper, so it
 // tells you which endpoints are actually usable right now.
 //
+// RUN THIS LOCALLY ONLY. It prints each proxy's host:port and the public IP it
+// exits from, which is the whole point of the tool and exactly what must never
+// reach a workflow log: this repo is public, so Actions logs are readable by
+// anyone. GitHub masks values that match a secret exactly, but an exit IP is not
+// a secret and would be masked by nothing. Everything the collector itself
+// prints or commits is proxy INDICES only, and it stays that way.
+//
+// The guard below refuses to run in CI for that reason. If a run there is ever
+// genuinely needed, set ALLOW_CI_PROXY_DUMP=1 and understand that the output is
+// public forever.
+//
 // Usage:  node scripts/checkProxies.mjs
 //   PROXY_LIST="host:port:user:pass,..."   or
 //   PROXY_HOST=... PROXY_PORTS=1,2,3 PROXY_USER=... PROXY_PASS=...
@@ -9,6 +20,14 @@
 import { chromium } from "playwright-extra";
 import stealth from "puppeteer-extra-plugin-stealth";
 chromium.use(stealth());
+
+if (process.env.CI && process.env.ALLOW_CI_PROXY_DUMP !== "1") {
+  console.error(
+    "checkProxies prints proxy endpoints and exit IPs, and this repo's Actions logs are public.\n" +
+    "Run it locally. To override anyway, set ALLOW_CI_PROXY_DUMP=1."
+  );
+  process.exit(1);
+}
 
 const TEST_URL = "https://rocketleague.tracker.network/rocket-league/profile/steam/76561198960239428/overview";
 const IP_URL = "https://api.ipify.org?format=json";
