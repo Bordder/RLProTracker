@@ -31,7 +31,7 @@ jobs:
         run: |
           git config user.name "rl-tracker-bot"
           git config user.email "actions@github.com"
-          git add data/roster.json
+          git add data/roster.json data/teams.json
           git diff --staged --quiet && echo "no changes" && exit 0
           git commit -m "[skip ci] data: roster refresh"
           # Clear any half-finished rebase before retrying: without this, one
