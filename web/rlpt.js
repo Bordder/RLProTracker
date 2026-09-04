@@ -758,7 +758,15 @@
               '<span class="pnum">'+String(i+1).padStart(2,'0')+'</span>'+
               teamMark(p.team)+
               '<span class="pwho"><b>'+esc(p.name)+'</b><i>'+esc(p.team||'Free agent')+'</i></span>'+
-              (isLive(p)?'<span class="plive">Playing</span>':'')+
+              // Region and Steam status stacked in the top corner, the two
+              // things the table shows beside a name that the card was missing.
+              // Playing joins the top of the stack when it applies, so it keeps
+              // the corner and nothing has to share a line.
+              '<span class="pmeta">'+
+                (isLive(p)?'<span class="plive">Playing</span>':'')+
+                (p.region?regionChip(p.region):'')+
+                statusChip(p.status)+
+              '</span>'+
             '</div>'+
             '<div class="pfig"><b>'+(fig==null?'&middot;':fig)+'</b><span>'+(METRIC_LABEL[k]||'')+'</span></div>'+
           '</div>'+
