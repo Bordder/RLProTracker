@@ -15,8 +15,28 @@
       ? '<td class="'+cls+'" data-l="'+lab+'"><span class="dash">&middot;</span></td>'
       : '<td class="'+cls+'" data-l="'+lab+'"><span class="mv '+tierClass(v)+'">'+nf(v)+'</span></td>';
   };
-  var fmtGames=function(gs,win){ var g=gs?gs[win]:null; if(!g||g.games==null)return'<span class="dash">&middot;</span>'; if(g.partial)return'<span class="pending">pending</span>'; if(g.games===0)return'<span class="mv">0</span>'; return'<span class="g14v">'+nf(g.games)+'</span>'; };
   var WIN_LABEL={d1:'24h',d7:'7d',d14:'14d'};
+  // Coarse "how long ago", for a cell that has room for about five characters.
+  var agoShort=function(t){
+    if(t==null)return null;
+    var m=Math.round((Date.now()-t)/60000);
+    if(m<0)return null;
+    if(m<60)return m+'m ago';
+    var h=Math.floor(m/60); if(h<24)return h+'h ago';
+    var d=Math.floor(h/24); if(d<14)return d+'d ago';
+    return Math.floor(d/7)+'w ago';
+  };
+  // A zero in a window column is true but says nothing: it cannot tell someone
+  // who stopped last night from someone nobody has seen in a fortnight. Where a
+  // last ranked game is known, say when it was instead - the number being
+  // replaced is zero, so no information is lost.
+  var fmtGames=function(p,win){
+    var gs=p?p.games:null, g=gs?gs[win]:null;
+    if(!g||g.games==null)return'<span class="dash">&middot;</span>';
+    if(g.partial)return'<span class="pending" title="Not tracked for a full '+esc(WIN_LABEL[win]||win)+' yet">pending</span>';
+    if(g.games===0){ var a=agoShort(p.lastPlayedAt); return a?'<span class="lastp">'+esc(a)+'</span>':'<span class="mv">0</span>'; }
+    return'<span class="g14v">'+nf(g.games)+'</span>';
+  };
   // Short chip labels, with the full meaning kept on hover.
   var STATUS_LABEL={'hidden-details':'hidden','no-steam-id':'no steam','no-steam-link':'no steam','playtime-hidden':'hours hidden','epic':'epic','pending':'checking'};
   var STATUS_HINT={
@@ -545,7 +565,7 @@
         '<td class="c-rg">'+regionChip(p.region)+'<span class="chip-pair">'+statusChip(p.status)+'</span></td>'+
         '<td class="c-st">'+statusChip(p.status)+'</td>'+mmr+
         '<td class="c-sg" data-l="games">'+(p.seasonGames!=null?'<span class="sgv">'+nf(p.seasonGames)+'</span>':'<span class="dash">&middot;</span>')+'</td>'+
-        '<td class="c-g14" data-l="'+esc(WIN_LABEL[win]||win)+'">'+fmtGames(p.games,win)+'</td>'+
+        '<td class="c-g14" data-l="'+esc(WIN_LABEL[win]||win)+'">'+fmtGames(p,win)+'</td>'+
         '<td class="c-hr c-hr2" data-l="2wk h">'+hours2wkCell(p)+'</td>'+
         '<td class="c-hr c-hrt" data-l="total h">'+totalHoursCell(p)+'</td>'+
         '</tr>';
@@ -603,7 +623,9 @@
         },fmt:function(v){return '<span class="g14v">'+nf(v)+'</span>';},
         na:function(p){
           var g=p.games?p.games.d1:null;
-          return (g&&g.partial)?'<span class="pending">pending</span>':'<span class="dash">&middot;</span>';
+          if(g&&g.partial)return'<span class="pending" title="Not tracked for a full 24h yet">pending</span>';
+          var a=agoShort(p.lastPlayedAt);
+          return a?'<span class="lastp">'+esc(a)+'</span>':'<span class="dash">&middot;</span>';
         }},
         // Same order of preference as the main table: measured Steam hours,
         // then the sampled estimate, marked so the two are never confused.
