@@ -37,7 +37,16 @@ export const MAX_GAMES_PER_HOUR = 15;
 // Pure core (no IO) so it can be unit-tested. `snaps` is [{ t, rows }] in any
 // order; returns { now, players } where now is the latest snapshot time and
 // players is the derived per-player MMR/tier/games-per-window array.
-export function computeTrackerPlayers(snaps) {
+// `rosterIds`, when given, is the set of players currently on the roster.
+// Anything else is dropped from the output.
+//
+// History deliberately keeps a player's last reading however old it is, so
+// someone who stops being scraped holds their values rather than vanishing
+// mid-session. That is right for a temporary gap and wrong for a departure: a
+// team removed from the roster on 4 September was still on the board hours
+// later, because nothing downstream ever consulted the roster again. The
+// history is the record of what was seen; the roster decides what is published.
+export function computeTrackerPlayers(snaps, rosterIds) {
   const sorted = [...snaps].sort((a, b) => a.t - b.t);
   const now = sorted[sorted.length - 1].t;
 
@@ -59,6 +68,7 @@ export function computeTrackerPlayers(snaps) {
 
   const players = [];
   for (const { meta, readings: allReadings } of byPlayer.values()) {
+    if (rosterIds && !rosterIds.has(meta.id)) continue;
     allReadings.sort((a, b) => a.t - b.t);
     // Readings from a different account cannot be diffed against today's: a
     // switch from a wrong Steam id to the right Epic profile would read as a
@@ -181,7 +191,18 @@ async function main() {
   const snaps = await loadSnapshots();
   if (!snaps.length) { console.error("no tracker snapshots yet - run npm run fetch:tracker first"); process.exit(1); }
 
-  const { now, players } = computeTrackerPlayers(snaps);
+  // Fail open: an unreadable or empty roster publishes everything rather than
+  // emptying the board.
+  let rosterIds = null;
+  try {
+    const roster = JSON.parse(await readFile(join(ROOT, "data", "roster.json"), "utf8"));
+    const ids = (roster.players ?? []).map((p) => p.id).filter(Boolean);
+    if (ids.length) rosterIds = new Set(ids);
+  } catch { rosterIds = null; }
+
+  const { now, players } = computeTrackerPlayers(snaps, rosterIds);
+  const dropped = rosterIds ? new Set([].concat(...snaps.map((s) => s.rows.map((r) => r.id)))).size - players.length : 0;
+  if (dropped > 0) console.log(`dropped ${dropped} player(s) held in history but no longer on the roster`);
 
   await mkdir(join(ROOT, "data", "derived"), { recursive: true });
   await writeFile(

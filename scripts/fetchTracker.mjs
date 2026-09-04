@@ -513,7 +513,9 @@ async function main() {
   // and delta-compresses, where a file per run grew the repo ~9 MB a day here.
   const HISTORY_FILE = join(ROOT, "data", "tracker-history.json");
   const takenAtMs = Date.parse(takenAt);
-  const history = appendRows(await readJson(HISTORY_FILE, {}), takenAtMs, rows);
+  // `all` is the roster as read at the top of this run, so a player dropped
+  // from the roster leaves the history on the next run rather than lingering.
+  const history = appendRows(await readJson(HISTORY_FILE, {}), takenAtMs, rows, takenAtMs, new Set(all.map((p) => p.id)));
   await writeFile(HISTORY_FILE, JSON.stringify(history));
   await writeFile(STATE_FILE, JSON.stringify(state, null, 2));
   const ok = rows.filter((r) => r.playlists).length;

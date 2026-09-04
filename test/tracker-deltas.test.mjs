@@ -155,3 +155,27 @@ test("a run of readings on one account still diffs normally", () => {
   const { players } = computeTrackerPlayers([withWho(T0, 100), withWho(T25, 130)]);
   assert.equal(players[0].games.total.d1.games, 30);
 });
+
+test("a player dropped from the roster leaves the board", () => {
+  // History deliberately keeps a player's last reading however old it is, so a
+  // gap in scraping does not make someone vanish mid-session. That is wrong for
+  // a departure: KINOTROPE gaming was removed from the roster on 2026-09-04 and
+  // both its players were still on the live board hours later.
+  const snaps = [
+    { t: 1000, rows: [
+      { id: "nrg-atomic", name: "Atomic", team: "NRG", playlists: { d2: { rating: 2419, matches: 600, tier: "Supersonic Legend" } } },
+      { id: "gone-player", name: "Gone", team: "Departed", playlists: { d2: { rating: 2000, matches: 100, tier: "Grand Champion I" } } },
+    ] },
+  ];
+  const all = computeTrackerPlayers(snaps).players.map((p) => p.id);
+  assert.deepEqual(all.sort(), ["gone-player", "nrg-atomic"]);
+
+  const kept = computeTrackerPlayers(snaps, new Set(["nrg-atomic"])).players.map((p) => p.id);
+  assert.deepEqual(kept, ["nrg-atomic"]);
+});
+
+test("no roster means publish everything, rather than an empty board", () => {
+  const snaps = [{ t: 1000, rows: [{ id: "a", name: "A", team: "T", playlists: { d2: { rating: 1, matches: 1, tier: "x" } } }] }];
+  assert.equal(computeTrackerPlayers(snaps, null).players.length, 1);
+  assert.equal(computeTrackerPlayers(snaps).players.length, 1);
+});

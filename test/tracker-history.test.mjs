@@ -115,3 +115,17 @@ test("collapseUnchanged treats a different account as a change", () => {
   ];
   assert.equal(collapseUnchanged(r).length, 2);
 });
+
+test("appendRows drops players who are no longer on the roster", () => {
+  const history = { players: {
+    keep: { name: "Keep", team: "T", readings: [{ t: 1, playlists: { d2: { matches: 1 } } }] },
+    gone: { name: "Gone", team: "Departed", readings: [{ t: 1, playlists: { d2: { matches: 1 } } }] },
+  } };
+  const out = appendRows(history, 2, [], 2, new Set(["keep"]));
+  assert.deepEqual(Object.keys(out.players), ["keep"]);
+});
+
+test("appendRows without a roster keeps everyone, so a bad read cannot empty the file", () => {
+  const history = { players: { a: { name: "A", team: "T", readings: [{ t: 1, playlists: { d2: { matches: 1 } } }] } } };
+  assert.deepEqual(Object.keys(appendRows(history, 2, []).players), ["a"]);
+});

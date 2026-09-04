@@ -23,8 +23,15 @@ import { downsampleReadings, collapseUnchanged } from "./rollingHistory.mjs";
 // Fold one run's scraped rows into the history, then downsample. Rows without
 // playlist data (failed scrapes) are skipped so a failure never displaces a
 // good reading. Returns a new history object.
-export function appendRows(history, takenAtMs, rows, now = takenAtMs) {
+//
+// `keepIds`, when given, is the roster as it stands now: anyone missing from it
+// is dropped outright. Retention deliberately holds a player's last reading
+// however old it is, so a gap in scraping does not make someone vanish, but
+// that also meant a player removed from the roster stayed in the file (and on
+// the board) until their readings aged out a fortnight later.
+export function appendRows(history, takenAtMs, rows, now = takenAtMs, keepIds = null) {
   const players = { ...(history?.players ?? {}) };
+  if (keepIds) for (const id of Object.keys(players)) if (!keepIds.has(id)) delete players[id];
   for (const row of rows ?? []) {
     if (!row?.id || !row.playlists) continue;
     const prev = players[row.id] ?? { name: row.name, team: row.team, readings: [] };
