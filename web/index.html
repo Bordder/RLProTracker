@@ -475,6 +475,17 @@
      Grid rather than flex ordering: with flex the chips and the stat boxes
      wrapped differently depending on how long a team name was, so no two cards
      lined up. */
+  /* Filter chips wrap on a phone rather than scrolling sideways.
+     .wseg scrolls horizontally with its scrollbar hidden, which is fine with a
+     mouse and bad on a phone: at 375px the region row is 461px wide, so it ends
+     mid-word on MENA and there is nothing on screen to say that OCE, APAC and
+     SSA exist further right. Wrapping to a second line hides nothing and needs
+     no gesture to discover. */
+  @media (max-width:560px){
+    .wseg{display:flex;flex-wrap:wrap;overflow-x:visible;width:100%;justify-content:flex-start}
+    .wseg button{flex:0 0 auto}
+  }
+
   @media (max-width:700px){
     .scroll{overflow-x:visible;border:0;background:none;border-radius:0}
     table.feed{min-width:0;display:block}
