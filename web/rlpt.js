@@ -145,7 +145,7 @@
     'gentle-mates':'M8', 'team-vitality':'VIT', 'ninjas-in-pyjamas':'NIP',
     'dignitas':'DIG', 'm80':'M80', 'fut-esports':'FUT', 'geekay-esports':'GK',
     'ght':'GHT', 'r8-esports':'R8', 'wildcard':'WC', 'tsm':'TSM',
-    'team-bsk':'BSK', 'team-falcons':'FALC'
+    'team-bsk':'BSK', 'team-falcons':'FAL'
   };
   var LOGO_INSET={'virtuspro':6};
   var TEAM_LOGO={'geng-mobil1-racing':'png','karmine-corp':'png','lil-step-bros':'png','mibr':'png','nrg':'png','shopify-rebellion':'png','spacestation-gaming':'png','tsm':'png'};
