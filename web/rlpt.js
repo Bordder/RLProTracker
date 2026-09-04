@@ -498,6 +498,12 @@
         }); }
         // A search with no hits renders nothing at all: the absence is the
         // answer, and a "No matches" bar reads like something went wrong.
+        // Position in the current order, not a fixed MMR rank: ordering by games
+        // and then reading a 2v2 placing in the same column made the podium and
+        // the list contradict each other. The offset accounts for whoever the
+        // podium has taken off the top of this list.
+        var off=(typeof paint.offset==="function")?paint.offset():0;
+        arr.forEach(function(x,i){ x.__pos=i+1+off; });
         tb.innerHTML=arr.length?arr.map(rowFn).join(''):'';
         // The phone list shows the ordered figure beside the name, and CSS can
         // only pick that cell if the table says which one it is.
@@ -521,7 +527,7 @@
     var playerRow=function(p){
       var mmr=p.hasMmr?(mmrCell(p.mmr.ones,'m1')+mmrCell(p.mmr.twos,'m2')+mmrCell(p.mmr.threes,'m3')):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
       return '<tr class="'+(p.hasMmr?'':'isnorank')+'" data-player="'+esc(p.name)+'">'+
-        '<td class="c-rk">'+rankMark(p.__rank)+'</td>'+
+        '<td class="c-rk">'+rankMark(p.__pos||p.__rank)+'</td>'+
         '<td class="c-who">'+teamMark(p.team)+'<span class="nm"><b>'+esc(p.name)+(isLive(p)?playMark(p):'')+'</b><i>'+esc(p.team||'Free agent')+'</i></span></td>'+
         // The phone layout needs both chips in one container so they can sit
         // flush against the right edge together; as separate grid cells they
@@ -554,7 +560,7 @@
   var teamRow=function(t){
       var a=t.avgMmr||{};
       return '<tr class="team-row '+(t.ranked?'':'isnorank')+'" data-team="'+esc(t.team)+'" tabindex="0" aria-expanded="false">'+
-        '<td class="c-rk">'+rankMark(t.__rank)+'</td>'+
+        '<td class="c-rk">'+rankMark(t.__pos||t.__rank)+'</td>'+
         '<td class="c-who">'+teamMark(t.team,'tm')+'<span class="nm"><b>'+esc(t.team)+'</b></span></td>'+
         '<td class="c-rg">'+regionChip(t.region)+'</td>'+
         '<td class="c-fill"></td>'+
@@ -617,6 +623,8 @@
     };
 
     var paintPRaw=buildTable(pv,pCols,players,pAcc,playerRow,{k:'twos',dir:'desc'},pMatch);
+    // The podium shows the first three, so the table starts at four.
+    paintPRaw.offset=function(){ return Object.keys(podiumIds).length; };
     var paintP=function(){ paintPRaw(); if(typeof applyOpenPlayer==='function')applyOpenPlayer(); };
     paintP.setSort=function(k,dir){ paintPRaw.setSort(k,dir); if(typeof applyOpenPlayer==='function')applyOpenPlayer(); };
     paintP.sortKey=paintPRaw.sortKey;
