@@ -211,4 +211,4 @@ Released under the MIT License. See [LICENSE](LICENSE).
 
 ---
 
-<p align="center"><sub>Built with Claude Opus 4.8.</sub></p>
+<p align="center"><sub>Built with Claude Opus 5.</sub></p>
