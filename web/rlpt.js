@@ -137,12 +137,14 @@
   // on. Keyed by teamSlug so a rename of the display name does not silently
   // drop the override.
   //
-  // It also breaks a collision: R8 Esports and Rafha Esports both reduced to
-  // "RE", so two different orgs wore the same monogram.
+  // It also breaks two collisions the two-letter rule created: R8 Esports and
+  // Rafha Esports both reduced to "RE", and TSM and Team Stallions both to
+  // "TS". TSM's is only ever seen if its logo fails to load, which is exactly
+  // when you would want it to be right.
   var TEAM_INITIALS={
     'gentle-mates':'M8', 'team-vitality':'VIT', 'ninjas-in-pyjamas':'NIP',
     'dignitas':'DIG', 'm80':'M80', 'fut-esports':'FUT', 'geekay-esports':'GK',
-    'ght':'GHT', 'r8-esports':'R8', 'wildcard':'WC'
+    'ght':'GHT', 'r8-esports':'R8', 'wildcard':'WC', 'tsm':'TSM'
   };
   var LOGO_INSET={'virtuspro':6};
   var TEAM_LOGO={'geng-mobil1-racing':'png','karmine-corp':'png','lil-step-bros':'png','mibr':'png','nrg':'png','shopify-rebellion':'png','spacestation-gaming':'png','tsm':'png'};
