@@ -26,7 +26,7 @@
     'no-steam-id':'No Steam account matched for this player.',
     'no-steam-link':'No Steam account matched for this player.',
     'playtime-hidden':'Profile is public but keeps total playtime private.',
-    'epic':'Plays on Epic rather than Steam, so Steam publishes no hours. Ranked games and MMR are unaffected.',
+    'epic':'Epic Games user. Games and MMR tracked as normal.',
     'pending':'Newly added. Ranked games and MMR are already tracked; the hourly Steam check has not reached this player yet.',
     'unknown':'Steam did not return a profile state for this player.'
   };
@@ -53,7 +53,7 @@
     'playtime-hidden':{t:'hours hidden',h:'Profile is public but keeps total playtime private.'},
     'no-steam-id':{t:'no steam',h:'No Steam account matched yet.'},
     'no-steam-link':{t:'no steam',h:'No Steam account matched yet.'},
-    'epic':{t:'epic',h:'Plays on Epic, so Steam has no hours to publish. Games and MMR are tracked as normal.'},
+    'epic':{t:'epic',h:'Epic Games user. Games and MMR tracked as normal.'},
     'pending':{t:'checking',h:'Newly added: the hourly Steam check has not reached this player yet.'}
   };
   var hoursNA=function(status){
