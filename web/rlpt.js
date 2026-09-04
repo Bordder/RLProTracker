@@ -200,7 +200,7 @@
     var durWords=function(m){ return m<60?m+'m':(Math.floor(m/60)+'h '+String(m%60).padStart(2,'0')+'m'); };
 
     // ---- stat cards (Grind dashboard summary) ----
-    var card=function(k,v,s2,hot){return '<div class="card'+(hot?' hot':'')+'"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+s2+'</div></div>';};
+    var card=function(k,v,s2,hot,wide){return '<div class="card'+(hot?' hot':'')+(wide?' wide':'')+'"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+s2+'</div></div>';};
     function renderCards(){
       var ranked=players.filter(function(p){return p.hasMmr;});
       var totalGames=players.reduce(function(a,p){return a+(p.seasonGames||0);},0);
@@ -212,14 +212,21 @@
       var rankedFig=ranked.length===players.length
         ? String(ranked.length)
         : ranked.length+' <small>/ '+players.length+'</small>';
+      // Four narrow tiles, then the season leader across the full width beneath
+      // them. Five equal tiles never divide cleanly into a row, so one was
+      // always left over; making the odd one out a deliberate full-width strip
+      // is better than letting the wrap decide which tile gets stranded. It
+      // also gives the one card carrying a name and a team room for both on a
+      // single line, where at a fifth of the width it wrapped and left its row
+      // uneven.
       document.getElementById('stats').innerHTML=
         card('Players Ranked', rankedFig, 'pros with ranked data', false)+
         card('Total Ranked Games', nf(totalGames), 'across all tracked pros', false)+
-        card('Most Active This Season', top?(nf(top.seasonGames)+' <small>games</small>'):'&middot;', top?('<b>'+esc(top.name)+'</b> &middot; '+esc(top.team||'')):'no data yet', true)+
         card('Avg 2v2 MMR', avg2v2!=null?nf(avg2v2):'&middot;', avg2v2!=null?('average of '+ranked.length+' pros'):'no data yet', false)+
         // Which roster is on the ladder today, rather than an inventory of how
         // many orgs the board covers. The teams tab is a click away for that.
-        topTeamCard();
+        topTeamCard()+
+        card('Most Active This Season', top?(nf(top.seasonGames)+' <small>games</small>'):'&middot;', top?('<b>'+esc(top.name)+'</b> &middot; '+esc(top.team||'')):'no data yet', true, true);
     }
 
     function topTeamCard(){
