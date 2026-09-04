@@ -144,7 +144,8 @@
   var TEAM_INITIALS={
     'gentle-mates':'M8', 'team-vitality':'VIT', 'ninjas-in-pyjamas':'NIP',
     'dignitas':'DIG', 'm80':'M80', 'fut-esports':'FUT', 'geekay-esports':'GK',
-    'ght':'GHT', 'r8-esports':'R8', 'wildcard':'WC', 'tsm':'TSM'
+    'ght':'GHT', 'r8-esports':'R8', 'wildcard':'WC', 'tsm':'TSM',
+    'team-bsk':'BSK', 'team-falcons':'FALC'
   };
   var LOGO_INSET={'virtuspro':6};
   var TEAM_LOGO={'geng-mobil1-racing':'png','karmine-corp':'png','lil-step-bros':'png','mibr':'png','nrg':'png','shopify-rebellion':'png','spacestation-gaming':'png','tsm':'png'};
@@ -172,7 +173,7 @@
     var slug=teamSlug(name), ext=TEAM_LOGO[slug];
     var mono=TEAM_INITIALS[slug]||initials(name);
     // The monogram is always rendered; a logo, when there is one, covers it.
-    return '<span class="'+cls+(ext?' logo':'')+(mono.length>2?' mk3':'')+'" style="'+style+'" aria-hidden="true">'+esc(mono)+
+    return '<span class="'+cls+(ext?' logo':'')+(mono.length>3?' mk4':mono.length>2?' mk3':'')+'" style="'+style+'" aria-hidden="true">'+esc(mono)+
       (ext?'<img src="'+esc(LOGO_DIR+slug+'.'+ext)+'" alt="" loading="lazy" decoding="async"'+
         (LOGO_INSET[slug]?' style="padding:'+LOGO_INSET[slug]+'px"':'')+'>':'')+'</span>';
   };
