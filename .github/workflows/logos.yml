@@ -1,0 +1,42 @@
+name: Team logos
+
+# Crests come from Liquipedia, which rate limits and CAPTCHA-gates repeat
+# callers, so this runs from a cloud IP on request rather than on a schedule:
+# rosters change a few times a season, not a few times an hour.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: team-logos
+  cancel-in-progress: false
+
+jobs:
+  logos:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Fetch crests for every team in the roster
+        env:
+          LIQUIPEDIA_UA: ${{ secrets.LIQUIPEDIA_UA }}
+        run: node scripts/fetchTeamLogos.mjs
+
+      - name: Commit whatever came back
+        run: |
+          git config user.name "rl-tracker-bot"
+          git config user.email "actions@github.com"
+          git add web/img/teams web/rlpt.js
+          git diff --staged --quiet && echo "no new crests" && exit 0
+          git commit -m "data: team crests from Liquipedia"
+          for i in 1 2 3; do
+            git pull --rebase --autostash -X theirs origin main && git push && exit 0
+            echo "push retry $i"; sleep $((RANDOM % 5 + 2))
+          done
+          echo "push failed after retries"; exit 1

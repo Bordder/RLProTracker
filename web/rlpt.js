@@ -20,7 +20,7 @@
   // Short chip labels, with the full meaning kept on hover.
   var STATUS_LABEL={'hidden-details':'hidden','no-steam-id':'no steam','no-steam-link':'no steam','playtime-hidden':'hours hidden','epic':'epic','pending':'checking'};
   var STATUS_HINT={
-    'public':'Profile is public, so Steam publishes playtime.',
+    'public':'Profile is public, so hours and games are tracked in full.',
     'hidden-details':'Game details are toggled off.',
     'private':'Profile is fully private.',
     'no-steam-id':'No Steam account matched for this player.',
@@ -523,7 +523,13 @@
     var win='d1'; // recent-games window: d1 (24h, live now) / d7 / d14
     var mmrKey='twos'; // which playlist the MMR mode ranks on: ones / twos / threes
     var pCols=[{label:'#',cls:'c-rk'},{label:'Player',cls:'c-who',k:'name'},{label:'Region',cls:'c-rg',k:'region'},{label:'Status',cls:'c-st',k:'status'},{label:'1v1',cls:'c-mmr',k:'ones',num:true},{label:'2v2',cls:'c-mmr',k:'twos',num:true},{label:'3v3',cls:'c-mmr',k:'threes',num:true},{label:'Games',cls:'c-sg',k:'sg',num:true,title:'Total ranked games played since the current competitive season began'},{label:WIN_LABEL[win],cls:'c-g14',k:'g14',num:true},{label:'2wk h',cls:'c-hr',k:'h2',num:true},{label:'Total h',cls:'c-hr',k:'ht',num:true}];
-    var pAcc={name:function(p){return(p.name||'').toLowerCase();},region:function(p){return p.region||null;},status:function(p){return p.status?String(p.status).toLowerCase():null;},ones:function(p){return p.mmr?p.mmr.ones:null;},twos:function(p){return p.mmr?p.mmr.twos:null;},threes:function(p){return p.mmr?p.mmr.threes:null;},sg:function(p){return p.seasonGames;},g14:function(p){return p.games&&p.games[win]?p.games[win].games:null;},h2:function(p){return p.hours2wk!=null?p.hours2wk:p.estHours2wk;},ht:function(p){return p.totalHours;}};
+    var pAcc={name:function(p){return(p.name||'').toLowerCase();},region:function(p){return p.region||null;},status:function(p){return p.status?String(p.status).toLowerCase():null;},ones:function(p){return p.mmr?p.mmr.ones:null;},twos:function(p){return p.mmr?p.mmr.twos:null;},threes:function(p){return p.mmr?p.mmr.threes:null;},sg:function(p){return p.seasonGames;},g14:function(p){
+        // "pending" in the cell means the window has not filled yet, so there is
+        // nothing to rank: a new player's first reading is their whole season,
+        // which would otherwise put them top of a 24h ordering.
+        var g=p.games&&p.games[win];
+        return g&&g.games!=null&&!g.partial?g.games:null;
+      },h2:function(p){return p.hours2wk!=null?p.hours2wk:p.estHours2wk;},ht:function(p){return p.totalHours;}};
     var playerRow=function(p){
       var mmr=p.hasMmr?(mmrCell(p.mmr.ones,'m1')+mmrCell(p.mmr.twos,'m2')+mmrCell(p.mmr.threes,'m3')):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
       return '<tr class="'+(p.hasMmr?'':'isnorank')+'" data-player="'+esc(p.name)+'">'+
@@ -638,7 +644,7 @@
     // filter, so it is always the head of the list below it rather than a
     // second, competing ranking.
     var podEl=document.getElementById('podium');
-    var METRIC_LABEL={twos:'2v2 MMR',ones:'1v1 MMR',threes:'3v3 MMR',sg:'games',g14:'games in the window',h2:'hours, 2wk',ht:'hours total',name:'',region:'',status:''};
+    var METRIC_LABEL={twos:'2v2 MMR',ones:'1v1 MMR',threes:'3v3 MMR',sg:'games',g14:'games',h2:'hours, 2wk',ht:'hours total',name:'',region:'',status:''};
     // Every podium card carries the same six figures the table columns do, so
     // reading across the top three is the same job as reading down the list.
     var POD_STATS=[

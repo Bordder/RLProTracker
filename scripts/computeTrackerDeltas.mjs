@@ -40,7 +40,7 @@ export function computeTrackerPlayers(snaps) {
     for (const row of snap.rows) {
       if (!row.playlists) continue;
       if (!byPlayer.has(row.id)) byPlayer.set(row.id, { meta: { id: row.id, name: row.name, team: row.team }, readings: [] });
-      byPlayer.get(row.id).readings.push({ t: snap.t, playlists: row.playlists });
+      byPlayer.get(row.id).readings.push({ t: snap.t, who: row.who ?? null, playlists: row.playlists });
     }
   }
 
@@ -51,8 +51,14 @@ export function computeTrackerPlayers(snaps) {
   };
 
   const players = [];
-  for (const { meta, readings } of byPlayer.values()) {
-    readings.sort((a, b) => a.t - b.t);
+  for (const { meta, readings: allReadings } of byPlayer.values()) {
+    allReadings.sort((a, b) => a.t - b.t);
+    // Only readings from the account we are currently following can be diffed
+    // against today's: a switch from a wrong Steam id to the right Epic profile
+    // would otherwise read as a few thousand games played in one window.
+    const currentWho = allReadings[allReadings.length - 1]?.who ?? null;
+    const sameAccount = allReadings.filter((r) => (r.who ?? null) === currentWho);
+    const readings = sameAccount.length ? sameAccount : allReadings;
     const latest = readings[readings.length - 1];
     const mmr = {}, tier = {}, games = { ones: {}, twos: {}, threes: {}, total: {} };
     // seasonGames = cumulative ranked matches this season (matchesPlayed from the

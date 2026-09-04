@@ -27,7 +27,12 @@ export function appendRows(history, takenAtMs, rows, now = takenAtMs) {
     if (!row?.id || !row.playlists) continue;
     const prev = players[row.id] ?? { name: row.name, team: row.team, readings: [] };
     const readings = prev.readings.filter((r) => r.t !== takenAtMs);
-    readings.push({ t: takenAtMs, playlists: row.playlists });
+    // Which account this reading came from. Cumulative match counts only mean
+    // anything within one account: when a player moves from a Steam id we had
+    // wrong to their real Epic profile, the jump between the two is not games
+    // played. Older readings carry no `who` and are treated as their own era.
+    const who = row.epic ? `epic:${row.epic}` : (row.steamId64 ? `steam:${row.steamId64}` : null);
+    readings.push(who ? { t: takenAtMs, who, playlists: row.playlists } : { t: takenAtMs, playlists: row.playlists });
     players[row.id] = {
       name: row.name ?? prev.name,
       team: row.team ?? prev.team,
@@ -50,7 +55,7 @@ export function historyToSnaps(history) {
   for (const [id, p] of Object.entries(history?.players ?? {})) {
     for (const r of p.readings ?? []) {
       if (!byTime.has(r.t)) byTime.set(r.t, []);
-      byTime.get(r.t).push({ id, name: p.name, team: p.team, playlists: r.playlists });
+      byTime.get(r.t).push({ id, name: p.name, team: p.team, who: r.who ?? null, playlists: r.playlists });
     }
   }
   return [...byTime.entries()].sort((a, b) => a[0] - b[0]).map(([t, rows]) => ({ t, rows }));

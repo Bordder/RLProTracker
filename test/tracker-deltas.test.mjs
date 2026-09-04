@@ -132,3 +132,26 @@ test("a season reset is not counted as games played", () => {
   assert.equal(p.session.games, 2);           // the drop is ignored, the rise is not
   assert.equal(p.lastPlayedAt, new Date(T0 + 10 * MIN).toISOString());
 });
+
+// ---- one player, two accounts --------------------------------------------
+// A player followed on the wrong Steam id and then moved to their real Epic
+// profile: the counts are unrelated, so the switch is not games played.
+
+test("readings from a previous account do not feed the windows", () => {
+  const withWho = (t, who, matches) => ({ t, rows: [{ id: "p", name: "p", team: "T", who, playlists: { d2: pl(2500, matches) } }] });
+  const { players } = computeTrackerPlayers([
+    withWho(T0, "steam:7656119000000000", 0),
+    withWho(T0 + 10 * MIN, "steam:7656119000000000", 0),
+    withWho(T25, "epic:realname", 1481),          // switched account
+  ]);
+  const p = players[0];
+  assert.equal(p.seasonGames.total, 1481);         // the real profile's total
+  assert.equal(p.games.total.d1.games, 0);         // not 1481 games in a day
+  assert.equal(p.games.total.d1.partial, true);    // and the window says so
+});
+
+test("a run of readings on one account still diffs normally", () => {
+  const withWho = (t, matches) => ({ t, rows: [{ id: "p", name: "p", team: "T", who: "epic:realname", playlists: { d2: pl(2500, matches) } }] });
+  const { players } = computeTrackerPlayers([withWho(T0, 100), withWho(T25, 130)]);
+  assert.equal(players[0].games.total.d1.games, 30);
+});

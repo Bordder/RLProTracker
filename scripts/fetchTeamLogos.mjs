@@ -13,7 +13,7 @@
 //
 // Usage:  node scripts/fetchTeamLogos.mjs
 
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { teamSlug } from "./teamSlugs.mjs";
@@ -178,9 +178,27 @@ async function main() {
   }
 
   console.log(`\nsaved ${saved.length}/${teams.length} logos to web/img/teams`);
-  if (saved.length) {
-    console.log("paste into web/index.html:");
-    console.log(`  var TEAM_LOGO={${saved.map((s) => `'${s.slug}':'${s.ext}'`).join(",")}};`);
+
+  // Write the map into rlpt.js rather than printing it to be pasted: every
+  // logo downloaded but not listed there is a file nobody sees.
+  const dir = await readdir(OUT_DIR).catch(() => []);
+  const onDisk = new Map();
+  for (const f of dir) {
+    const m = f.match(/^(.+)\.(png|svg|webp)$/i);
+    if (m) onDisk.set(m[1], m[2].toLowerCase());
+  }
+  if (onDisk.size) {
+    const SITE = join(ROOT, "web", "rlpt.js");
+    const src = await readFile(SITE, "utf8");
+    const literal = `  var TEAM_LOGO={${[...onDisk.entries()].sort().map(([slug, ext]) => `'${slug}':'${ext}'`).join(",")}};`;
+    const next = src.replace(/^ {2}var TEAM_LOGO=\{[^}]*\};$/m, literal);
+    if (next === src) {
+      console.log("could not find the TEAM_LOGO line in web/rlpt.js; map unchanged:");
+      console.log(literal);
+    } else {
+      await writeFile(SITE, next);
+      console.log(`web/rlpt.js: TEAM_LOGO now lists ${onDisk.size} crests`);
+    }
   }
 }
 
