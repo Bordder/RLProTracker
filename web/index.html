@@ -255,8 +255,9 @@
   .pmark::before{
     content:"";width:5px;height:5px;border-radius:50%;background:var(--playing);flex:none;
     /* Optical, not geometric: the label is all caps, so its ink sits above the
-       centre of the line box and a dot centred on the box looks low. */
-    margin-top:-1px;
+       centre of the line box and a dot centred on the box looks low. Half a
+       pixel, not a whole one - a full pixel on a 5px dot overshot and read high. */
+    margin-top:-.5px;
     box-shadow:0 0 0 0 rgba(94,200,255,.6);animation:lpulse 2.6s infinite;
   }
   @keyframes lpulse{0%{box-shadow:0 0 0 0 rgba(94,200,255,.5)}70%{box-shadow:0 0 0 9px rgba(94,200,255,0)}100%{box-shadow:0 0 0 0 rgba(94,200,255,0)}}
@@ -272,9 +273,8 @@
   }
   .wseg button.pbtn::before{
     content:"";width:6px;height:6px;border-radius:50%;background:var(--playing);flex:none;
-    /* Same correction as .pmark, half as much: this label is 11.5px against
-       9.5px, so the gap between the line box centre and the cap ink is smaller. */
-    margin-top:-.5px;
+    /* This label is 11.5px against .pmark's 9.5px, so the gap between the line
+       box centre and the cap ink is small enough to leave alone. */
     box-shadow:0 0 0 0 rgba(94,200,255,.6);animation:lpulse 2.6s infinite;
   }
   .wseg button.pbtn .rn{font-family:var(--mono);font-size:10.5px;font-weight:400;color:var(--slate);letter-spacing:0}
