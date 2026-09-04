@@ -85,10 +85,16 @@
      miss is the small number. The scale is expanded so a third of an hour lost
      fills the block, which is the range that actually occurs here. */
   .strip{display:flex;gap:3px;align-items:stretch;height:34px;margin:2px 0 6px}
-  .strip span{flex:1 1 0;border-radius:3px;background:var(--ok);position:relative;overflow:hidden}
-  .strip span.is-late{background:var(--warn)}
-  .strip span.is-bad{background:var(--bad)}
-  .strip span i{position:absolute;left:0;right:0;top:0;display:block;background:#1B1F28}
+  /* The block is painted in one pass rather than as a bar stacked inside a
+     clipped box: an absolutely positioned child clipped by the parent's
+     border-radius left a green fringe in the top corners, where antialiasing
+     the rounded clip let the parent's fill show through. A gradient has no
+     child to clip, so the corners are clean at any bite depth. --miss is set
+     per block from the data. */
+  .strip span{flex:1 1 0;border-radius:3px;--miss:0%;--fill:var(--ok);
+    background:linear-gradient(to bottom,#1B1F28 0 var(--miss),var(--fill) var(--miss) 100%)}
+  .strip span.is-late{--fill:var(--warn)}
+  .strip span.is-bad{--fill:var(--bad)}
   .strip span.is-unknown{background:repeating-linear-gradient(135deg,#171B24,#171B24 3px,#12151C 3px,#12151C 6px)}
   .axis{display:flex;justify-content:space-between;font-family:var(--mono);font-size:11px;
     color:var(--dim);letter-spacing:.02em;margin:0 0 8px}
@@ -148,6 +154,6 @@
     A fan-made project, not affiliated with Psyonix, Epic Games or RLCS. Rocket League is a trademark of Psyonix LLC. Player and team names belong to their respective owners.</p>
   </footer>
 </div>
-<script src="status.js?v=061f9770" defer></script>
+<script src="status.js?v=90db97e4" defer></script>
 </body>
 </html>

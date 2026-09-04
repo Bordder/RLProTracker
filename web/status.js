@@ -187,8 +187,8 @@
       // The bite is the share that did not land, on a scale where losing a
       // third of the hour fills the block. Anything worse is already red.
       var miss = Math.min(100, Math.round(((1 - ratio) / 0.34) * 100));
-      cells.push('<span class="is-' + st + '" title="' + hourLabel(from) + ": " + n + " of ~" + expect +
-        ' collections">' + (miss > 0 ? '<i style="height:' + miss + '%"></i>' : "") + "</span>");
+      cells.push('<span class="is-' + st + '" style="--miss:' + miss + '%" title="' +
+        hourLabel(from) + ": " + n + " of ~" + expect + ' collections"></span>');
     }
     strip.innerHTML = cells.join("");
 
