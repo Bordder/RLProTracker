@@ -18,3 +18,16 @@ web/_headers
 # Cloudflare Worker local dev
 worker/.dev.vars
 worker/.wrangler/
+
+# Collector output lives on the `data` branch, not here. main keeps only the
+# hand-edited inputs (roster.json, priorities.json, overrides.json) so its
+# history is code. To get a local copy for `npm run build:site`:
+#   git fetch origin data && git checkout origin/data -- data
+data/derived/
+data/presence/
+data/tracker-history.json
+data/tracker-state.json
+data/steam-history.json
+data/last-known-hours.json
+data/proxy-use.json
+data/teams.json
