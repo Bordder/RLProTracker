@@ -1,12 +1,12 @@
 {
-  "at": "2026-09-04T02:02:29.707Z",
+  "at": "2026-09-04T02:04:32.371Z",
   "proxyCount": 15,
   "players": 96,
   "use": [
     {
       "i": 0,
-      "attempts": 7,
-      "retries": 0,
+      "attempts": 9,
+      "retries": 2,
       "fails": 1
     },
     {
@@ -37,12 +37,12 @@
       "i": 5,
       "attempts": 7,
       "retries": 0,
-      "fails": 7
+      "fails": 0
     },
     {
       "i": 6,
-      "attempts": 13,
-      "retries": 7,
+      "attempts": 6,
+      "retries": 0,
       "fails": 0
     },
     {
@@ -91,7 +91,7 @@
       "i": 14,
       "attempts": 6,
       "retries": 0,
-      "fails": 0
+      "fails": 2
     }
   ]
 }
