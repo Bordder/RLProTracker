@@ -2,7 +2,7 @@
 // presenting readings back in the shape computeTrackerDeltas consumes.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { downsampleReadings, appendRows, historyToSnaps, countReadings, HOUR, DAY, FINE_MS, KEEP_MS } from "../scripts/trackerHistory.mjs";
+import { downsampleReadings, collapseUnchanged, appendRows, historyToSnaps, countReadings, HOUR, DAY, FINE_MS, KEEP_MS } from "../scripts/trackerHistory.mjs";
 
 const T = 1_800_000_000_000; // fixed "now"
 const at = (ageMs) => ({ t: T - ageMs, playlists: { d2: { rating: 2000, matches: 100 } } });
@@ -74,4 +74,44 @@ test("historyToSnaps groups readings by time for the delta core", () => {
   assert.equal(snaps[0].rows.length, 2);
   assert.equal(snaps[1].rows.length, 1);
   assert.equal(snaps[1].rows[0].id, "a");
+});
+
+test("collapseUnchanged keeps both ends of an unchanged run", () => {
+  const r = [
+    { t: 1, playlists: { a: { matches: 10 } } },
+    { t: 2, playlists: { a: { matches: 10 } } },
+    { t: 3, playlists: { a: { matches: 10 } } },
+    { t: 4, playlists: { a: { matches: 12 } } },
+  ];
+  assert.deepEqual(collapseUnchanged(r).map((x) => x.t), [1, 3, 4]);
+});
+
+test("collapseUnchanged preserves the value at any past instant", () => {
+  const r = [];
+  for (let i = 0; i < 20; i++) r.push({ t: i, playlists: { a: { matches: i < 12 ? 10 : 12 } } });
+  const kept = collapseUnchanged(r);
+  const at = (rs, t) => [...rs].reverse().find((x) => x.t <= t);
+  for (let t = 0; t < 20; t++) {
+    assert.equal(at(kept, t).playlists.a.matches, at(r, t).playlists.a.matches, `at t=${t}`);
+  }
+});
+
+test("collapseUnchanged keeps the gap that dates a finished game", () => {
+  const r = [
+    { t: 100, playlists: { a: { matches: 5 } } },
+    { t: 200, playlists: { a: { matches: 5 } } },
+    { t: 300, playlists: { a: { matches: 5 } } },
+    { t: 400, playlists: { a: { matches: 6 } } },
+  ];
+  const kept = collapseUnchanged(r);
+  const i = kept.findIndex((x) => x.playlists.a.matches === 6);
+  assert.equal(kept[i - 1].t, 300);   // not 100: the session window stays tight
+});
+
+test("collapseUnchanged treats a different account as a change", () => {
+  const r = [
+    { t: 1, who: "steam:1", playlists: { a: { matches: 10 } } },
+    { t: 2, who: "epic:x", playlists: { a: { matches: 10 } } },
+  ];
+  assert.equal(collapseUnchanged(r).length, 2);
 });

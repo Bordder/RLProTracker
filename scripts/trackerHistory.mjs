@@ -12,11 +12,13 @@
 // small AND delta-compresses well between commits.
 //
 // Retention: every reading for the last 26 hours (so the 24h window keeps full
-// resolution), then at most one per day out to 15 days.
+// resolution), then at most one per day out to 15 days - and within that, only
+// the two ends of each stretch where nothing changed, which is where almost all
+// of the file was going. See collapseUnchanged in rollingHistory.mjs.
 
 // Retention policy is shared with the Steam side - see rollingHistory.mjs.
-export { HOUR, DAY, FINE_MS, KEEP_MS, downsampleReadings, countReadings } from "./rollingHistory.mjs";
-import { downsampleReadings } from "./rollingHistory.mjs";
+export { HOUR, DAY, FINE_MS, KEEP_MS, downsampleReadings, collapseUnchanged, countReadings } from "./rollingHistory.mjs";
+import { downsampleReadings, collapseUnchanged } from "./rollingHistory.mjs";
 
 // Fold one run's scraped rows into the history, then downsample. Rows without
 // playlist data (failed scrapes) are skipped so a failure never displaces a
@@ -36,14 +38,14 @@ export function appendRows(history, takenAtMs, rows, now = takenAtMs) {
     players[row.id] = {
       name: row.name ?? prev.name,
       team: row.team ?? prev.team,
-      readings: downsampleReadings(readings, now),
+      readings: collapseUnchanged(downsampleReadings(readings, now)),
     };
   }
   // Players not in this run keep their readings, but still get thinned so a
   // dropped player's history cannot grow stale forever.
   for (const [id, p] of Object.entries(players)) {
     if ((rows ?? []).some((r) => r?.id === id && r.playlists)) continue;
-    players[id] = { ...p, readings: downsampleReadings(p.readings ?? [], now) };
+    players[id] = { ...p, readings: collapseUnchanged(downsampleReadings(p.readings ?? [], now)) };
   }
   return { updatedAt: new Date(takenAtMs).toISOString(), players };
 }

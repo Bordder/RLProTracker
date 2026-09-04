@@ -41,3 +41,48 @@ export function downsampleReadings(readings, now) {
 export function countReadings(history) {
   return Object.values(history?.players ?? {}).reduce((n, p) => n + (p.readings?.length ?? 0), 0);
 }
+
+// Collapse runs of readings whose values never changed.
+//
+// The tracker re-reads every player on a fixed cadence whether or not anything
+// moved, and 97% of stored readings were byte-identical to the one before them:
+// 51,191 readings, 11.4 MB, for 1,460 actual changes. Keeping only the moments
+// a value changed answers every question the site asks, as long as both ends of
+// each unchanged run survive.
+//
+// Both ends, not one, because two different questions are asked of this data:
+//
+//   "what was the match count 24 hours ago?" reads the newest reading at or
+//   before that instant, so the FIRST reading of a run has to stay - it is the
+//   one that carries the run's value into the middle of the window.
+//
+//   "when did this player last finish a game?" reads the gap between two
+//   consecutive readings whose counts differ, so the LAST reading of a run has
+//   to stay - dropping it would widen that gap from one cadence to the whole
+//   run, and the live session times on the board are only as tight as that gap.
+//
+// Keeping both ends leaves the two computations bit-for-bit identical to what
+// they produced over the full series.
+const stableKey = (v) =>
+  Array.isArray(v)
+    ? `[${v.map(stableKey).join(",")}]`
+    : v && typeof v === "object"
+      ? `{${Object.keys(v).sort().map((k) => JSON.stringify(k) + ":" + stableKey(v[k])).join(",")}}`
+      : JSON.stringify(v ?? null);
+
+export function collapseUnchanged(readings) {
+  const sorted = [...readings].filter((r) => r && r.t != null).sort((a, b) => a.t - b.t);
+  if (sorted.length < 3) return sorted;
+  const keyOf = (r) => { const { t, ...rest } = r; return stableKey(rest); };
+  const out = [];
+  let i = 0;
+  while (i < sorted.length) {
+    const k = keyOf(sorted[i]);
+    let j = i;
+    while (j + 1 < sorted.length && keyOf(sorted[j + 1]) === k) j++;
+    out.push(sorted[i]);
+    if (j !== i) out.push(sorted[j]);
+    i = j + 1;
+  }
+  return out;
+}
