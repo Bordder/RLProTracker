@@ -72,7 +72,11 @@
   }
   .kick-brand{color:var(--bone);font-weight:700;letter-spacing:.14em}
   .kick-brand .dot{color:var(--accent)}
-  .kick-meta{font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;gap:8px}
+  /* min-width holds the timestamp's box at the width of its longest form.
+     Without it "loading..." fits beside the brand and the real timestamp does
+     not, so the kicker went from one line to two the moment the fetch
+     returned, moving the entire page down with it. */
+  .kick-meta{font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;justify-content:flex-end;gap:8px;min-width:200px}
   .live-dot{width:8px;height:8px;border-radius:50%;background:var(--live);box-shadow:0 0 0 0 rgba(72,201,138,.6);animation:pulse 2.1s ease-out infinite}
   @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(72,201,138,.5)}70%{box-shadow:0 0 0 7px rgba(72,201,138,0)}100%{box-shadow:0 0 0 0 rgba(72,201,138,0)}}
   /* Collection running late, or stopped. The pulse is dropped in both cases:
@@ -120,10 +124,47 @@
      fifth alone next to an empty cell. There are four now, which divides, but
      flex still handles the wrap better than a fixed column count. */
   .stats{display:flex;flex-wrap:wrap;gap:12px;margin:28px 0 8px}
-  .stats>*{flex:1 1 158px;min-width:0}
+  /* One height for every tile, whether or not its sub-label wraps to a second
+     line. Left to the content the row was 92px at one width and 222px at
+     another, which no reserved height can predict. */
+  .stats>*{flex:1 1 158px;min-width:0;min-height:122px}
   /* Four narrow tiles divide evenly, so the only bad wrap is three plus one.
      Below the width where all four fit, go straight to two rows of two. */
   @media (max-width:740px){ .stats>*{flex:1 1 calc(50% - 6px)} }
+
+  /* ---- Space held for what the fetch fills in ----------------------------
+     Everything on this page arrives after a request, so the first paint is
+     five empty containers and the whole footer sitting in the viewport. When
+     the data lands the page grows by six thousand pixels and the footer is
+     thrown off the bottom of the screen: Cloudflare measured 88% of visits as
+     a poor CLS, 0.423 of it charged to the footer alone.
+
+     Each figure is the real thing's measured height, rounded down. Reserving
+     less than arrives leaves a small shift; reserving more leaves an upward
+     one, which scores exactly the same. :empty stops matching the moment a
+     container is filled, so none of this constrains the real content.
+
+     The table gets a viewport rather than a number: its job is only to put the
+     footer below the fold, where it cannot be seen to move. */
+  #stats:empty{min-height:122px}
+  #podium:empty{min-height:221px}
+  #playersView:empty{min-height:100vh}
+  /* The order-by row is present from the start; the region buttons and the
+     Playing pill are not, and adding them wraps it onto a second line. */
+  #wrow{min-height:32px}
+  /* An empty segmented control is a stray 6px outline until the buttons land. */
+  .wseg:empty{border-color:transparent;background:transparent}
+  @media (max-width:820px){
+    #podium:empty{min-height:500px}
+    #wrow{min-height:72px}
+  }
+  /* Two columns below 740, so two rows plus the gap; the gap narrows at 640. */
+  @media (max-width:740px){ #stats:empty{min-height:256px} }
+  /* The region buttons wrap onto more lines the narrower it gets. */
+  @media (max-width:640px){ #wrow{min-height:86px} }
+  @media (max-width:520px){ #wrow{min-height:120px} }
+  @media (max-width:360px){ #wrow{min-height:154px} }
+  @media (max-width:640px){ #stats:empty{min-height:252px} }
 
   .card{
     background:var(--surface);border:1px solid var(--line);border-radius:12px;
@@ -470,7 +511,10 @@
        Tiles lose their descriptions and keep label plus number, so the rows are
        equal height. */
     .stats{gap:8px;margin:16px 0 6px}
-    .stats>*{flex:1 1 140px}
+    /* Two up, same as every width below 740. On a 140px basis all four fit
+       across at 640 and then drop to two a few pixels later, which made the
+       row's height impossible to reserve and left the tiles cramped anyway. */
+    .stats>*{flex:1 1 calc(50% - 4px)}
     .card{padding:10px 12px;border-radius:10px}
     .card .k{font-size:9.5px;letter-spacing:.1em}
     .card .v{font-size:1.5rem;margin-top:4px}
