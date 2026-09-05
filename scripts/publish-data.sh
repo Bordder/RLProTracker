@@ -40,6 +40,14 @@ for attempt in 1 2 3 4 5; do
   for p in "$@"; do
     [ -e "$p" ] || continue
     mkdir -p "$WORK/$(dirname "$p")"
+    # Delete the destination first. `cp -r dir dest/dir` copies INTO dest/dir
+    # when it already exists, so a directory published twice became
+    # data/presence/presence, then data/presence/presence/presence, one level
+    # deeper every three minutes. It reached 265 levels and 2,398 characters of
+    # path before a checkout hit "Filename too long"; worse, the collector went
+    # on reading the top level, which no longer received the new log, so a day
+    # of presence polls was written to a path nothing read back.
+    rm -rf "$WORK/$p"
     cp -r "$p" "$WORK/$p"
   done
 

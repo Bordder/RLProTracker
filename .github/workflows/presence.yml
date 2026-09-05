@@ -46,6 +46,10 @@ jobs:
           for p in data/presence data/derived/presence-hours.json; do
             if [ -e ".databranch/$p" ]; then
               mkdir -p "$(dirname "$p")"
+              # rm first: cp -r copies a directory INTO an existing directory of
+              # the same name rather than over it, which nests it one level
+              # deeper on every run. See the note in scripts/publish-data.sh.
+              rm -rf "$p"
               cp -r ".databranch/$p" "$p"
             fi
           done
