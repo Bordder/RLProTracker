@@ -20,17 +20,14 @@ All data comes from public sources (Steam Web API, Liquipedia, and tracker.gg). 
 
 > [!WARNING]
 > **In development, and not finished.** The site is live and collecting real data, but it is
-> actively being built: numbers can be wrong or missing, features move around, and things
-> occasionally break without warning. Playtime for players who hide their Steam details is
-> *estimated by sampling* and always undercounts - it is not a measurement. Treat everything
-> here as an indication rather than a record.
+> actively being built Treat everything here as an indication rather than a record.
 
 ## Features
 
 - Ranked playtime per player over 24 hour, 7 day, and 2 week windows.
-- Per team: total playtime across the roster, and how many of its players we can actually track.
+- Per team: total playtime across the roster, individual statistics.
 - Each player's ranked games and MMR, broken down by playlist (1v1, 2v2, 3v3).
-- Coverage for the full roster: public playtime where available, live status polling where a profile hides its game history, and estimates for fully private profiles.
+- Coverage for the full roster: public playtime where available, live status polling for profiles that hides its game history, and estimates for fully private profiles.
 - Fully automated collection through scheduled jobs, with a static frontend that always shows the latest data.
 
 ## How it works
