@@ -23,10 +23,12 @@ square icon or badge version of the logo reads far better than a wide wordmark.
 
 ## Sourcing
 
-Everything currently here came from Wikimedia Commons and is tagged public
-domain there, because a mark made only of type and simple shapes falls below
-the threshold of originality and carries no copyright. `sources.json` records
-the file, its Commons page and its licence for each one. Keep that file in step
+Most of these came from Wikimedia Commons and are tagged public domain there,
+because a mark made only of type and simple shapes falls below the threshold of
+originality and carries no copyright. The rest are here on one of two other
+bases: supplied directly by the site owner, or published by the org itself once
+it has given permission. `sources.json` records which of the three applies to
+every file, with the Commons page or the source and date. Keep that file in step
 with this directory: it is the answer if anyone ever asks where a crest came
 from.
 
@@ -36,7 +38,9 @@ that travels with the file, so their claim covers them and not this site.
 
 An org whose mark is original artwork rather than plain lettering will not be on
 Commons at all, and that is the correct outcome: leave it on a monogram until
-the org's own press or brand kit can be used.
+either the org's own brand kit can be used or the org says yes. bsk was the
+first to say yes, on 7 September 2026, and their crest came from the
+organisation's own account rather than from anywhere that reposts logos.
 
 
 Only add logos you have the right to use. Prefer an org's official press or
