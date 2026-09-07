@@ -36,7 +36,7 @@
   //
   // Inline SVG rather than a canvas: it is a handful of points, it scales, and
   // it inherits colour from the row it sits in.
-  var SPARK_W=72, SPARK_H=22;
+  var SPARK_W=160, SPARK_H=30;
   var sparkline=function(id,key){
     var pts=seriesFor(id,key);
     if(!pts)return '<span class="dash">&middot;</span>';
@@ -56,47 +56,79 @@
     var cls=net>0?'up':net<0?'dn':'flat';
     var last=xy[xy.length-1];
     var title=nf(lo)+'–'+nf(hi)+' over 14 days, '+(net===0?'no net change':(net>0?'up ':'down ')+nf(Math.abs(net)));
-    return '<svg class="spark '+cls+'" viewBox="0 0 '+SPARK_W+' '+SPARK_H+'" width="'+SPARK_W+'" height="'+SPARK_H+'" '+
+    return '<svg class="spark '+cls+'" viewBox="0 0 '+SPARK_W+' '+SPARK_H+'" preserveAspectRatio="none" '+
       'role="img" aria-label="'+esc(title)+'"><title>'+esc(title)+'</title>'+
-      '<path d="'+d+'" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>'+
+      '<path d="'+d+'" fill="none" stroke="currentColor" stroke-width="1.4" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>'+
       '<circle cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="1.9" fill="currentColor"/></svg>';
   };
   var MMR_COL_TITLE='Current rating in this playlist.';
 
-  // The same series as the sparkline, drawn at a size that can carry labels.
-  // Fixed viewBox scaled by CSS: the panel width varies with the table and a
-  // chart redrawn on every resize is not worth the listener.
-  var CH_W=620, CH_H=132, CH_PADL=6, CH_PADR=46, CH_PADT=10, CH_PADB=18;
+  // The rating chart in the opened row.
+  //
+  // Ratings sit still for long stretches and then jump, so the line is mostly
+  // flat runs joined by short steps. That reads as "not much happened", which
+  // is true, but it left no way to answer the two questions someone opening a
+  // chart actually has: what rating, and when. Gridlines give the first
+  // roughly; a marker that follows the pointer and names the nearest reading
+  // gives both exactly.
+  var CH_W=680, CH_H=170, CH_PADL=8, CH_PADR=52, CH_PADT=14, CH_PADB=22;
+  var chartPts=null, chartGeo=null;
   var bigChart=function(id,key){
     var pts=seriesFor(id,key);
     if(!pts)return '<div class="chart-none">No rating history yet. It fills in as the collector runs.</div>';
     var lo=Infinity, hi=-Infinity, t0=pts[0][0], t1=pts[pts.length-1][0];
     for(var i=0;i<pts.length;i++){ if(pts[i][1]<lo)lo=pts[i][1]; if(pts[i][1]>hi)hi=pts[i][1]; }
-    var span=(t1-t0)||1, range=(hi-lo)||1, flat=hi===lo;
+    var span=(t1-t0)||1, flat=hi===lo;
+    // A little headroom, and a floor of 20 points of range so a quiet
+    // fortnight is not magnified into a mountain range.
+    var mid=(hi+lo)/2, half=Math.max((hi-lo)/2*1.15,10);
+    var top=flat?mid+10:mid+half, bot=flat?mid-10:mid-half;
     var x0=CH_PADL, x1=CH_W-CH_PADR, y0=CH_PADT, y1=CH_H-CH_PADB;
-    var xy=pts.map(function(p){
-      return [x0+((p[0]-t0)/span)*(x1-x0), flat?(y0+y1)/2:y1-(((p[1]-lo)/range)*(y1-y0))];
-    });
+    var yOf=function(r){ return y1-((r-bot)/((top-bot)||1))*(y1-y0); };
+    var xOf=function(t){ return x0+((t-t0)/span)*(x1-x0); };
+
+    var xy=pts.map(function(p){ return [xOf(p[0]),yOf(p[1])]; });
     var line=xy.map(function(p,i){return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join('');
     var area=line+'L'+xy[xy.length-1][0].toFixed(1)+' '+y1+'L'+xy[0][0].toFixed(1)+' '+y1+'Z';
     var net=pts[pts.length-1][1]-pts[0][1];
     var cls=net>0?'up':net<0?'dn':'flat';
-    var last=xy[xy.length-1];
+
+    // Three gridlines: the two ends of the drawn range and its middle. Enough
+    // to read a value off, few enough not to become the loudest thing here.
+    var grid='';
+    [bot,mid,top].forEach(function(r){
+      var y=yOf(r).toFixed(1);
+      grid+='<line class="cg" x1="'+x0+'" y1="'+y+'" x2="'+x1+'" y2="'+y+'"/>'+
+            '<text class="ct" x="'+(x1+7)+'" y="'+(+y+3.5).toFixed(1)+'">'+nf(Math.round(r))+'</text>';
+    });
+
+    // Every reading gets a dot. They are small because an active fortnight can
+    // carry a couple of hundred, and the marker is what the reader aims at.
+    var dots=xy.map(function(p){
+      return '<circle class="cp" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="1.7"/>';
+    }).join('');
+
     var when=function(off){ return new Date(mmrBase+off*60000).toLocaleDateString([],{day:'numeric',month:'short'}); };
-    // Only the two rating bounds are labelled. A full axis would be four more
-    // numbers on a chart whose job is the shape.
-    var labels=flat?'':
-      '<text class="ct" x="'+(x1+6)+'" y="'+(y0+4)+'">'+nf(hi)+'</text>'+
-      '<text class="ct" x="'+(x1+6)+'" y="'+(y1+3)+'">'+nf(lo)+'</text>';
-    return '<svg class="chart '+cls+'" viewBox="0 0 '+CH_W+' '+CH_H+'" preserveAspectRatio="xMidYMid meet" role="img" '+
-      'aria-label="'+esc(PL_NAME[key]+' rating, '+nf(lo)+' to '+nf(hi)+' over the last 14 days')+'">'+
-      '<path class="ca" d="'+area+'" />'+
-      '<path class="cl" d="'+line+'" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
-      '<circle class="cd" cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="3.2"/>'+
-      labels+
-      '<text class="ct dim" x="'+x0+'" y="'+(CH_H-4)+'">'+esc(when(t0))+'</text>'+
-      '<text class="ct dim" text-anchor="end" x="'+x1+'" y="'+(CH_H-4)+'">'+esc(when(t1))+'</text>'+
-      '</svg>';
+    // The points travel with the chart so the pointer handler does not have to
+    // read them back out of the DOM.
+    var data=pts.map(function(p,i){ return [+xy[i][0].toFixed(1),+xy[i][1].toFixed(1),p[0],p[1]]; });
+
+    // Only one row is open at a time, so the points live here rather than being
+    // serialised into an attribute and parsed back out.
+    chartPts=data; chartGeo={w:CH_W,h:CH_H,x0:x0,x1:x1,y0:y0,y1:y1};
+    return '<div class="chartwrap">'+
+      '<svg class="chart '+cls+'" viewBox="0 0 '+CH_W+' '+CH_H+'" preserveAspectRatio="xMidYMid meet" role="img" '+
+        'aria-label="'+esc(PL_NAME[key]+' rating, '+nf(lo)+' to '+nf(hi)+' over the last 14 days')+'">'+
+        grid+
+        '<path class="ca" d="'+area+'"/>'+
+        '<path class="cl" d="'+line+'" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
+        dots+
+        '<g class="cmark" hidden><line class="cml" y1="'+y0+'" y2="'+y1+'"/><circle class="cmc" r="4"/></g>'+
+        '<text class="ct dim" x="'+x0+'" y="'+(CH_H-5)+'">'+esc(when(t0))+'</text>'+
+        '<text class="ct dim" text-anchor="end" x="'+x1+'" y="'+(CH_H-5)+'">'+esc(when(t1))+'</text>'+
+      '</svg>'+
+      '<div class="chart-tip" hidden></div>'+
+      '</div>';
   };
   var PL_NAME={ones:'1v1',twos:'2v2',threes:'3v3'};
   var WIN_LABEL={d1:'24h',d7:'7d',d14:'14d'};
@@ -183,7 +215,7 @@
     // round as whatever they said.
     if(p.totalStated){
       var src=typeof p.totalStated==='string'?p.totalStated:'Stated by the player';
-      return'<span class="est" title="'+esc(src)+'. Not measured - this profile keeps its hours private.">~'+v+'</span>';
+      return'<span class="est" title="'+esc(src)+'. Not measured - this profile keeps its hours private.">'+v+'</span>';
     }
     if(!p.totalFrozenAt)return v;
     var d=new Date(p.totalFrozenAt);
@@ -679,7 +711,7 @@
 
     var win='d1'; // recent-games window: d1 (24h, live now) / d7 / d14
     var mmrKey='twos'; // which playlist the MMR mode ranks on: ones / twos / threes
-    var pCols=[{label:'#',cls:'c-rk'},{label:'Player',cls:'c-who',k:'name'},{label:'Region',cls:'c-rg',k:'region'},{label:'Status',cls:'c-st',k:'status'},{label:'1v1',cls:'c-mmr',k:'ones',num:true,title:MMR_COL_TITLE},{label:'2v2',cls:'c-mmr',k:'twos',num:true,title:MMR_COL_TITLE},{label:'3v3',cls:'c-mmr',k:'threes',num:true,title:MMR_COL_TITLE},{label:PL_NAME[mmrKey]+' trend',cls:'c-spk',title:'Rating over the last 14 days. Follows the playlist the MMR button is set to.'},{label:'Games, season',cls:'c-sg',k:'sg',num:true,title:'Ranked games played since the current competitive season began'},{label:COL_LABEL[win],cls:'c-g14',k:'g14',num:true,title:'Ranked games played in the window selected above the table'},{label:'2wk h',cls:'c-hr',k:'h2',num:true},{label:'Total h',cls:'c-hr c-hrt',k:'ht',num:true}];
+    var pCols=[{label:'#',cls:'c-rk'},{label:'Player',cls:'c-who',k:'name'},{label:'Region',cls:'c-rg',k:'region'},{label:'Status',cls:'c-st',k:'status'},{label:'1v1',cls:'c-mmr',k:'ones',num:true,title:MMR_COL_TITLE},{label:'2v2',cls:'c-mmr',k:'twos',num:true,title:MMR_COL_TITLE},{label:'3v3',cls:'c-mmr',k:'threes',num:true,title:MMR_COL_TITLE},{label:'Games, season',cls:'c-sg',k:'sg',num:true,title:'Ranked games played since the current competitive season began'},{label:COL_LABEL[win],cls:'c-g14',k:'g14',num:true,title:'Ranked games played in the window selected above the table'},{label:'2wk h',cls:'c-hr',k:'h2',num:true},{label:'Total h',cls:'c-hr c-hrt',k:'ht',num:true}];
     var pAcc={name:function(p){return(p.name||'').toLowerCase();},region:function(p){return p.region||null;},status:function(p){return p.status?String(p.status).toLowerCase():null;},ones:function(p){return p.mmr?p.mmr.ones:null;},twos:function(p){return p.mmr?p.mmr.twos:null;},threes:function(p){return p.mmr?p.mmr.threes:null;},sg:function(p){return p.seasonGames;},g14:function(p){
         // "pending" in the cell means the window has not filled yet, so there is
         // nothing to rank: a new player's first reading is their whole season,
@@ -689,7 +721,6 @@
       },h2:function(p){return p.hours2wk!=null?p.hours2wk:p.estHours2wk;},ht:function(p){return p.totalHours;}};
     var playerRow=function(p){
       var mmr=p.hasMmr?(mmrCell(p.mmr.ones,'m1')+mmrCell(p.mmr.twos,'m2')+mmrCell(p.mmr.threes,'m3')):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
-      var spark='<td class="c-spk" data-l="trend">'+sparkline(p.id,mmrKey)+'</td>';
       return '<tr class="'+(p.hasMmr?'':'isnorank')+'" data-player="'+esc(p.name)+'">'+
         '<td class="c-rk">'+rankMark(p.__pos||p.__rank)+'</td>'+
         '<td class="c-who">'+teamMark(p.team)+'<span class="nm"><b>'+esc(p.name)+(isLive(p)?playMark(p):'')+'</b><i>'+esc(p.team||'Free agent')+'</i></span></td>'+
@@ -700,7 +731,6 @@
         // right.
         '<td class="c-rg">'+regionChip(p.region)+'<span class="chip-pair">'+statusChip(p.status)+'</span></td>'+
         '<td class="c-st">'+statusChip(p.status)+'</td>'+mmr+
-        spark+
         '<td class="c-sg" data-l="games">'+(p.seasonGames!=null?'<span class="sgv">'+nf(p.seasonGames)+'</span>':'<span class="dash">&middot;</span>')+'</td>'+
         '<td class="c-g14" data-l="'+esc(WIN_LABEL[win]||win)+'">'+fmtGames(p,win)+'</td>'+
         '<td class="c-hr c-hr2" data-l="2wk h">'+hours2wkCell(p)+'</td>'+
@@ -819,7 +849,7 @@
       // the board is already showing 7d, which keeps the row six cells wide
       // whatever the ranking and never prints the same window twice.
       {k:'g2nd',  lab:null, na:'pending', get:function(p){ var w=(win==='d7'?'d1':'d7'); var g=p.games&&p.games[w]; return g&&g.games!=null&&!g.partial?nf(g.games):null; }},
-      {k:'h2',    lab:'2wk h',  get:function(p){ var h=p.hours2wk!=null?p.hours2wk:p.estHours2wk; return h!=null?(p.hours2wk!=null?hf(h):'~'+hf(h)):null; }}
+      {k:'h2',    lab:'2wk h',  get:function(p){ var h=p.hours2wk!=null?p.hours2wk:p.estHours2wk; return h!=null?(p.hours2wk!=null?hf(h):'<span class="est">'+hf(h)+'</span>'):null; }}
     ];
     var podFigure=function(p,k){
       if(k==='g14'){ var g=p.games&&p.games[win]; return g&&g.games!=null&&!g.partial?nf(g.games):null; }
@@ -877,6 +907,7 @@
             '</div>'+
             '<div class="pfig"><b>'+(fig==null?'&middot;':fig)+'</b><span>'+(METRIC_LABEL[k]||'')+'</span></div>'+
           '</div>'+
+          '<div class="ptrend"><span class="ptl">'+esc(PL_NAME[mmrKey])+' <i>14d</i></span>'+sparkline(p.id,mmrKey)+'</div>'+
           '<div class="prow">'+stats.join('')+'</div>'+
         '</div>';
       }).join('')+'</div>';
@@ -893,15 +924,13 @@
     // say "private" or "hidden"; a column repeating it was the same fact twice.
     var detailRow=function(p,span){
       var pls=['ones','twos','threes'];
-      // Per playlist: where they are, what rank that is, and how much they have
-      // played there. The table can only show the ratings, so the split between
-      // a 2v2 specialist and someone grinding 1v1 lives here.
+      // Rank and games per playlist. The rating itself is not repeated here:
+      // it is three columns away in the same row, and printing it twice was
+      // the panel's least useful third.
       var plRows=pls.map(function(k){
-        var r=p.mmr?p.mmr[k]:null;
         var g=p.gamesByPl&&p.gamesByPl[k]&&p.gamesByPl[k][win];
         var sg=p.seasonByPl?p.seasonByPl[k]:null;
         return '<tr'+(k===mmrKey?' class="on"':'')+'><th>'+PL_NAME[k]+'</th>'+
-          '<td>'+(r!=null?'<span class="'+tierClass(r)+'">'+nf(r)+'</span>':'<span class="dash">&middot;</span>')+'</td>'+
           '<td class="tr">'+(p.tier&&p.tier[k]?esc(p.tier[k]):'<span class="dash">&middot;</span>')+'</td>'+
           '<td>'+(sg!=null?nf(sg):'<span class="dash">&middot;</span>')+'</td>'+
           '<td>'+(g&&g.games!=null&&!g.partial?nf(g.games):'<span class="dash">&middot;</span>')+'</td></tr>';
@@ -920,13 +949,15 @@
           (mins!=null?' over '+(mins<60?mins+' min':Math.round(mins/6)/10+' h'):'')]);
       }
 
+      // Chart first and full width, then the two small blocks under it. The
+      // chart beside a five-column table left both cramped and put the table
+      // where the eye lands first, which is the wrong way round for a panel
+      // opened to see a rating over time.
       return '<tr class="pexp"><td colspan="'+span+'"><div class="pexp-in">'+
-        '<div class="pexp-chart">'+
-          '<div class="pexp-h">'+esc(PL_NAME[mmrKey])+' rating <span>last 14 days</span></div>'+
-          bigChart(p.id,mmrKey)+
-        '</div>'+
-        '<div class="pexp-side">'+
-          '<table class="pltab"><thead><tr><th></th><th>MMR</th><th class="tr">Rank</th><th>Season</th><th>'+
+        '<div class="pexp-h">'+esc(PL_NAME[mmrKey])+' rating <span>last 14 days</span></div>'+
+        bigChart(p.id,mmrKey)+
+        '<div class="pexp-cols">'+
+          '<table class="pltab"><thead><tr><th></th><th class="tr">Rank</th><th>Games, season</th><th>Games, '+
             esc(WIN_LABEL[win]||win)+'</th></tr></thead><tbody>'+plRows+'</tbody></table>'+
           '<div class="pexp-facts">'+facts.map(function(f){
             return '<div><span class="pk">'+f[0]+'</span><span class="pvv">'+f[1]+'</span></div>';
@@ -934,6 +965,49 @@
         '</div>'+
       '</div></td></tr>';
     };
+
+    // The chart's pointer marker: snap to the nearest reading and name it.
+    // Answers the two questions a chart of a slow-moving rating cannot answer
+    // by shape alone - which rating, and when.
+    var chartHover=function(e){
+      var wrap=e.target.closest?e.target.closest('.chartwrap'):null;
+      if(!wrap||!chartPts||!chartPts.length||!chartGeo)return;
+      var svg=wrap.querySelector('svg.chart'), tip=wrap.querySelector('.chart-tip');
+      var mark=wrap.querySelector('.cmark');
+      if(!svg||!tip||!mark)return;
+      var box=svg.getBoundingClientRect();
+      if(!box.width)return;
+      // Screen pixels back into the fixed viewBox the chart was drawn in.
+      var ux=((e.clientX-box.left)/box.width)*chartGeo.w;
+      var best=0, bestD=Infinity;
+      for(var i=0;i<chartPts.length;i++){
+        var d=Math.abs(chartPts[i][0]-ux);
+        if(d<bestD){bestD=d;best=i;}
+      }
+      var pt=chartPts[best];
+      mark.removeAttribute('hidden');
+      mark.querySelector('.cml').setAttribute('x1',pt[0]);
+      mark.querySelector('.cml').setAttribute('x2',pt[0]);
+      mark.querySelector('.cmc').setAttribute('cx',pt[0]);
+      mark.querySelector('.cmc').setAttribute('cy',pt[1]);
+      var when=new Date(mmrBase+pt[2]*60000);
+      tip.innerHTML='<b>'+nf(pt[3])+'</b><span>'+esc(when.toLocaleDateString([],{day:'numeric',month:'short'})+
+        ', '+when.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}))+'</span>';
+      tip.removeAttribute('hidden');
+      // Follow the marker, but never hang off either end of the chart.
+      var pct=Math.max(0,Math.min(1,pt[0]/chartGeo.w));
+      tip.style.left=(pct*box.width)+'px';
+      tip.style.transform='translateX('+(pct<.15?'0':pct>.85?'-100%':'-50%')+')';
+    };
+    var chartLeave=function(e){
+      var wrap=e.target.closest?e.target.closest('.chartwrap'):null;
+      if(!wrap)return;
+      var mark=wrap.querySelector('.cmark'), tip=wrap.querySelector('.chart-tip');
+      if(mark)mark.setAttribute('hidden','');
+      if(tip)tip.setAttribute('hidden','');
+    };
+    pv.addEventListener('mousemove',chartHover);
+    pv.addEventListener('mouseleave',chartLeave,true);
     var applyOpenPlayer=function(){
       var rows=pv.querySelectorAll('tbody tr');
       Array.prototype.forEach.call(rows,function(tr){
@@ -1009,10 +1083,6 @@
     var showMmrPlaylist=function(){
       var el=document.getElementById('mmrPl');
       if(el)el.textContent=PL_LABEL[mmrKey];
-      // The trend column draws whichever playlist the MMR button is on, so its
-      // header has to say so rather than leaving the reader to guess.
-      var th=pv.querySelector('th.c-spk span');
-      if(th)th.textContent=PL_NAME[mmrKey]+' trend';
     };
     var setMetric=function(btn,fromClick){
       var k=btn.dataset.k, w=btn.dataset.w;

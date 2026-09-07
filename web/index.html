@@ -377,7 +377,14 @@
   tr.isnorank .nm b{color:var(--slate)}
   /* The rating trend. Colour carries the net direction over the fortnight, so
      the column answers "which way" at a glance and the shape answers "how". */
-  .c-spk{width:82px;padding-right:6px}
+  /* The rating shape on each podium card. Three of these is a different
+     proposition from ninety-four down a table: there is room for it here, and
+     the card is the one place the board slows down enough to look. */
+  .ptrend{display:flex;align-items:center;gap:10px;margin:2px 0 2px}
+  .ptl{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;
+    font-size:9.5px;font-weight:700;color:var(--dim);white-space:nowrap}
+  .ptl i{font-style:normal;color:var(--line2);font-weight:600}
+  .ptrend .spark{flex:1;height:30px;min-width:0}
   .spark{display:block;overflow:visible;color:var(--slate)}
   .spark.up{color:var(--live)}
   .spark.dn{color:#E0655A}
@@ -418,13 +425,29 @@
   .pexp>td{padding:0 14px 14px;background:var(--panel2);border-bottom:1px solid var(--line)}
   /* The accent edge ties the panel to the row that opened it. Without it the
      strip reads as a separator between two players rather than as part of one. */
-  .pexp-in{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,auto);gap:18px 26px;
+  .pexp-in{display:flex;flex-direction:column;gap:14px;
     padding:14px 16px;border-radius:9px;background:var(--surface);border:1px solid var(--line2);
     border-left:2px solid var(--accent)}
+  .pexp-cols{display:flex;flex-wrap:wrap;gap:16px 40px;align-items:flex-start}
+  .pltab{flex:0 1 auto}
   .pexp-h{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;
     font-size:11px;font-weight:800;color:var(--slate);margin-bottom:6px}
   .pexp-h span{color:var(--dim);font-weight:600;letter-spacing:.06em}
-  .chart{width:100%;height:auto;display:block;color:var(--slate)}
+  /* The pointer marker and its label. The wrapper is the positioning context
+     for a tip that follows the marker along the chart. */
+  /* Capped, or the chart scales with the table and a wide screen gets a
+     264px-tall panel for a rating that moved 40 points. */
+  .chartwrap{position:relative;max-width:680px}
+  .chart{width:100%;height:auto;display:block;color:var(--slate);cursor:crosshair}
+  .chart .cg{stroke:var(--line);stroke-width:1;shape-rendering:crispEdges}
+  .chart .cp{fill:currentColor;opacity:.55}
+  .chart .cml{stroke:var(--slate);stroke-width:1;stroke-dasharray:2 3;opacity:.7}
+  .chart .cmc{fill:var(--bone);stroke:currentColor;stroke-width:2}
+  .chart-tip{position:absolute;top:-2px;pointer-events:none;white-space:nowrap;
+    background:var(--ink);border:1px solid var(--line2);border-radius:6px;padding:4px 8px;
+    display:flex;gap:8px;align-items:baseline;box-shadow:0 4px 14px rgba(0,0,0,.45)}
+  .chart-tip b{font-family:var(--mono);font-size:12.5px;color:var(--bone);font-weight:600}
+  .chart-tip span{font-family:var(--mono);font-size:11px;color:var(--dim)}
   .chart.up{color:var(--live)} .chart.dn{color:#E0655A} .chart.flat{color:var(--dim)}
   .chart .cl{stroke:currentColor}
   .chart .ca{fill:currentColor;opacity:.10}
@@ -437,7 +460,7 @@
   /* Per playlist, so the split between a 2v2 specialist and a 1v1 grinder is
      visible somewhere. The ranked playlist is marked, because it is the one
      the table's ordering is using. */
-  .pltab{border-collapse:collapse;font-size:12.5px;width:100%}
+  .pltab{border-collapse:collapse;font-size:12.5px;width:auto}
   .pltab th{font-family:var(--display);text-transform:uppercase;letter-spacing:.07em;
     font-size:10px;font-weight:700;color:var(--dim);text-align:right;padding:0 0 5px 12px}
   .pltab thead th:first-child{padding-left:0}
@@ -454,7 +477,6 @@
   .pexp .pk{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;
     font-size:10px;font-weight:700;color:var(--dim)}
   .pexp .pvv{font-family:var(--mono);font-size:12.5px;color:var(--bone)}
-  @media (max-width:1000px){ .pexp-in{grid-template-columns:minmax(0,1fr)} }
   /* The phone lays every row out as a grid with a selector of its own, which
      outranked a bare .pexp rule: the detail row went on rendering underneath
      the card as a squashed 19px strip repeating what the card already said.
@@ -496,7 +518,9 @@
      tilde, and a dotted underline, so an estimate can never be mistaken for
      Steam's own number. */
   .est{color:var(--bone);border-bottom:1px dotted var(--slate);cursor:help}
-  .est::before{content:"~";opacity:.7;margin-right:1px}
+  /* An almost-equals, not a tilde. At 11px in a mono face a dim leading ~
+     reads as a minus sign, so an estimated 8.3 hours looked like -8.3. */
+  .est::before{content:"≈";opacity:.85;margin-right:2px;font-size:.92em}
   /* Says why a figure is missing. Quieter than a real number, but readable,
      because a bare dot here reads as "no activity" when the truth is "Steam is
      not telling us". */
@@ -935,6 +959,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=8846c024" defer></script>
+<script src="rlpt.js?v=b6adcde9" defer></script>
 </body>
 </html>
