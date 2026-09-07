@@ -91,6 +91,13 @@
     if(String(p.status||'').toLowerCase()==='epic')return hoursNA(p.status);
     if(p.totalHours==null)return hoursNA(p.status);
     var v=nf(Math.round(p.totalHours));
+    // A figure the player gave for an account we cannot read. Marked, because
+    // it is a claim and not a reading: it does not move, and it is only as
+    // round as whatever they said.
+    if(p.totalStated){
+      var src=typeof p.totalStated==='string'?p.totalStated:'Stated by the player';
+      return'<span class="est" title="'+esc(src)+'. Not measured - this profile keeps its hours private.">~'+v+'</span>';
+    }
     if(!p.totalFrozenAt)return v;
     var d=new Date(p.totalFrozenAt);
     var on=isNaN(d)?'an earlier check':d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
@@ -150,10 +157,10 @@
     'gentle-mates':'M8', 'team-vitality':'VIT', 'ninjas-in-pyjamas':'NIP',
     'dignitas':'DIG', 'm80':'M80', 'fut-esports':'FUT', 'geekay-esports':'GK',
     'ght':'GHT', 'r8-esports':'R8', 'wildcard':'WC', 'tsm':'TSM',
-    'team-bsk':'BSK', 'team-falcons':'FAL'
+    'team-falcons':'FAL'
   };
   var LOGO_INSET={'virtuspro':6};
-  var TEAM_LOGO={'geng-mobil1-racing':'png','karmine-corp':'png','lil-step-bros':'png','mibr':'png','nrg':'png','shopify-rebellion':'png','spacestation-gaming':'png','tsm':'png'};
+  var TEAM_LOGO={'geng-mobil1-racing':'png','karmine-corp':'png','lil-step-bros':'png','mibr':'png','nrg':'png','shopify-rebellion':'png','spacestation-gaming':'png','team-bsk':'png','tsm':'png'};
   var LOGO_DIR='img/teams/';
 
   var teamSlug=function(name){
@@ -313,7 +320,8 @@
             var e=presById[id];
             return (e&&e.presenceHours&&e.presenceHours.d14)?e.presenceHours.d14:null;
           })(),
-          totalHours:p.totalHours!=null?p.totalHours:null, totalFrozenAt:p.totalHoursFrozenAt||null };
+          totalHours:p.totalHours!=null?p.totalHours:null, totalFrozenAt:p.totalHoursFrozenAt||null,
+          totalStated:p.totalHoursStated||null };
       });
 
       // Same union on the teams tab: team-hours comes from the hourly Steam job
