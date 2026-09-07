@@ -375,13 +375,13 @@
   .nm b{font-weight:600;font-size:14.5px;color:var(--bone)}
   .nm i{font-style:normal;font-size:11px;color:var(--slate)}
   tr.isnorank .nm b{color:var(--slate)}
-  /* Rating movement, under the rating it belongs to. Small and quiet: three
-     of these appear on every row, so at the weight of the number itself they
-     would be the loudest thing on the board rather than a footnote to it. */
-  .mmv{display:block;font-family:var(--mono);font-size:10px;font-weight:500;
-    letter-spacing:.01em;line-height:1.3;margin-top:1px;cursor:help}
-  .mmv.up{color:var(--live)}
-  .mmv.dn{color:#E0655A}
+  /* The rating trend. Colour carries the net direction over the fortnight, so
+     the column answers "which way" at a glance and the shape answers "how". */
+  .c-spk{width:82px;padding-right:6px}
+  .spark{display:block;overflow:visible;color:var(--slate)}
+  .spark.up{color:var(--live)}
+  .spark.dn{color:#E0655A}
+  .spark.flat{color:var(--dim)}
   /* ---- Fewer columns on the wide table --------------------------------
      Status and Total h come out. Status was the same fact twice: the hours
      cells already print "private" or "hidden" when Steam will not say. Total h
@@ -418,13 +418,43 @@
   .pexp>td{padding:0 14px 14px;background:var(--panel2);border-bottom:1px solid var(--line)}
   /* The accent edge ties the panel to the row that opened it. Without it the
      strip reads as a separator between two players rather than as part of one. */
-  .pexp-in{display:flex;flex-wrap:wrap;gap:10px 30px;padding:12px 14px;
-    border-radius:9px;background:var(--surface);border:1px solid var(--line2);
+  .pexp-in{display:grid;grid-template-columns:minmax(0,1fr) minmax(300px,auto);gap:18px 26px;
+    padding:14px 16px;border-radius:9px;background:var(--surface);border:1px solid var(--line2);
     border-left:2px solid var(--accent)}
-  .pexp-in>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+  .pexp-h{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;
+    font-size:11px;font-weight:800;color:var(--slate);margin-bottom:6px}
+  .pexp-h span{color:var(--dim);font-weight:600;letter-spacing:.06em}
+  .chart{width:100%;height:auto;display:block;color:var(--slate)}
+  .chart.up{color:var(--live)} .chart.dn{color:#E0655A} .chart.flat{color:var(--dim)}
+  .chart .cl{stroke:currentColor}
+  .chart .ca{fill:currentColor;opacity:.10}
+  .chart .cd{fill:currentColor}
+  .chart .ct{font-family:var(--mono);font-size:10px;fill:var(--slate)}
+  .chart .ct.dim{fill:var(--dim)}
+  .chart-none{font-size:12.5px;color:var(--dim);padding:26px 0}
+  .pexp-side{display:flex;flex-direction:column;gap:12px;min-width:0}
+
+  /* Per playlist, so the split between a 2v2 specialist and a 1v1 grinder is
+     visible somewhere. The ranked playlist is marked, because it is the one
+     the table's ordering is using. */
+  .pltab{border-collapse:collapse;font-size:12.5px;width:100%}
+  .pltab th{font-family:var(--display);text-transform:uppercase;letter-spacing:.07em;
+    font-size:10px;font-weight:700;color:var(--dim);text-align:right;padding:0 0 5px 12px}
+  .pltab thead th:first-child{padding-left:0}
+  .pltab tbody th{font-family:var(--mono);font-size:11.5px;color:var(--slate);text-align:left;
+    padding:4px 12px 4px 0;letter-spacing:0}
+  .pltab td{font-family:var(--mono);font-size:12.5px;color:var(--bone);text-align:right;
+    padding:4px 0 4px 12px;white-space:nowrap}
+  .pltab td.tr,.pltab th.tr{text-align:right;color:var(--slate);font-size:11px}
+  .pltab tbody tr.on th{color:var(--accent)}
+  .pltab tbody tr+tr td,.pltab tbody tr+tr th{border-top:1px solid var(--line)}
+
+  .pexp-facts{display:flex;flex-wrap:wrap;gap:9px 22px}
+  .pexp-facts>div{display:flex;flex-direction:column;gap:2px;min-width:0}
   .pexp .pk{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;
     font-size:10px;font-weight:700;color:var(--dim)}
-  .pexp .pvv{font-family:var(--mono);font-size:13px;color:var(--bone)}
+  .pexp .pvv{font-family:var(--mono);font-size:12.5px;color:var(--bone)}
+  @media (max-width:1000px){ .pexp-in{grid-template-columns:minmax(0,1fr)} }
   /* The phone lays every row out as a grid with a selector of its own, which
      outranked a bare .pexp rule: the detail row went on rendering underneath
      the card as a squashed 19px strip repeating what the card already said.
@@ -905,6 +935,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=ccde6ead" defer></script>
+<script src="rlpt.js?v=8846c024" defer></script>
 </body>
 </html>

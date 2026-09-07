@@ -2,7 +2,7 @@
 // Run with: npm test
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { computeTrackerPlayers } from "../scripts/computeTrackerDeltas.mjs";
+import { computeTrackerPlayers, computeMmrHistory } from "../scripts/computeTrackerDeltas.mjs";
 
 const HOUR = 3600e3;
 const T0 = 1_000_000_000_000;
@@ -180,37 +180,45 @@ test("no roster means publish everything, rather than an empty board", () => {
   assert.equal(computeTrackerPlayers(snaps).players.length, 1);
 });
 
-test("rating movement is reported per window and is allowed to be negative", () => {
+test("the rating series keeps every change and collapses flat runs to their ends", () => {
   const t0 = Date.parse("2026-09-01T00:00:00Z");
-  const day = 24 * 3600e3;
-  const snaps = [
-    { t: t0, rows: [{ id: "a", name: "A", team: "T", playlists: { d2: { rating: 2000, matches: 10 } } }] },
-    { t: t0 + 6 * day, rows: [{ id: "a", name: "A", team: "T", playlists: { d2: { rating: 2100, matches: 40 } } }] },
-    { t: t0 + 7 * day, rows: [{ id: "a", name: "A", team: "T", playlists: { d2: { rating: 2060, matches: 55 } } }] },
-  ];
-  const { players } = computeTrackerPlayers(snaps);
-  const move = players[0].mmrMove.twos;
+  const hr = 3600e3;
+  const at = (h, rating) => ({ t: t0 + h * hr, rows: [{ id: "a", name: "A", team: "T", playlists: { d2: { rating, matches: 10 + h } } }] });
+  // Rises, then sits still for three readings, then falls.
+  const snaps = [at(0, 2000), at(1, 2010), at(2, 2010), at(3, 2010), at(4, 1990)];
+  const { base, players } = computeMmrHistory(snaps);
+  const pts = players.a.twos;
 
-  // Down 40 over the last day: a fall is the point of the column, so unlike
-  // games it must not be clamped to zero.
-  assert.equal(move.d1.delta, -40);
-  assert.equal(move.d1.partial, false);
+  // 2000, 2010 (start of the flat run), 2010 (its end), 1990. The middle
+  // reading of the flat run carries nothing a step chart needs.
+  assert.deepEqual(pts.map((p) => p[1]), [2000, 2010, 2010, 1990]);
 
-  // Up 60 over the week, measured from the reading at or before the window.
-  assert.equal(move.d7.delta, 60);
-
-  // Two weeks of history do not exist yet, so the figure is marked partial
-  // rather than presented as a fortnight's movement.
-  assert.equal(move.d14.partial, true);
+  // Offsets are whole minutes from the base, and the flat run's end moved to
+  // the last reading that held that value rather than being appended twice.
+  assert.equal(base + pts[0][0] * 60000, t0);
+  assert.equal(base + pts[2][0] * 60000, t0 + 3 * hr);
 });
 
-test("rating movement is null when a playlist has no rating to compare", () => {
+test("the rating series drops players who are off the roster", () => {
   const t0 = Date.parse("2026-09-01T00:00:00Z");
-  const snaps = [
-    { t: t0, rows: [{ id: "a", name: "A", team: "T", playlists: { d2: { rating: 2000, matches: 10 } } }] },
-    { t: t0 + 3600e3, rows: [{ id: "a", name: "A", team: "T", playlists: { d2: { rating: 2010, matches: 12 } } }] },
+  const rows = [
+    { id: "keep", name: "K", team: "T", playlists: { d2: { rating: 2000, matches: 1 } } },
+    { id: "gone", name: "G", team: "T", playlists: { d2: { rating: 1900, matches: 1 } } },
   ];
-  const { players } = computeTrackerPlayers(snaps);
-  assert.equal(players[0].mmrMove.ones.d1.delta, null);
-  assert.equal(players[0].mmrMove.threes.d7.delta, null);
+  const { players } = computeMmrHistory([{ t: t0, rows }], new Set(["keep"]));
+  assert.ok(players.keep);
+  assert.equal(players.gone, undefined);
+});
+
+test("readings older than the window are not carried", () => {
+  const now = Date.parse("2026-09-20T00:00:00Z");
+  const day = 24 * 3600e3;
+  const row = (rating) => [{ id: "a", name: "A", team: "T", playlists: { d2: { rating, matches: 1 } } }];
+  const snaps = [
+    { t: now - 30 * day, rows: row(1500) },   // outside 14 days
+    { t: now - 2 * day, rows: row(2000) },
+    { t: now, rows: row(2050) },
+  ];
+  const { players } = computeMmrHistory(snaps);
+  assert.deepEqual(players.a.twos.map((p) => p[1]), [2000, 2050]);
 });

@@ -81,7 +81,6 @@ export function computeTrackerPlayers(snaps, rosterIds) {
       : allReadings;
     const latest = readings[readings.length - 1];
     const mmr = {}, tier = {}, games = { ones: {}, twos: {}, threes: {}, total: {} };
-    const mmrMove = { ones: {}, twos: {}, threes: {} };
     // seasonGames = cumulative ranked matches this season (matchesPlayed from the
     // latest reading). Available immediately from one snapshot, unlike the windowed
     // counts which need history to accumulate.
@@ -105,18 +104,6 @@ export function computeTrackerPlayers(snaps, rosterIds) {
           if (g > MAX_GAMES_PER_HOUR * hours) { implausible = true; g = null; }
         }
         games[outKey][wk] = { games: g, partial: !haveHistory || implausible };
-
-        // Rating movement over the same window. Deliberately NOT clamped the
-        // way games are: a rating that falls is the whole point of showing it,
-        // where a match count that falls is a season reset. Readings from a
-        // different account are already filtered out above, which is what
-        // would otherwise produce a nonsense swing.
-        const curR = cur?.rating ?? null;
-        const pastR = past.playlists?.[snapKey]?.rating ?? null;
-        mmrMove[outKey][wk] = {
-          delta: curR != null && pastR != null ? curR - pastR : null,
-          partial: !haveHistory,
-        };
       }
     }
 
@@ -170,10 +157,66 @@ export function computeTrackerPlayers(snaps, rosterIds) {
       session = { startedAt: new Date(start).toISOString(), games: played };
     }
 
-    players.push({ ...meta, updatedAt: new Date(latest.t).toISOString(), lastPlayedAt, session, mmr, tier, mmrMove, seasonGames, games });
+    players.push({ ...meta, updatedAt: new Date(latest.t).toISOString(), lastPlayedAt, session, mmr, tier, seasonGames, games });
   }
 
   return { now, players };
+}
+
+// The rating series behind the charts, as its own small feed.
+//
+// It is separate from tracker.json because it is a different shape and a
+// different lifetime: the board's figures are rewritten every couple of
+// minutes, where a fortnight of ratings barely moves. Keeping it out means the
+// main payload does not grow by a history nobody has asked to see yet.
+//
+// Encoded as offsets from a base rather than absolute values: whole minutes
+// since `base`, and the rating itself, which is what makes 94 players of
+// history a few tens of kilobytes instead of a few hundred. The dedupe in
+// rollingHistory already dropped every reading that repeated the one before,
+// so what is left is exactly the points where a rating changed - lossless for
+// a step chart, and nothing is thinned out here.
+export function computeMmrHistory(snaps, rosterIds = null, keepMs = 14 * 24 * HOUR) {
+  const sorted = [...snaps].sort((a, b) => a.t - b.t);
+  const now = sorted.length ? sorted[sorted.length - 1].t : Date.now();
+  const from = now - keepMs;
+  const base = Math.floor(from / 60000) * 60000;
+
+  const byPlayer = new Map();
+  for (const snap of sorted) {
+    if (snap.t < from) continue;
+    for (const row of snap.rows) {
+      if (rosterIds && !rosterIds.has(row.id)) continue;
+      if (!byPlayer.has(row.id)) byPlayer.set(row.id, { ones: [], twos: [], threes: [] });
+      const series = byPlayer.get(row.id);
+      const at = Math.round((snap.t - base) / 60000);
+      for (const [outKey, snapKey] of Object.entries(PL)) {
+        const r = row.playlists?.[snapKey]?.rating;
+        if (r == null) continue;
+        const arr = series[outKey];
+        // Only the points where it changed, but a flat run keeps BOTH its
+        // ends. Collapsing one to a single point would have the chart draw a
+        // gradual slope from the old rating to the new across the whole run,
+        // where what happened was a jump and then no movement at all. Same
+        // rule as collapseUnchanged in rollingHistory, for the same reason.
+        const last = arr[arr.length - 1], prev = arr[arr.length - 2];
+        if (last && last[1] === r) {
+          if (prev && prev[1] === r) last[0] = at;  // extend the run's tail
+          else arr.push([at, r]);                    // second end of the run
+          continue;
+        }
+        arr.push([at, r]);
+      }
+    }
+  }
+
+  const players = {};
+  for (const [id, series] of byPlayer) {
+    const out = {};
+    for (const k of ["ones", "twos", "threes"]) if (series[k].length) out[k] = series[k];
+    if (Object.keys(out).length) players[id] = out;
+  }
+  return { base, players };
 }
 
 // Readings come from the rolling history (data/tracker-history.json). The old
@@ -224,6 +267,18 @@ async function main() {
   );
   const withMmr = players.filter((p) => p.mmr.twos != null).length;
   console.log(`tracker.json: ${players.length} players, ${withMmr} with 2v2 MMR, ${snaps.length} snapshots`);
+
+  const hist = computeMmrHistory(snaps, rosterIds);
+  const histPath = join(ROOT, "data", "derived", "mmr-history.json");
+  await writeFile(histPath, JSON.stringify({
+    computedAt: new Date(now).toISOString(),
+    note: "Rating over the last 14 days. [minutes since base, rating] per playlist; a run of equal ratings is stored as its two ends.",
+    base: hist.base,
+    players: hist.players,
+  }));
+  const pts = Object.values(hist.players).reduce((n, s) => n + Object.values(s).reduce((m, a) => m + a.length, 0), 0);
+  const kb = ((await readFile(histPath)).length / 1024).toFixed(0);
+  console.log(`mmr-history.json: ${Object.keys(hist.players).length} players, ${pts} points, ${kb} KB`);
 }
 
 // Run only when invoked directly (so computeTrackerPlayers can be imported for tests).
