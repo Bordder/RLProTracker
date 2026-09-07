@@ -67,7 +67,7 @@ jobs:
       # a warm run only pays for the OS deps.
       - name: Cache Chromium
         id: pw-cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-1.62.1
