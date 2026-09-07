@@ -71,36 +71,27 @@
     var lo=Infinity, hi=-Infinity, t0=pts[0][0], t1=pts[pts.length-1][0];
     for(var i=0;i<pts.length;i++){ if(pts[i][1]<lo)lo=pts[i][1]; if(pts[i][1]>hi)hi=pts[i][1]; }
     var span=(t1-t0)||1;
-    // Headroom, and a floor on the range so a quiet fortnight is not magnified
-    // into a mountain range.
-    var mid=(hi+lo)/2, half=Math.max((hi-lo)/2*1.12,15);
+    // Headroom, and a floor under the range.
+    //
+    // The floor is what stops a quiet week being magnified into a mountain
+    // range: without it a rating that wandered eight points would be drawn
+    // with the same peaks and troughs as one that swung three hundred, and
+    // every chart on the site would look equally dramatic. 60 points is about
+    // a division, so anything smaller reads as the flat line it was.
+    var mid=(hi+lo)/2, half=Math.max((hi-lo)/2*1.12,30);
     var top=mid+half, bot=mid-half;
     var x0=CH_PADL, x1=CH_W-CH_PADR, y0=CH_PADT, y1=CH_H-CH_PADB;
     var yOf=function(r){ return y1-((r-bot)/((top-bot)||1))*(y1-y0); };
     var clamp=function(v){ return Math.max(y0,Math.min(y1,v)); };
 
-    // Bands first, so everything else sits on top of them.
-    var bands=(mmrTiers[key]||[]), bg='', edges=[];
-    bands.forEach(function(b,i){
-      if(b.max<bot||b.min>top)return;
-      var yTop=clamp(yOf(b.max)), yBot=clamp(yOf(b.min));
-      if(yBot-yTop<0.5)return;
-      bg+='<rect class="cb b'+(i%2)+'" x="'+x0+'" y="'+yTop.toFixed(1)+'" width="'+(x1-x0)+
-        '" height="'+(yBot-yTop).toFixed(1)+'"/>';
-      // The name only fits, and only helps, when the band is tall enough.
-      if(yBot-yTop>15) bg+='<text class="cbn" x="'+(x0+7)+'" y="'+(yTop+12.5).toFixed(1)+'">'+esc(b.name)+'</text>';
-      if(b.min>bot&&b.min<top) edges.push(b.min);
-    });
-
-    // Rating labels down the left, on the rank boundaries: the numbers that
-    // mean something here. In 2v2 almost every pro is Supersonic Legend, so
-    // there is no boundary in view and the chart would have no scale at all -
-    // there, fall back to round ratings.
-    if(edges.length<2){
-      var rough=(top-bot)/3, step=Math.pow(10,Math.floor(Math.log(rough)/Math.LN10));
-      [1,2,2.5,5,10].some(function(m){ if(step*m>=rough){ step=step*m; return true; } return false; });
-      for(var g=Math.ceil(bot/step)*step; g<top; g+=step) if(edges.indexOf(g)<0) edges.push(g);
-    }
+    // Round ratings down the left. Rank bands used to sit behind the line and
+    // supply these, but every tracked pro is Supersonic Legend in 2v2, so on
+    // the playlist the board ranks by they drew one flat stripe and said
+    // nothing anyone needed.
+    var edges=[];
+    var rough=(top-bot)/4, step=Math.pow(10,Math.floor(Math.log(rough)/Math.LN10));
+    [1,2,2.5,5,10].some(function(m){ if(step*m>=rough){ step=step*m; return true; } return false; });
+    for(var g=Math.ceil(bot/step)*step; g<top; g+=step) edges.push(g);
     // The current rating is the one figure a reader came for, so it is placed
     // first and any gridline label too close to it loses its number - the line
     // stays. Otherwise the two sit on top of each other whenever the player
@@ -132,7 +123,7 @@
     return '<div class="chartwrap" data-chart="'+cid+'">'+
       '<svg class="chart" viewBox="0 0 '+CH_W+' '+CH_H+'" preserveAspectRatio="xMidYMid meet" role="img" '+
         'aria-label="'+esc(PL_NAME[key]+' rating, '+nf(lo)+' to '+nf(hi)+', '+chartSpanWords(span))+'">'+
-        bg+axis+
+        axis+
         '<path class="cl" d="'+line+'" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
         '<g class="cmark" hidden><line class="cml" y1="'+y0+'" y2="'+y1+'"/><circle class="cmc" r="3.6"/></g>'+
         ticks+
@@ -959,6 +950,9 @@
       if(!card)return;
       var who=card.getAttribute('data-player');
       openPod=(openPod===who)?null:who;
+      // One panel on the page at a time. Two open charts is two screens of
+      // scrolling between the board and the row somebody was reading.
+      if(openPod&&openPlayer){ openPlayer=null; rebuildOpenPlayer(); }
       // Draw what we can now, then again once the history lands.
       applyOpenPod();
       if(openPod)loadMmrHistory(applyOpenPod);
@@ -1032,8 +1026,7 @@
       mark.querySelector('.cmc').setAttribute('cx',pt[0]);
       mark.querySelector('.cmc').setAttribute('cy',pt[1]);
       var when=new Date(mmrBase+pt[2]*60000);
-      var rank=tierAt(reg.key,pt[3]);
-      tip.innerHTML='<b>'+nf(pt[3])+'</b>'+(rank?'<em>'+esc(rank)+'</em>':'')+
+      tip.innerHTML='<b>'+nf(pt[3])+'</b>'+
         '<span>'+esc(when.toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'})+
         ', '+when.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}))+'</span>';
       tip.removeAttribute('hidden');
@@ -1076,6 +1069,7 @@
       if(!tr||tr.classList.contains('pexp'))return;
       var name=tr.getAttribute('data-player');
       openPlayer=(openPlayer===name)?null:name;
+      if(openPlayer&&openPod){ openPod=null; applyOpenPod(); }
       applyOpenPlayer();
       if(openPlayer)loadMmrHistory(function(){ rebuildOpenPlayer(); });
     });

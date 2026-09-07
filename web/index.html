@@ -430,18 +430,16 @@
      line is a path through ranks, not a verdict on the fortnight. */
   .chart .cl{stroke:currentColor}
   .chart .cg{stroke:var(--line2);stroke-width:1;shape-rendering:crispEdges;opacity:.9}
-  /* Rank bands. Two alternating tints rather than a colour per rank: the line
-     is the subject and seven coloured stripes behind it would not be. */
-  .chart .cb{fill:#171C26}
-  .chart .cb.b1{fill:#10141C}
-  .chart .cbn{font-family:var(--display);text-transform:uppercase;letter-spacing:.07em;
-    font-size:9px;font-weight:700;fill:var(--dim)}
   .chart .ct.now{fill:var(--bone);font-weight:600}
   .chart .ct{font-family:var(--mono);font-size:10px;fill:var(--slate)}
   .chart .ct.dim{fill:var(--dim)}
   .chart-none{font-size:12.5px;color:var(--dim);padding:26px 0}
 
-  /* The pointer marker names the nearest reading: which rating, and when. */
+  /* The pointer marker names the nearest reading: which rating, and when.
+     [hidden] needs saying out loud here: the UA stylesheet's [hidden] rule
+     does not reach SVG children, so the marker sat at its default 0,0 as an
+     orange squiggle in the chart's top-left corner until a pointer moved it. */
+  .chart .cmark[hidden]{display:none}
   .chart .cml{stroke:var(--slate);stroke-width:1;stroke-dasharray:2 3;opacity:.7}
   .chart .cmc{fill:var(--ink);stroke:currentColor;stroke-width:2.5}
   .chart-tip{position:absolute;top:-2px;pointer-events:none;white-space:nowrap;
@@ -957,6 +955,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=da4c7521" defer></script>
+<script src="rlpt.js?v=67182c71" defer></script>
 </body>
 </html>
