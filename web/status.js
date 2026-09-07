@@ -240,7 +240,9 @@
   var history = function (up, feed, now) {
     var runs = (up && Array.isArray(up.runs)) ? up.runs.slice().sort(function (a, b) { return a - b; }) : [];
     var nowMin = Math.floor(now / 60000);
-    var start = nowMin - SLOTS * SLOT_MIN;
+    // Snap the blocks to the half hour so a tooltip reads "14:00-14:30" rather
+    // than "14:26-14:56". The last block is the half hour in progress.
+    var start = Math.floor(nowMin / SLOT_MIN) * SLOT_MIN - (SLOTS - 1) * SLOT_MIN;
     var first = runs.length ? runs[0] : null;
     var cells = [], states = [], ok = 0, known = 0;
 
@@ -251,7 +253,7 @@
       // Nothing was being recorded yet: that is not an outage, and painting it
       // red would invent a failure that never happened.
       if (first == null || from + SLOT_MIN <= first) {
-        cells.push('<span class="is-unknown" title="' + clock(from) + ': not recorded"></span>');
+        cells.push('<span class="is-unknown" title="' + span(from) + ' · not recorded yet"></span>');
         states.push(null);
         continue;
       }
@@ -274,8 +276,12 @@
       states.push(st);
       known++;
       if (st === "ok") ok++;
-      cells.push('<span class="is-' + st + '" title="' + clock(from) + ": " + n +
-        (n === 1 ? " collection" : " collections") + ", longest gap " + gap + ' min"></span>');
+      // Plain words, not pipeline vocabulary. A reader hovering a block wants
+      // the half hour it covers and whether it was fine, not a count of
+      // collections and a gap in minutes.
+      var says = st === "ok" ? "on time"
+        : (st === "late" ? "slow" : "missed") + ", " + ageWords(gap * 60000) + " between updates";
+      cells.push('<span class="is-' + st + '" title="' + span(from) + " · " + says + '"></span>');
     }
 
     var pct = known ? Math.round((ok / known) * 1000) / 10 : null;
@@ -292,6 +298,12 @@
 
   var clock = function (min) {
     return new Date(min * 60000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  // The half hour a block stands for, named at both ends: "14:00-14:30" is
+  // obviously a period, where a single time reads as an instant.
+  var span = function (from) {
+    return clock(from) + "–" + clock(from + SLOT_MIN);
   };
 
   var loading = false;
