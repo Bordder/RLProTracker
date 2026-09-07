@@ -216,7 +216,48 @@ export function computeMmrHistory(snaps, rosterIds = null, keepMs = 14 * 24 * HO
     for (const k of ["ones", "twos", "threes"]) if (series[k].length) out[k] = series[k];
     if (Object.keys(out).length) players[id] = out;
   }
-  return { base, players };
+  return { base, players, tiers: tierBands(sorted, from) };
+}
+
+// Where each rank sits on the rating scale, per playlist.
+//
+// Derived from the readings themselves rather than a hardcoded table: every
+// snapshot carries the tier name beside the rating, so a fortnight of 94
+// players is thousands of labelled samples. A table of thresholds would be one
+// more thing to notice had gone stale after a season change; this cannot.
+//
+// Bands are made contiguous by running each one up to where the next begins,
+// so the chart has no unexplained gaps between ranks.
+export function tierBands(snaps, from = -Infinity) {
+  const seen = { ones: new Map(), twos: new Map(), threes: new Map() };
+  for (const snap of snaps) {
+    if (snap.t < from) continue;
+    for (const row of snap.rows) {
+      for (const [outKey, snapKey] of Object.entries(PL)) {
+        const pl = row.playlists?.[snapKey];
+        if (!pl || pl.rating == null || !pl.tier) continue;
+        const m = seen[outKey];
+        const cur = m.get(pl.tier);
+        if (!cur) m.set(pl.tier, { name: pl.tier, min: pl.rating, max: pl.rating, n: 1 });
+        else {
+          if (pl.rating < cur.min) cur.min = pl.rating;
+          if (pl.rating > cur.max) cur.max = pl.rating;
+          cur.n++;
+        }
+      }
+    }
+  }
+
+  const out = {};
+  for (const k of ["ones", "twos", "threes"]) {
+    const bands = [...seen[k].values()].sort((a, b) => a.min - b.min);
+    // A tier seen once or twice is as likely to be a stale reading as a real
+    // boundary, and one bad sample would stretch a band across the chart.
+    const solid = bands.filter((b) => b.n >= 3);
+    for (let i = 0; i < solid.length - 1; i++) solid[i].max = solid[i + 1].min;
+    out[k] = solid.map((b) => ({ name: b.name, min: b.min, max: b.max }));
+  }
+  return out;
 }
 
 // Readings come from the rolling history (data/tracker-history.json). The old
@@ -274,6 +315,7 @@ async function main() {
     computedAt: new Date(now).toISOString(),
     note: "Rating over the last 14 days. [minutes since base, rating] per playlist; a run of equal ratings is stored as its two ends.",
     base: hist.base,
+    tiers: hist.tiers,
     players: hist.players,
   }));
   const pts = Object.values(hist.players).reduce((n, s) => n + Object.values(s).reduce((m, a) => m + a.length, 0), 0);

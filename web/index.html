@@ -423,18 +423,25 @@
   /* The rating chart. Capped, or it scales with the table and a wide screen
      gets a 264px-tall panel for a rating that moved forty points. */
   .chartwrap{position:relative;max-width:680px}
-  .chart{width:100%;height:auto;display:block;color:var(--slate);cursor:crosshair}
-  .chart.up{color:var(--live)} .chart.dn{color:#E0655A} .chart.flat{color:var(--dim)}
+  .chart{width:100%;height:auto;display:block;color:var(--accent);cursor:crosshair}
+  /* One colour for the line, not green-up / red-down. Against rank bands the
+     line is a path through ranks, not a verdict on the fortnight. */
   .chart .cl{stroke:currentColor}
-  .chart .ca{fill:currentColor;opacity:.10}
-  .chart .cg{stroke:var(--line);stroke-width:1;shape-rendering:crispEdges;opacity:.55}
+  .chart .cg{stroke:var(--line2);stroke-width:1;shape-rendering:crispEdges;opacity:.9}
+  /* Rank bands. Two alternating tints rather than a colour per rank: the line
+     is the subject and seven coloured stripes behind it would not be. */
+  .chart .cb{fill:#171C26}
+  .chart .cb.b1{fill:#10141C}
+  .chart .cbn{font-family:var(--display);text-transform:uppercase;letter-spacing:.07em;
+    font-size:9px;font-weight:700;fill:var(--dim)}
+  .chart .ct.now{fill:var(--bone);font-weight:600}
   .chart .ct{font-family:var(--mono);font-size:10px;fill:var(--slate)}
   .chart .ct.dim{fill:var(--dim)}
   .chart-none{font-size:12.5px;color:var(--dim);padding:26px 0}
 
   /* The pointer marker names the nearest reading: which rating, and when. */
   .chart .cml{stroke:var(--slate);stroke-width:1;stroke-dasharray:2 3;opacity:.7}
-  .chart .cmc{fill:var(--bone);stroke:currentColor;stroke-width:2}
+  .chart .cmc{fill:var(--ink);stroke:currentColor;stroke-width:2.5}
   .chart-tip{position:absolute;top:-2px;pointer-events:none;white-space:nowrap;
     background:var(--ink);border:1px solid var(--line2);border-radius:6px;padding:4px 8px;
     display:flex;gap:8px;align-items:baseline;box-shadow:0 4px 14px rgba(0,0,0,.45)}
@@ -442,13 +449,30 @@
      empty tip sat in the chart's corner from the moment the panel opened. */
   .chart-tip[hidden]{display:none}
   .chart-tip b{font-family:var(--mono);font-size:12.5px;color:var(--bone);font-weight:600}
+  .chart-tip em{font-style:normal;font-family:var(--display);text-transform:uppercase;
+    letter-spacing:.06em;font-size:10px;font-weight:700;color:var(--accent)}
   .chart-tip span{font-family:var(--mono);font-size:11px;color:var(--dim)}
+
+  /* The panel under the top three. Same component as the rows open into, so
+     it needs the padding the table cell was giving it. */
+  #podExp:not(:empty){margin:0 0 14px}
+  #podExp .pexp-in{border-left:2px solid var(--accent)}
+  .pod .pc{cursor:pointer;position:relative;transition:border-color .15s}
+  .pod .pc:hover{border-color:var(--accent-line)}
+  .pod .pc::after{content:"";position:absolute;right:11px;bottom:9px;width:6px;height:6px;
+    border-right:1.5px solid var(--dim);border-bottom:1.5px solid var(--dim);
+    transform:rotate(45deg);transition:transform .15s,border-color .15s}
+  .pod .pc:hover::after{border-color:var(--accent)}
+  .pod .pc.open::after{transform:rotate(-135deg);border-color:var(--accent)}
+  .pod .pc:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
   .pexp-facts{display:flex;flex-wrap:wrap;gap:10px 28px;align-items:flex-start}
   .pexp-facts>div{display:flex;flex-direction:column;gap:2px;min-width:0}
-  .pexp .pk{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;
+  /* Scoped to the panel, not the table row: the same panel opens under the
+     top three, where there is no .pexp ancestor to hang these off. */
+  .pexp-in .pk{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;
     font-size:10px;font-weight:700;color:var(--dim)}
-  .pexp .pvv{font-family:var(--mono);font-size:12.5px;color:var(--bone)}
+  .pexp-in .pvv{font-family:var(--mono);font-size:12.5px;color:var(--bone)}
   /* The phone lays every row out as a grid with a selector of its own, which
      outranked a bare .pexp rule: the detail row went on rendering underneath
      the card as a squashed 19px strip repeating what the card already said.
@@ -931,6 +955,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=20cd4f2d" defer></script>
+<script src="rlpt.js?v=87c62d4c" defer></script>
 </body>
 </html>
