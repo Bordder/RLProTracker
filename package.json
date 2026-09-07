@@ -14,16 +14,16 @@
     "deltas": "node scripts/computeDeltas.mjs",
     "aggregate": "node scripts/aggregate.mjs",
     "poll": "node scripts/pollPresence.mjs",
-    "poll:hours": "node scripts/computePresenceHours.mjs",
+    "poll:hours": "node scripts/computePresenceHours.mjs && node scripts/recordUptime.mjs presence",
     "fetch:tracker": "node scripts/fetchTracker.mjs",
     "tracker:deltas": "node scripts/computeTrackerDeltas.mjs",
     "tracker:aggregate": "node scripts/aggregateTracker.mjs",
     "presence:hot": "node scripts/presenceHot.mjs",
     "tracker": "node scripts/presenceHot.mjs && node scripts/fetchTracker.mjs && node scripts/computeTrackerDeltas.mjs && node scripts/aggregateTracker.mjs && node scripts/recordUptime.mjs",
     "build:site": "node scripts/buildSite.mjs",
-    "update": "node scripts/fetchSteam.mjs && node scripts/computeDeltas.mjs && node scripts/aggregate.mjs",
+    "update": "node scripts/fetchSteam.mjs && node scripts/computeDeltas.mjs && node scripts/aggregate.mjs && node scripts/recordUptime.mjs steam",
     "test": "node --test",
-    "uptime": "node scripts/recordUptime.mjs"
+    "uptime": "node scripts/recordUptime.mjs tracker"
   },
   "devDependencies": {
     "playwright": "^1.62.1",

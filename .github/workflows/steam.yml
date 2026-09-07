@@ -40,7 +40,7 @@ jobs:
 
       - name: Take the previous run's data from the data branch
         run: |
-          for p in data/steam-history.json data/last-known-hours.json data/derived/steam-hours.json data/derived/team-hours.json; do
+          for p in data/steam-history.json data/last-known-hours.json data/derived/steam-hours.json data/derived/team-hours.json data/derived/uptime-steam.json; do
             if [ -e ".databranch/$p" ]; then
               mkdir -p "$(dirname "$p")"
               cp -r ".databranch/$p" "$p"
@@ -66,3 +66,4 @@ jobs:
           data/last-known-hours.json
           data/derived/steam-hours.json
           data/derived/team-hours.json
+          data/derived/uptime-steam.json

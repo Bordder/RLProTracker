@@ -13,16 +13,25 @@
   // Age thresholds per collector, in minutes. Each is a multiple of its own
   // cadence, so a single missed run never raises an alarm but a stopped
   // collector does.
+  // `up` is the file holding that collector's own run history. Team aggregates
+  // has none of its own and shares the tracker's, which is not a fudge: they
+  // are written by the same pipeline in the same run, so their uptime is the
+  // same number by construction.
   var FEEDS = [
-    { file: "tracker.json", name: "Ranked stats",
+    { file: "tracker.json", up: "uptime.json", name: "Ranked stats",
       sub: "MMR per playlist and games played", late: 8, bad: 30 },
-    { file: "steam-hours.json", name: "Steam playtime",
+    { file: "steam-hours.json", up: "uptime-steam.json", name: "Steam playtime",
       sub: "Total and two-week hours", late: 90, bad: 240 },
-    { file: "presence-hours.json", name: "Presence poll",
+    { file: "presence-hours.json", up: "uptime-presence.json", name: "Presence poll",
       sub: "Estimates hours for players whose playtime is hidden", late: 20, bad: 75 },
-    { file: "team-tracker.json", name: "Team aggregates",
+    { file: "team-tracker.json", up: "uptime.json", name: "Team aggregates",
       sub: "Roster averages built from the ranked stats above", late: 10, bad: 40 }
   ];
+
+  // 48 blocks of half an hour. Enough of them that a bad patch is a visible
+  // run of colour rather than one fat block, and few enough to stay legible on
+  // a phone.
+  var SLOTS = 48, SLOT_MIN = 30;
 
   var $ = function (id) { return document.getElementById(id); };
 
@@ -80,19 +89,24 @@
       if (st === "bad") worst = "bad";
       else if (st === "late" && worst === "ok") worst = "late";
 
-      var when = at == null ? "no reading" : new Date(at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      var label = st === "ok" ? "Healthy" : (st === "late" ? "Behind" : "Not updating");
+      var hist = history(results[FEEDS.length + i], feed, now);
 
       rows.push(
-        '<tr><td><span class="nm">' + esc(feed.name) + '</span>' +
-        '<span class="sub">' + esc(feed.sub) + "</span></td>" +
-        '<td><span class="num">' + esc(when) + "</span>" +
-        '<span class="sub">' + esc(ageWords(age)) + " ago</span></td>" +
-        '<td class="r"><span class="state is-' + st + '"><i aria-hidden="true"></i>' + label + "</span></td></tr>"
+        '<div class="col is-' + st + '">' +
+          '<div class="col-head">' +
+            '<div class="col-name"><i aria-hidden="true"></i><b>' + esc(feed.name) + "</b>" +
+            "<span>" + esc(feed.sub) + "</span></div>" +
+            '<span class="col-pct" title="' + esc(hist.explain) + '">' + hist.pctText + "</span>" +
+            '<span class="col-age">' + (at == null ? "no reading" : esc(ageWords(age)) + " ago") + "</span>" +
+          "</div>" +
+          '<div class="bar" role="img" aria-label="' + esc(feed.name + ": " + hist.explain) + '">' +
+          hist.cells + "</div>" +
+        "</div>"
       );
     });
 
-    $("rows").innerHTML = rows.join("");
+    $("cols").innerHTML = rows.join("") +
+      '<div class="col"><div class="col-axis"><span>24 hours ago</span><span>now</span></div></div>';
 
     // The verdict is the worst state of any collector. That is only fair
     // because each threshold is scaled to its own cadence, so the slow hourly
@@ -141,75 +155,70 @@
     }).join("");
   };
 
-  // Expected collections per hour. Kept next to the cadence it mirrors: if the
-  // cron moves, this has to move with it or the strip reports a false outage.
-  var RUNS_PER_HOUR = 30;
-
-  var renderHistory = function (up) {
-    var strip = $("strip"), legend = $("legend"), hist = $("hist");
-    if (!strip) return;
-
+  // One collector's 24 hours, as 48 half-hour blocks.
+  //
+  // A block is judged by the longest gap between collections inside it, against
+  // that collector's own thresholds. That one rule covers every cadence here -
+  // two minutes for the tracker, an hour for Steam - where counting runs per
+  // block cannot: half an hour of an hourly collector legitimately contains
+  // either one run or none, and counting would call every other block an
+  // outage.
+  //
+  // It also replaces a part-filled block, which two earlier attempts proved
+  // unreadable: a bar height put every hour between 90 and 100% of the space,
+  // and a flat threshold colour threw the variation away. A solid block per
+  // half hour makes the count of bad blocks the signal.
+  var history = function (up, feed, now) {
     var runs = (up && Array.isArray(up.runs)) ? up.runs.slice().sort(function (a, b) { return a - b; }) : [];
-    if (!runs.length) {
-      strip.innerHTML = "";
-      legend.textContent = "No history recorded yet. This fills in as the collector runs.";
-      hist.innerHTML = "";
-      return;
-    }
+    var nowMin = Math.floor(now / 60000);
+    var start = nowMin - SLOTS * SLOT_MIN;
+    var first = runs.length ? runs[0] : null;
+    var cells = [], ok = 0, known = 0;
 
-    var nowMin = Math.floor(Date.now() / 60000);
-    var start = nowMin - 24 * 60;
-    var firstKnown = runs[0];
+    for (var i = 0; i < SLOTS; i++) {
+      var from = start + i * SLOT_MIN;
+      var to = Math.min(from + SLOT_MIN, nowMin);
 
-    var cells = [], known = 0, got = 0;
-    for (var h = 0; h < 24; h++) {
-      var from = start + h * 60, to = from + 60;
-      // An hour that ended before anything was ever recorded is unknown, not an
-      // outage. Painting it red would invent a failure that never happened.
-      if (to <= firstKnown) {
-        cells.push('<span class="is-unknown" title="' + hourLabel(from) + ': not recorded"></span>');
+      // Nothing was being recorded yet: that is not an outage, and painting it
+      // red would invent a failure that never happened.
+      if (first == null || from + SLOT_MIN <= first) {
+        cells.push('<span class="is-unknown" title="' + clock(from) + ': not recorded"></span>');
         continue;
       }
-      var n = 0;
-      for (var i = 0; i < runs.length; i++) if (runs[i] >= from && runs[i] < to) n++;
-      // Expect collections only for the part of this hour we were actually
-      // recording: the current hour is not finished, and the first hour began
-      // before the records did. Charging a full hour against either one
-      // invents misses that never happened - on a cold start that read as
-      // "3.3% landed" directly under a verdict of everything running.
-      var covFrom = Math.max(from, firstKnown);
-      var covTo = Math.min(to, nowMin);
-      var elapsed = Math.max(1, covTo - covFrom);
-      var expect = Math.max(1, Math.round(RUNS_PER_HOUR * (elapsed / 60)));
-      var ratio = Math.min(1, n / expect);
-      known += expect; got += Math.min(n, expect);
-      var st = ratio >= 0.8 ? "ok" : (ratio >= 0.4 ? "late" : "bad");
-      // The bite is the share that did not land, on a scale where losing a
-      // third of the hour fills the block. Anything worse is already red.
-      var miss = Math.min(100, Math.round(((1 - ratio) / 0.34) * 100));
-      cells.push('<span class="is-' + st + '" style="--miss:' + miss + '%" title="' +
-        hourLabel(from) + ": " + n + " of ~" + expect + ' collections"></span>');
+
+      // The gap that matters can start before this block, so seed it with the
+      // last collection at or before it.
+      var prev = null, n = 0;
+      for (var j = 0; j < runs.length; j++) {
+        if (runs[j] <= from) prev = runs[j];
+        else if (runs[j] < to) { n++; }
+      }
+      var marks = [prev == null ? Math.max(from, first) : prev];
+      for (var k = 0; k < runs.length; k++) if (runs[k] > from && runs[k] < to) marks.push(runs[k]);
+      marks.push(to);
+
+      var gap = 0;
+      for (var m = 1; m < marks.length; m++) gap = Math.max(gap, marks[m] - marks[m - 1]);
+
+      var st = gap <= feed.late ? "ok" : (gap <= feed.bad ? "late" : "bad");
+      known++;
+      if (st === "ok") ok++;
+      cells.push('<span class="is-' + st + '" title="' + clock(from) + ": " + n +
+        (n === 1 ? " collection" : " collections") + ", longest gap " + gap + ' min"></span>');
     }
-    strip.innerHTML = cells.join("");
 
-    var pct = known ? Math.round((got / known) * 1000) / 10 : null;
-
-    // Longest gap between consecutive collections, which is what a reader
-    // actually felt: the longest the board went without moving.
-    var gap = 0;
-    for (var j = 1; j < runs.length; j++) gap = Math.max(gap, runs[j] - runs[j - 1]);
-
-    var hours = Math.min(24, Math.max(1, Math.round((nowMin - firstKnown) / 60)));
-    legend.textContent = "One block per hour; the dark part is what did not land. Amber slipped, red lost most of the hour." +
-      (firstKnown > start ? " Hatched hours are before records began." : "");
-    hist.innerHTML =
-      '<div><span class="k">Collections landed</span><span class="v">' + (pct == null ? "&mdash;" : pct + "<small>%</small>") + "</span></div>" +
-      '<div><span class="k">Longest gap</span><span class="v">' + ageWords(gap * 60000) + "</span></div>" +
-      '<div><span class="k">Runs recorded</span><span class="v">' + runs.length + "</span></div>" +
-      '<div><span class="k">History covers</span><span class="v">' + hours + "<small>h</small></span></div>";
+    var pct = known ? Math.round((ok / known) * 1000) / 10 : null;
+    return {
+      cells: cells.join(""),
+      pctText: pct == null ? "&mdash;" : (pct === 100 ? "100%" : pct.toFixed(1) + "%"),
+      explain: known === 0
+        ? "No history recorded yet."
+        : pct + "% of the last " + (known === SLOTS ? "24 hours" : Math.round(known * SLOT_MIN / 60) + " hours") +
+          " went by with no gap longer than " + feed.late + " minutes."
+    };
   };
 
-  var hourLabel = function (min) {
+  var clock = function (min) {
     return new Date(min * 60000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   };
 
@@ -217,12 +226,13 @@
   var refresh = function () {
     if (loading) return;
     loading = true;
-    Promise.all(FEEDS.map(function (f) { return getJson("/data/" + f.file); })
-      .concat([getJson("/data/uptime.json")]))
-      .then(function (all) {
-        render(all);
-        renderHistory(all[FEEDS.length]);
-      })
+    // Feeds first, then each one's history, so render() can index straight
+    // into the second half with FEEDS.length + i.
+    Promise.all(
+      FEEDS.map(function (f) { return getJson("/data/" + f.file); })
+        .concat(FEEDS.map(function (f) { return getJson("/data/" + f.up); }))
+    )
+      .then(function (all) { render(all); })
       .catch(function () {})
       .then(function () { loading = false; });
   };

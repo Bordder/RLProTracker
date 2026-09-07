@@ -1,20 +1,42 @@
-// Records when the ranked collector actually produced data.
+// Records when a collector actually produced data.
 //
-// Runs last in the tracker pipeline, after aggregation, and appends that run's
-// computedAt to a small rolling file. This is deliberately a record of real
-// output rather than a heartbeat: a heartbeat says "the workflow started",
-// which is exactly the thing that stays true while the scrape underneath it is
-// failing. If a timestamp is in here, the board got new numbers.
+// Runs last in its pipeline and appends that run's computedAt to a small
+// rolling file. This is deliberately a record of real output rather than a
+// heartbeat: a heartbeat says "the workflow started", which is exactly the
+// thing that stays true while the scrape underneath it is failing. If a
+// timestamp is in here, the board got new numbers.
 //
-// Usage: node scripts/recordUptime.mjs   (part of `npm run tracker`)
+// Each collector writes its OWN file. They run in separate workflows and
+// publish to the same branch, and publish-data.sh is only safe because each
+// collector's file set is disjoint from every other's. One shared uptime file
+// would break that: two overlapping runs would each copy a whole file over the
+// other, silently dropping the loser's entries.
+//
+// Usage: node scripts/recordUptime.mjs [tracker|steam|presence]
+//        (defaults to tracker, which is how `npm run tracker` calls it)
 
 import { readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const SOURCE = join(ROOT, "data", "derived", "tracker.json");
-const OUT = join(ROOT, "data", "derived", "uptime.json");
+
+// The tracker keeps the original filename, so a status page already in the
+// wild carries on reading it while the other two roll out.
+const FEEDS = {
+  tracker: { source: "tracker.json", out: "uptime.json" },
+  steam: { source: "steam-hours.json", out: "uptime-steam.json" },
+  presence: { source: "presence-hours.json", out: "uptime-presence.json" },
+};
+
+const which = process.argv[2] || "tracker";
+const feed = FEEDS[which];
+if (!feed) {
+  console.error(`unknown feed "${which}" - expected one of ${Object.keys(FEEDS).join(", ")}`);
+  process.exit(1);
+}
+const SOURCE = join(ROOT, "data", "derived", feed.source);
+const OUT = join(ROOT, "data", "derived", feed.out);
 
 // 48 hours, so the page can show a full day and still have the day before it
 // for context. At a run every 2 minutes that is 1440 entries, and each is a
@@ -30,17 +52,17 @@ const readJson = async (path, fallback) => {
   }
 };
 
-const tracker = await readJson(SOURCE, null);
-if (!tracker || !tracker.computedAt) {
+const produced = await readJson(SOURCE, null);
+if (!produced || !produced.computedAt) {
   // No snapshot this run (nothing was due, or the scrape produced nothing).
   // Recording anything here would claim an update that did not happen.
-  console.log("no tracker.json computedAt - nothing to record");
+  console.log(`no ${feed.source} computedAt - nothing to record`);
   process.exit(0);
 }
 
-const at = Date.parse(tracker.computedAt);
+const at = Date.parse(produced.computedAt);
 if (Number.isNaN(at)) {
-  console.log(`unparseable computedAt: ${tracker.computedAt}`);
+  console.log(`unparseable computedAt: ${produced.computedAt}`);
   process.exit(0);
 }
 
@@ -57,6 +79,6 @@ const kept = runs.filter((m) => Number.isFinite(m) && m >= cutoff).sort((a, b) =
 
 await writeFile(
   OUT,
-  JSON.stringify({ computedAt: new Date().toISOString(), windowMinutes: WINDOW_MIN, runs: kept }) + "\n"
+  JSON.stringify({ feed: which, computedAt: new Date().toISOString(), windowMinutes: WINDOW_MIN, runs: kept }) + "\n"
 );
-console.log(`uptime.json -> ${kept.length} runs in the last ${WINDOW_MIN / 60}h`);
+console.log(`${feed.out} -> ${kept.length} runs in the last ${WINDOW_MIN / 60}h`);

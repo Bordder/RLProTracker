@@ -43,7 +43,7 @@ jobs:
 
       - name: Take the previous run's data from the data branch
         run: |
-          for p in data/presence data/derived/presence-hours.json; do
+          for p in data/presence data/derived/presence-hours.json data/derived/uptime-presence.json; do
             if [ -e ".databranch/$p" ]; then
               mkdir -p "$(dirname "$p")"
               # rm first: cp -r copies a directory INTO an existing directory of
@@ -70,3 +70,4 @@ jobs:
           bash scripts/publish-data.sh "[skip ci] data: presence poll"
           data/presence
           data/derived/presence-hours.json
+          data/derived/uptime-presence.json
