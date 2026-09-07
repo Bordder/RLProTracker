@@ -8,13 +8,32 @@
   var tierName=function(v){if(v==null)return'';if(v<1115)return'';if(v<1435)return'Champion';if(v<1855)return'Grand Champion';return'Supersonic Legend';};
   // `slot` distinguishes the three playlists so the phone layout can promote
   // 2v2 and demote the other two; on the desktop table it changes nothing.
-  var mmrCell=function(v,slot){
+  // Rating, with how far it has moved over the selected window underneath.
+  //
+  // Movement rides on the rating rather than taking columns of its own: three
+  // more numeric columns would have been the widest change on the board for
+  // the least gain, and every ranked-stats site puts the delta on the figure
+  // it belongs to. Zero is drawn as nothing at all - a row of grey 0s reads as
+  // broken, where an absent delta reads as "did not move", which is the truth.
+  var mmrCell=function(v,slot,move){
     var cls='c-mmr'+(slot?' '+slot:'');
     var lab=slot==='m1'?'1v1':slot==='m3'?'3v3':'2v2';
-    return v==null
-      ? '<td class="'+cls+'" data-l="'+lab+'"><span class="dash">&middot;</span></td>'
-      : '<td class="'+cls+'" data-l="'+lab+'"><span class="mv '+tierClass(v)+'">'+nf(v)+'</span></td>';
+    if(v==null)return '<td class="'+cls+'" data-l="'+lab+'"><span class="dash">&middot;</span></td>';
+    return '<td class="'+cls+'" data-l="'+lab+'"><span class="mv '+tierClass(v)+'">'+nf(v)+'</span>'+mmrMoveMark(move)+'</td>';
   };
+  var mmrMoveMark=function(move){
+    if(!move||move.partial||move.delta==null||move.delta===0)return '';
+    var up=move.delta>0;
+    return '<span class="mmv '+(up?'up':'dn')+'" title="'+(up?'Up ':'Down ')+nf(Math.abs(move.delta))+
+      ' in the last '+(WIN_WORDS[mmrWin]||'day')+'">'+(up?'▲':'▼')+nf(Math.abs(move.delta))+'</span>';
+  };
+  // Which window the deltas describe. Follows the board's own 24h / 7d choice
+  // so there is one idea of "recently" on the page, not two.
+  var mmrWin='d1';
+  var WIN_WORDS={d1:'day',d7:'7 days',d14:'14 days'};
+  // Says which window the small figure under each rating covers, since the
+  // number itself has no room to.
+  var MMR_COL_TITLE='Current rating. The figure underneath is how far it has moved over the window selected above the table.';
   var WIN_LABEL={d1:'24h',d7:'7d',d14:'14d'};
   // Coarse "how long ago", for a cell that has room for about five characters.
   var agoShort=function(t){
@@ -307,6 +326,7 @@
           status:steamById[id]?steamById[id].status:'pending',
           mmr:(t.mmr&&t.mmr.twos!=null)?t.mmr:(t.mmr||null),
           hasMmr:!!(t.mmr&&(t.mmr.ones!=null||t.mmr.twos!=null||t.mmr.threes!=null)),
+          mmrMove:t.mmrMove||null,
           seasonGames:t.seasonGames?t.seasonGames.total:null,
           games:t.games?t.games.total:null,
           updatedAt:(function(){var v=t.updatedAt?Date.parse(t.updatedAt):NaN;return isNaN(v)?null:v;})(),
@@ -584,8 +604,9 @@
     }
 
     var win='d1'; // recent-games window: d1 (24h, live now) / d7 / d14
+    mmrWin=win;
     var mmrKey='twos'; // which playlist the MMR mode ranks on: ones / twos / threes
-    var pCols=[{label:'#',cls:'c-rk'},{label:'Player',cls:'c-who',k:'name'},{label:'Region',cls:'c-rg',k:'region'},{label:'Status',cls:'c-st',k:'status'},{label:'1v1',cls:'c-mmr',k:'ones',num:true},{label:'2v2',cls:'c-mmr',k:'twos',num:true},{label:'3v3',cls:'c-mmr',k:'threes',num:true},{label:'Games',cls:'c-sg',k:'sg',num:true,title:'Total ranked games played since the current competitive season began'},{label:WIN_LABEL[win],cls:'c-g14',k:'g14',num:true},{label:'2wk h',cls:'c-hr',k:'h2',num:true},{label:'Total h',cls:'c-hr',k:'ht',num:true}];
+    var pCols=[{label:'#',cls:'c-rk'},{label:'Player',cls:'c-who',k:'name'},{label:'Region',cls:'c-rg',k:'region'},{label:'Status',cls:'c-st',k:'status'},{label:'1v1',cls:'c-mmr',k:'ones',num:true,title:MMR_COL_TITLE},{label:'2v2',cls:'c-mmr',k:'twos',num:true,title:MMR_COL_TITLE},{label:'3v3',cls:'c-mmr',k:'threes',num:true,title:MMR_COL_TITLE},{label:'Games',cls:'c-sg',k:'sg',num:true,title:'Total ranked games played since the current competitive season began'},{label:WIN_LABEL[win],cls:'c-g14',k:'g14',num:true},{label:'2wk h',cls:'c-hr',k:'h2',num:true},{label:'Total h',cls:'c-hr c-hrt',k:'ht',num:true}];
     var pAcc={name:function(p){return(p.name||'').toLowerCase();},region:function(p){return p.region||null;},status:function(p){return p.status?String(p.status).toLowerCase():null;},ones:function(p){return p.mmr?p.mmr.ones:null;},twos:function(p){return p.mmr?p.mmr.twos:null;},threes:function(p){return p.mmr?p.mmr.threes:null;},sg:function(p){return p.seasonGames;},g14:function(p){
         // "pending" in the cell means the window has not filled yet, so there is
         // nothing to rank: a new player's first reading is their whole season,
@@ -594,7 +615,10 @@
         return g&&g.games!=null&&!g.partial?g.games:null;
       },h2:function(p){return p.hours2wk!=null?p.hours2wk:p.estHours2wk;},ht:function(p){return p.totalHours;}};
     var playerRow=function(p){
-      var mmr=p.hasMmr?(mmrCell(p.mmr.ones,'m1')+mmrCell(p.mmr.twos,'m2')+mmrCell(p.mmr.threes,'m3')):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
+      var mv=p.mmrMove||{};
+      var mmr=p.hasMmr?(mmrCell(p.mmr.ones,'m1',mv.ones&&mv.ones[mmrWin])+
+        mmrCell(p.mmr.twos,'m2',mv.twos&&mv.twos[mmrWin])+
+        mmrCell(p.mmr.threes,'m3',mv.threes&&mv.threes[mmrWin])):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
       return '<tr class="'+(p.hasMmr?'':'isnorank')+'" data-player="'+esc(p.name)+'">'+
         '<td class="c-rk">'+rankMark(p.__pos||p.__rank)+'</td>'+
         '<td class="c-who">'+teamMark(p.team)+'<span class="nm"><b>'+esc(p.name)+(isLive(p)?playMark(p):'')+'</b><i>'+esc(p.team||'Free agent')+'</i></span></td>'+
@@ -792,16 +816,41 @@
     // than a screen away. One row at a time, and the open one is restored after
     // a repaint so a refresh does not close it under the reader.
     var openPlayer=null;
+    // What the wide table no longer shows, for the row the reader opened.
+    // Status is here rather than in a column because the hours cells already
+    // say "private" or "hidden"; a column repeating it was the same fact twice.
+    var detailRow=function(p,span){
+      var bits=[
+        ['Steam', statusChip(p.status)],
+        ['Total hours', totalHoursCell(p).replace(/^<td[^>]*>|<\/td>$/g,'')],
+        ['Season games', p.seasonGames!=null?nf(p.seasonGames):'<span class="dash">&middot;</span>'],
+        ['Last played', p.lastPlayedAt?esc(agoShort(p.lastPlayedAt)):'<span class="dash">&middot;</span>']
+      ];
+      if(isLive(p)&&p.session&&p.session.games!=null){
+        bits.push(['This session', nf(p.session.games)+' games']);
+      }
+      return '<tr class="pexp"><td colspan="'+span+'"><div class="pexp-in">'+
+        bits.map(function(b){return '<div><span class="pk">'+b[0]+'</span><span class="pvv">'+b[1]+'</span></div>';}).join('')+
+        '</div></td></tr>';
+    };
     var applyOpenPlayer=function(){
       var rows=pv.querySelectorAll('tbody tr');
       Array.prototype.forEach.call(rows,function(tr){
-        tr.classList.toggle('open',!!openPlayer&&tr.getAttribute('data-player')===openPlayer);
+        if(tr.classList.contains('pexp'))return;
+        var isOpen=!!openPlayer&&tr.getAttribute('data-player')===openPlayer;
+        tr.classList.toggle('open',isOpen);
+        var next=tr.nextElementSibling;
+        var has=next&&next.classList.contains('pexp');
+        if(isOpen&&!has){
+          var p=players.filter(function(x){return x.name===openPlayer;})[0];
+          if(p)tr.insertAdjacentHTML('afterend',detailRow(p,tr.children.length));
+        }else if(!isOpen&&has){ next.parentNode.removeChild(next); }
       });
     };
     pv.addEventListener('click',function(e){
       if(e.target.closest&&e.target.closest('a'))return;
       var tr=e.target.closest?e.target.closest('tbody tr'):null;
-      if(!tr)return;
+      if(!tr||tr.classList.contains('pexp'))return;
       var name=tr.getAttribute('data-player');
       openPlayer=(openPlayer===name)?null:name;
       applyOpenPlayer();
@@ -864,6 +913,9 @@
       var k=btn.dataset.k, w=btn.dataset.w;
       if(w){
         win=w;
+        // The rating deltas describe the same window as the games column, so
+        // the page has one idea of "recently" rather than two.
+        mmrWin=w;
         var th=pv.querySelector('th.c-g14 span'); if(th)th.textContent=WIN_LABEL[w];
       }
       if(k==='mmr'){

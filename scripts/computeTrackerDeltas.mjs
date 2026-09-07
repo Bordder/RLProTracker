@@ -81,6 +81,7 @@ export function computeTrackerPlayers(snaps, rosterIds) {
       : allReadings;
     const latest = readings[readings.length - 1];
     const mmr = {}, tier = {}, games = { ones: {}, twos: {}, threes: {}, total: {} };
+    const mmrMove = { ones: {}, twos: {}, threes: {} };
     // seasonGames = cumulative ranked matches this season (matchesPlayed from the
     // latest reading). Available immediately from one snapshot, unlike the windowed
     // counts which need history to accumulate.
@@ -104,6 +105,18 @@ export function computeTrackerPlayers(snaps, rosterIds) {
           if (g > MAX_GAMES_PER_HOUR * hours) { implausible = true; g = null; }
         }
         games[outKey][wk] = { games: g, partial: !haveHistory || implausible };
+
+        // Rating movement over the same window. Deliberately NOT clamped the
+        // way games are: a rating that falls is the whole point of showing it,
+        // where a match count that falls is a season reset. Readings from a
+        // different account are already filtered out above, which is what
+        // would otherwise produce a nonsense swing.
+        const curR = cur?.rating ?? null;
+        const pastR = past.playlists?.[snapKey]?.rating ?? null;
+        mmrMove[outKey][wk] = {
+          delta: curR != null && pastR != null ? curR - pastR : null,
+          partial: !haveHistory,
+        };
       }
     }
 
@@ -157,7 +170,7 @@ export function computeTrackerPlayers(snaps, rosterIds) {
       session = { startedAt: new Date(start).toISOString(), games: played };
     }
 
-    players.push({ ...meta, updatedAt: new Date(latest.t).toISOString(), lastPlayedAt, session, mmr, tier, seasonGames, games });
+    players.push({ ...meta, updatedAt: new Date(latest.t).toISOString(), lastPlayedAt, session, mmr, tier, mmrMove, seasonGames, games });
   }
 
   return { now, players };

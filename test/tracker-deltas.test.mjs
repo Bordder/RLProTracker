@@ -179,3 +179,38 @@ test("no roster means publish everything, rather than an empty board", () => {
   assert.equal(computeTrackerPlayers(snaps, null).players.length, 1);
   assert.equal(computeTrackerPlayers(snaps).players.length, 1);
 });
+
+test("rating movement is reported per window and is allowed to be negative", () => {
+  const t0 = Date.parse("2026-09-01T00:00:00Z");
+  const day = 24 * 3600e3;
+  const snaps = [
+    { t: t0, rows: [{ id: "a", name: "A", team: "T", playlists: { d2: { rating: 2000, matches: 10 } } }] },
+    { t: t0 + 6 * day, rows: [{ id: "a", name: "A", team: "T", playlists: { d2: { rating: 2100, matches: 40 } } }] },
+    { t: t0 + 7 * day, rows: [{ id: "a", name: "A", team: "T", playlists: { d2: { rating: 2060, matches: 55 } } }] },
+  ];
+  const { players } = computeTrackerPlayers(snaps);
+  const move = players[0].mmrMove.twos;
+
+  // Down 40 over the last day: a fall is the point of the column, so unlike
+  // games it must not be clamped to zero.
+  assert.equal(move.d1.delta, -40);
+  assert.equal(move.d1.partial, false);
+
+  // Up 60 over the week, measured from the reading at or before the window.
+  assert.equal(move.d7.delta, 60);
+
+  // Two weeks of history do not exist yet, so the figure is marked partial
+  // rather than presented as a fortnight's movement.
+  assert.equal(move.d14.partial, true);
+});
+
+test("rating movement is null when a playlist has no rating to compare", () => {
+  const t0 = Date.parse("2026-09-01T00:00:00Z");
+  const snaps = [
+    { t: t0, rows: [{ id: "a", name: "A", team: "T", playlists: { d2: { rating: 2000, matches: 10 } } }] },
+    { t: t0 + 3600e3, rows: [{ id: "a", name: "A", team: "T", playlists: { d2: { rating: 2010, matches: 12 } } }] },
+  ];
+  const { players } = computeTrackerPlayers(snaps);
+  assert.equal(players[0].mmrMove.ones.d1.delta, null);
+  assert.equal(players[0].mmrMove.threes.d7.delta, null);
+});
