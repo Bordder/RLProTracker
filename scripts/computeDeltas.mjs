@@ -70,10 +70,13 @@ export function mergeLastKnown(store, snapshotTime, rows) {
 // Pure core (no IO). `snaps` is [{ t, rows }] in any order; the latest snapshot
 // defines the player set (Steam snapshots are complete each run). `lastKnown`
 // maps player id -> { foreverMin, at } and supplies a frozen total when Steam
-// no longer reports one. Returns { now, players } with total/2wk hours and
+// no longer reports one. `stated` maps player id -> { hours, source } for a
+// total the player has given publicly: the last resort, used only when there
+// is neither a live reading nor a stored one.
+// Returns { now, players } with total/2wk hours and
 // hours-per-window. Playtime is monotonic on Steam, so a window diff is never
 // negative in practice.
-export function computeSteamPlayers(snaps, lastKnown = {}) {
+export function computeSteamPlayers(snaps, lastKnown = {}, stated = {}) {
   const sorted = [...snaps].sort((a, b) => a.t - b.t);
   const latest = sorted[sorted.length - 1];
   const now = latest.t;
@@ -100,10 +103,17 @@ export function computeSteamPlayers(snaps, lastKnown = {}) {
     // That includes a profile which has since hidden its total: if we ever
     // caught a real figure it stays on the board, dated, rather than vanishing.
     const frozen = cur == null ? lastKnown[row.id] : null;
+    // Below both a live reading and a stored one: a total the player has said
+    // out loud for an account we cannot read. Carried with its source and
+    // flagged, because it is a claim rather than a measurement and the page has
+    // to say which it is showing.
+    const said = cur == null && !frozen ? stated[row.id] : null;
+    const saidHours = said && Number.isFinite(said.hours) ? said.hours : null;
     players.push({
       id: row.id, name: row.name, team: row.team, status,
-      totalHours: cur != null ? +(cur / 60).toFixed(1) : (frozen ? +(frozen.foreverMin / 60).toFixed(1) : null),
+      totalHours: cur != null ? +(cur / 60).toFixed(1) : (frozen ? +(frozen.foreverMin / 60).toFixed(1) : saidHours),
       totalHoursFrozenAt: frozen ? frozen.at : null,
+      totalHoursStated: saidHours != null ? (said.source || true) : null,
       // The fortnight figure is never carried over: it describes a rolling two
       // weeks, so an old value would read as recent activity.
       steam2wkHours: status === "playtime-hidden" || row.twoWeeksMin == null ? null : +(row.twoWeeksMin / 60).toFixed(1),
@@ -140,6 +150,20 @@ async function loadLastKnown() {
   catch { return {}; }
 }
 
+// Player-stated totals, hand-recorded in overrides.json. Missing or malformed
+// is not an error: the board falls back to saying the hours are hidden.
+async function loadStated() {
+  try {
+    const o = JSON.parse(await readFile(join(ROOT, "data", "overrides.json"), "utf8"));
+    const out = {};
+    for (const [id, v] of Object.entries(o.statedTotalHours ?? {})) {
+      if (id.startsWith("_") || !v || !Number.isFinite(v.hours)) continue;
+      out[id] = v;
+    }
+    return out;
+  } catch { return {}; }
+}
+
 async function main() {
   const snaps = await loadSnapshots();
   if (snaps.length === 0) { console.error("no snapshots yet - run npm run fetch:steam first"); process.exit(1); }
@@ -157,14 +181,15 @@ async function main() {
     { note: "Durable last-known Steam playtime per player. Survives snapshot pruning so a profile that opens once keeps its reading. Never delete entries.", updatedAt: new Date(sorted[sorted.length - 1].t).toISOString(), players: lastKnown },
     null, 2));
 
-  const { now, players } = computeSteamPlayers(snaps, lastKnown);
+  const { now, players } = computeSteamPlayers(snaps, lastKnown, await loadStated());
 
   await mkdir(join(ROOT, "data", "derived"), { recursive: true });
   await writeFile(join(ROOT, "data", "derived", "steam-hours.json"),
     JSON.stringify({ computedAt: new Date(now).toISOString(), snapshotCount: snaps.length, players }, null, 2));
 
   const frozen = players.filter((p) => p.totalHoursFrozenAt).length;
-  console.log(`derived steam-hours.json  (${players.length} players, ${snaps.length} snapshots, ${frozen} using stored totals)`);
+  const said = players.filter((p) => p.totalHoursStated).length;
+  console.log(`derived steam-hours.json  (${players.length} players, ${snaps.length} snapshots, ${frozen} using stored totals, ${said} stated)`);
 }
 
 // Run only when invoked directly (so computeSteamPlayers can be imported for tests).

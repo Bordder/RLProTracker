@@ -177,3 +177,42 @@ test("a player who has only ever errored still shows the error", () => {
   ], {});
   assert.match(byId.get("a").status, /^error:/);
 });
+
+// A total the player has stated publicly, for an account Steam will not show us.
+test("a stated total is used only when there is no reading and no stored one", () => {
+  const snaps = [
+    { t: 1000, rows: [
+      { id: "said", name: "Said", team: "T", status: "private", foreverMin: null, twoWeeksMin: null },
+      { id: "live", name: "Live", team: "T", status: "public", foreverMin: 600, twoWeeksMin: 60 },
+      { id: "stored", name: "Stored", team: "T", status: "private", foreverMin: null, twoWeeksMin: null },
+    ] },
+  ];
+  const lastKnown = { stored: { foreverMin: 1200, at: "2026-01-01T00:00:00.000Z" } };
+  const stated = {
+    said: { hours: 17000, source: "Said on stream" },
+    live: { hours: 99999, source: "should never win" },
+    stored: { hours: 99999, source: "should never win" },
+  };
+  const { players } = computeSteamPlayers(snaps, lastKnown, stated);
+  const by = Object.fromEntries(players.map((p) => [p.id, p]));
+
+  assert.equal(by.said.totalHours, 17000);
+  assert.equal(by.said.totalHoursStated, "Said on stream");
+
+  // A live reading beats a claim.
+  assert.equal(by.live.totalHours, 10);
+  assert.equal(by.live.totalHoursStated, null);
+
+  // So does a stored one, which at least was measured once.
+  assert.equal(by.stored.totalHours, 20);
+  assert.equal(by.stored.totalHoursStated, null);
+});
+
+test("a malformed stated entry is ignored rather than published", () => {
+  const snaps = [{ t: 1, rows: [{ id: "a", name: "A", team: "T", status: "private", foreverMin: null, twoWeeksMin: null }] }];
+  for (const bad of [{}, { hours: null }, { hours: "17000" }, null]) {
+    const { players } = computeSteamPlayers(snaps, {}, { a: bad });
+    assert.equal(players[0].totalHours, null);
+    assert.equal(players[0].totalHoursStated, null);
+  }
+});
