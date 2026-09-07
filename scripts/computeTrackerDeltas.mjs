@@ -176,7 +176,7 @@ export function computeTrackerPlayers(snaps, rosterIds) {
 // rollingHistory already dropped every reading that repeated the one before,
 // so what is left is exactly the points where a rating changed - lossless for
 // a step chart, and nothing is thinned out here.
-export function computeMmrHistory(snaps, rosterIds = null, keepMs = 14 * 24 * HOUR) {
+export function computeMmrHistory(snaps, rosterIds = null, keepMs = 90 * 24 * HOUR) {
   const sorted = [...snaps].sort((a, b) => a.t - b.t);
   const now = sorted.length ? sorted[sorted.length - 1].t : Date.now();
   const from = now - keepMs;
@@ -313,7 +313,7 @@ async function main() {
   const histPath = join(ROOT, "data", "derived", "mmr-history.json");
   await writeFile(histPath, JSON.stringify({
     computedAt: new Date(now).toISOString(),
-    note: "Rating over the last 14 days. [minutes since base, rating] per playlist; a run of equal ratings is stored as its two ends.",
+    note: "Rating over the retention window. [minutes since base, rating] per playlist; a run of equal ratings is stored as its two ends. Fetched by the page only when a chart is opened.",
     base: hist.base,
     tiers: hist.tiers,
     players: hist.players,

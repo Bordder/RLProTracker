@@ -420,9 +420,11 @@
     font-size:11px;font-weight:800;color:var(--slate)}
   .pexp-h span{color:var(--dim);font-weight:600;letter-spacing:.06em}
 
-  /* The rating chart. Capped, or it scales with the table and a wide screen
-     gets a 264px-tall panel for a rating that moved forty points. */
-  .chartwrap{position:relative;max-width:680px}
+  /* Full width. The chart was capped at 680px when the panel held other
+     things beside it; now it is the panel's subject, and the horizontal room
+     is exactly what makes a week of heavy queueing legible instead of a
+     smudge. The viewBox is proportionally wider so it does not gain height. */
+  .chartwrap{position:relative}
   .chart{width:100%;height:auto;display:block;color:var(--accent);cursor:crosshair}
   /* One colour for the line, not green-up / red-down. Against rank bands the
      line is a path through ranks, not a verdict on the fortnight. */
@@ -955,6 +957,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=87c62d4c" defer></script>
+<script src="rlpt.js?v=da4c7521" defer></script>
 </body>
 </html>

@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
-const KEEP_MS = 15 * 24 * 3600e3;
+const KEEP_MS = 90 * 24 * 3600e3;
 const DIRS = [
   { dir: join(ROOT, "data", "snapshots"), prefix: "steam-" },
   { dir: join(ROOT, "data", "tracker-snapshots"), prefix: "tracker-" },

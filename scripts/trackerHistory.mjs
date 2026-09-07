@@ -17,7 +17,7 @@
 // of the file was going. See collapseUnchanged in rollingHistory.mjs.
 
 // Retention policy is shared with the Steam side - see rollingHistory.mjs.
-export { HOUR, DAY, FINE_MS, KEEP_MS, downsampleReadings, collapseUnchanged, countReadings } from "./rollingHistory.mjs";
+export { HOUR, DAY, FINE_MS, HOURLY_MS, KEEP_MS, downsampleReadings, collapseUnchanged, countReadings } from "./rollingHistory.mjs";
 import { downsampleReadings, collapseUnchanged } from "./rollingHistory.mjs";
 
 // Fold one run's scraped rows into the history, then downsample. Rows without

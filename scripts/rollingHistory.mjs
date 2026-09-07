@@ -7,13 +7,27 @@
 // blob that was ever committed, so pruning does not reclaim anything. One file
 // updated in place stays small and delta-compresses between commits.
 //
-// Retention: every reading for the last 26 hours, so the 24h window keeps full
-// resolution, then at most one per day out to 15 days.
+// Retention, in three tiers: every reading for the last 26 hours so the 24h
+// window keeps full resolution, then at most one an hour out to 8 days, then at
+// most one a day out to 90 days.
+//
+// The middle tier is what the rating charts are drawn from. With only the
+// coarse tier behind it, a fortnight of rating history was one point per day:
+// a week where a player queued hard and swung 200 points showed up as a smooth
+// diagonal between two dots, which is precisely the stretch worth looking at.
+//
+// The long tier is 90 days rather than 15 so a chart can eventually show a
+// season. Nothing backfills - it fills in from the day this ships.
+//
+// Cost is bounded by collapseUnchanged, which runs after this and drops every
+// reading equal to the one before it. A rating that does not move costs two
+// points however finely it was sampled.
 
 export const HOUR = 3600e3;
 export const DAY = 24 * HOUR;
 export const FINE_MS = 26 * HOUR;
-export const KEEP_MS = 15 * DAY;
+export const HOURLY_MS = 8 * DAY;
+export const KEEP_MS = 90 * DAY;
 
 // Thin one player's readings. Newest-first so each day bucket keeps its most
 // recent reading. The newest reading is always kept however old it is, so a
@@ -23,12 +37,20 @@ export function downsampleReadings(readings, now) {
   const sorted = [...readings].filter((r) => r && r.t != null).sort((a, b) => b.t - a.t);
   if (!sorted.length) return [];
   const out = [];
+  const seenHour = new Set();
   const seenDay = new Set();
   for (const r of sorted) {
     const age = now - r.t;
     if (age < 0) continue;              // clock skew: ignore readings from the future
     if (age > KEEP_MS) continue;
     if (age <= FINE_MS) { out.push(r); continue; }
+    if (age <= HOURLY_MS) {
+      const hour = Math.floor(r.t / HOUR);
+      if (seenHour.has(hour)) continue;
+      seenHour.add(hour);
+      out.push(r);
+      continue;
+    }
     const day = Math.floor(r.t / DAY);
     if (seenDay.has(day)) continue;
     seenDay.add(day);

@@ -215,10 +215,16 @@ test("readings older than the window are not carried", () => {
   const day = 24 * 3600e3;
   const row = (rating) => [{ id: "a", name: "A", team: "T", playlists: { d2: { rating, matches: 1 } } }];
   const snaps = [
-    { t: now - 30 * day, rows: row(1500) },   // outside 14 days
+    { t: now - 30 * day, rows: row(1500) },
     { t: now - 2 * day, rows: row(2000) },
     { t: now, rows: row(2050) },
   ];
-  const { players } = computeMmrHistory(snaps);
+  // Window passed explicitly: the default is the retention window, which is
+  // free to change, and this is testing the cutoff rather than its value.
+  const { players } = computeMmrHistory(snaps, null, 14 * day);
   assert.deepEqual(players.a.twos.map((p) => p[1]), [2000, 2050]);
+
+  // The default reaches back far enough to hold that older reading.
+  const wide = computeMmrHistory(snaps);
+  assert.deepEqual(wide.players.a.twos.map((p) => p[1]), [1500, 2000, 2050]);
 });

@@ -23,7 +23,21 @@
       : '<td class="'+cls+'" data-l="'+lab+'"><span class="mv '+tierClass(v)+'">'+nf(v)+'</span></td>';
   };
   // A fortnight of ratings per player, from its own feed.
-  var mmrHist={}, mmrBase=0, mmrTiers={};
+  // Rating history, fetched the first time somebody opens a chart rather than
+  // on every page load. Ninety days of it is far larger than the board itself
+  // and most visitors never open a row, so it should not be on the critical
+  // path for anyone.
+  var mmrHist={}, mmrBase=0, mmrTiers={}, mmrState='idle';
+  var loadMmrHistory=function(then){
+    if(mmrState==='done'){ then(); return; }
+    if(mmrState==='loading')return;
+    mmrState='loading';
+    getJson('mmr-history.json').then(function(j){
+      if(j&&j.players){ mmrHist=j.players; mmrBase=j.base||0; mmrTiers=j.tiers||{}; }
+      mmrState='done';
+      then();
+    });
+  };
   // Which rank a rating sits in, for the chart's bands and its tooltip.
   var tierAt=function(key,r){
     var bands=mmrTiers[key]||[];
@@ -48,17 +62,18 @@
   // For 2v2 this draws a single band, and that is the honest picture: 93 of
   // the 94 tracked pros are Supersonic Legend. In 1v1 and 3v3 they span seven
   // ranks and the bands do real work.
-  var CH_W=680, CH_H=210, CH_PADL=44, CH_PADR=12, CH_PADT=10, CH_PADB=24;
+  var CH_W=1280, CH_H=270, CH_PADL=52, CH_PADR=14, CH_PADT=12, CH_PADB=26;
   var chartReg={}, chartSeq=0;
   var bigChart=function(id,key){
     var pts=seriesFor(id,key);
-    if(!pts)return '<div class="chart-none">No rating history yet. It fills in as the collector runs.</div>';
+    if(!pts)return '<div class="chart-none">'+
+      (mmrState!=='done'?'Loading the rating history…':'No rating history yet. It fills in as the collector runs.')+'</div>';
     var lo=Infinity, hi=-Infinity, t0=pts[0][0], t1=pts[pts.length-1][0];
     for(var i=0;i<pts.length;i++){ if(pts[i][1]<lo)lo=pts[i][1]; if(pts[i][1]>hi)hi=pts[i][1]; }
     var span=(t1-t0)||1;
     // Headroom, and a floor on the range so a quiet fortnight is not magnified
     // into a mountain range.
-    var mid=(hi+lo)/2, half=Math.max((hi-lo)/2*1.25,25);
+    var mid=(hi+lo)/2, half=Math.max((hi-lo)/2*1.12,15);
     var top=mid+half, bot=mid-half;
     var x0=CH_PADL, x1=CH_W-CH_PADR, y0=CH_PADT, y1=CH_H-CH_PADB;
     var yOf=function(r){ return y1-((r-bot)/((top-bot)||1))*(y1-y0); };
@@ -86,15 +101,18 @@
       [1,2,2.5,5,10].some(function(m){ if(step*m>=rough){ step=step*m; return true; } return false; });
       for(var g=Math.ceil(bot/step)*step; g<top; g+=step) if(edges.indexOf(g)<0) edges.push(g);
     }
-    var axis='';
+    // The current rating is the one figure a reader came for, so it is placed
+    // first and any gridline label too close to it loses its number - the line
+    // stays. Otherwise the two sit on top of each other whenever the player
+    // happens to be near a boundary.
+    var cur=pts[pts.length-1][1], curY=yOf(cur);
+    var axis='<text class="ct now" text-anchor="end" x="'+(x0-6)+'" y="'+(curY+3.5).toFixed(1)+'">'+nf(cur)+'</text>';
     edges.forEach(function(r){
       var y=yOf(r);
-      axis+='<line class="cg" x1="'+x0+'" y1="'+y.toFixed(1)+'" x2="'+x1+'" y2="'+y.toFixed(1)+'"/>'+
-        '<text class="ct" text-anchor="end" x="'+(x0-6)+'" y="'+(y+3.5).toFixed(1)+'">'+nf(r)+'</text>';
+      axis+='<line class="cg" x1="'+x0+'" y1="'+y.toFixed(1)+'" x2="'+x1+'" y2="'+y.toFixed(1)+'"/>';
+      if(Math.abs(y-curY)>=13)
+        axis+='<text class="ct" text-anchor="end" x="'+(x0-6)+'" y="'+(y+3.5).toFixed(1)+'">'+nf(r)+'</text>';
     });
-    // Plus the current rating, which is the one figure a reader came for.
-    var cur=pts[pts.length-1][1];
-    axis+='<text class="ct now" text-anchor="end" x="'+(x0-6)+'" y="'+(yOf(cur)+3.5).toFixed(1)+'">'+nf(cur)+'</text>';
 
     var xy=pts.map(function(p){ return [x0+((p[0]-t0)/span)*(x1-x0),yOf(p[1])]; });
     var line=xy.map(function(p,i){return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join('');
@@ -113,7 +131,7 @@
 
     return '<div class="chartwrap" data-chart="'+cid+'">'+
       '<svg class="chart" viewBox="0 0 '+CH_W+' '+CH_H+'" preserveAspectRatio="xMidYMid meet" role="img" '+
-        'aria-label="'+esc(PL_NAME[key]+' rating, '+nf(lo)+' to '+nf(hi)+' over the last 14 days')+'">'+
+        'aria-label="'+esc(PL_NAME[key]+' rating, '+nf(lo)+' to '+nf(hi)+', '+chartSpanWords(span))+'">'+
         bg+axis+
         '<path class="cl" d="'+line+'" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
         '<g class="cmark" hidden><line class="cml" y1="'+y0+'" y2="'+y1+'"/><circle class="cmc" r="3.6"/></g>'+
@@ -123,6 +141,17 @@
       '</div>';
   };
   var PL_NAME={ones:'1v1',twos:'2v2',threes:'3v3'};
+  // The window is however much history exists, which grows toward 90 days from
+  // the day the longer retention shipped. Saying "last 14 days" over a chart
+  // holding six would be a lie the reader cannot check.
+  var chartSpanWords=function(spanMin){
+    var d=Math.max(1,Math.round(spanMin/1440));
+    return d<14?('last '+d+' day'+(d===1?'':'s')):d<60?('last '+Math.round(d/7)+' weeks'):('last '+Math.round(d/30)+' months');
+  };
+  var chartSpanOf=function(id,key){
+    var pts=seriesFor(id,key);
+    return pts?chartSpanWords(pts[pts.length-1][0]-pts[0][0]):'';
+  };
   var WIN_LABEL={d1:'24h',d7:'7d',d14:'14d'};
   // The column header says what is being counted; "24h" on its own named a
   // period and left the reader to guess it meant games.
@@ -317,7 +346,7 @@
   };
   var load=window.__RLDATA__
     ? Promise.resolve([window.__RLDATA__.steam,window.__RLDATA__.teams,window.__RLDATA__.tracker,window.__RLDATA__.teamTracker,window.__RLDATA__.presence])
-    : Promise.all([getJson('steam-hours.json'),getJson('team-hours.json'),getJson('tracker.json'),getJson('team-tracker.json'),getJson('presence-hours.json'),getJson('mmr-history.json')]);
+    : Promise.all([getJson('steam-hours.json'),getJson('team-hours.json'),getJson('tracker.json'),getJson('team-tracker.json'),getJson('presence-hours.json')]);
 
   load.then(function(res){
     // ---- rank by 2v2 MMR (players by their twos, teams by avg twos) ----
@@ -392,9 +421,6 @@
 
     function hydrate(res){
       var steam=res[0], teamH=res[1], tracker=res[2], teamT=res[3], presence=res[4];
-      // A fortnight of ratings, for the charts. Missing is not an error: the
-      // board simply draws no trend until the feed appears.
-      if(res[5]&&res[5].players){ mmrHist=res[5].players; mmrBase=res[5].base||0; mmrTiers=res[5].tiers||{}; }
       if(!steam||!teamH)return false;
 
       var trById={}; (tracker&&tracker.players||[]).forEach(function(p){trById[p.id]=p;});
@@ -933,7 +959,9 @@
       if(!card)return;
       var who=card.getAttribute('data-player');
       openPod=(openPod===who)?null:who;
+      // Draw what we can now, then again once the history lands.
       applyOpenPod();
+      if(openPod)loadMmrHistory(applyOpenPod);
     });
     // Wrapped, not passed directly: chartHover is declared further down, so at
     // this point the bare name is still undefined and the listener would bind
@@ -967,7 +995,7 @@
           (mins!=null?' over '+(mins<60?mins+' min':Math.round(mins/6)/10+' h'):'')]);
       }
       return '<div class="pexp-in">'+
-        '<div class="pexp-h">'+esc(PL_NAME[mmrKey])+' rating <span>last 14 days</span></div>'+
+        '<div class="pexp-h">'+esc(PL_NAME[mmrKey])+' rating <span>'+esc(chartSpanOf(p.id,mmrKey))+'</span></div>'+
         bigChart(p.id,mmrKey)+
         '<div class="pexp-facts">'+facts.map(function(f){
           return '<div><span class="pk">'+f[0]+'</span><span class="pvv">'+f[1]+'</span></div>';
@@ -1023,6 +1051,11 @@
     };
     pv.addEventListener('mousemove',chartHover);
     pv.addEventListener('mouseleave',chartLeave,true);
+    var rebuildOpenPlayer=function(){
+      var rows=pv.querySelectorAll('tbody tr.pexp');
+      Array.prototype.forEach.call(rows,function(tr){ tr.parentNode.removeChild(tr); });
+      applyOpenPlayer();
+    };
     var applyOpenPlayer=function(){
       var rows=pv.querySelectorAll('tbody tr');
       Array.prototype.forEach.call(rows,function(tr){
@@ -1044,6 +1077,7 @@
       var name=tr.getAttribute('data-player');
       openPlayer=(openPlayer===name)?null:name;
       applyOpenPlayer();
+      if(openPlayer)loadMmrHistory(function(){ rebuildOpenPlayer(); });
     });
 
     // ---- team drilldown: click a team to compare its roster; only one open at a time ----

@@ -2,7 +2,7 @@
 // presenting readings back in the shape computeTrackerDeltas consumes.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { downsampleReadings, collapseUnchanged, appendRows, historyToSnaps, countReadings, HOUR, DAY, FINE_MS, KEEP_MS } from "../scripts/trackerHistory.mjs";
+import { downsampleReadings, collapseUnchanged, appendRows, historyToSnaps, countReadings, HOUR, DAY, FINE_MS, HOURLY_MS, KEEP_MS } from "../scripts/trackerHistory.mjs";
 
 const T = 1_800_000_000_000; // fixed "now"
 const at = (ageMs) => ({ t: T - ageMs, playlists: { d2: { rating: 2000, matches: 100 } } });
@@ -13,13 +13,26 @@ test("keeps every reading inside the fine window", () => {
   assert.equal(downsampleReadings(r, T).length, 4);
 });
 
-test("thins older readings to one per day", () => {
+test("thins the middle tier to one an hour, not one a day", () => {
+  // Every 10 minutes across days two and three: inside the hourly tier, which
+  // is the resolution the rating charts are drawn from.
   const r = [at(0)];
-  for (let h = 30; h < 24 * 6; h += 3) r.push(at(h * HOUR)); // several per day, 3h apart
+  for (let m = 30 * 60; m < 4 * 24 * 60; m += 10) r.push(at(m * 60e3));
   const out = downsampleReadings(r, T);
-  const olderDays = out.filter((x) => T - x.t > FINE_MS).map((x) => Math.floor(x.t / DAY));
+  const mid = out.filter((x) => T - x.t > FINE_MS && T - x.t <= HOURLY_MS);
+  const hours = mid.map((x) => Math.floor(x.t / HOUR));
+  assert.equal(new Set(hours).size, hours.length, "at most one reading per hour bucket");
+  assert.ok(mid.length > 24, "an hour's resolution over several days, not a day's");
+  assert.ok(out.length < r.length / 4, "substantially thinned");
+});
+
+test("thins beyond the hourly tier to one per day", () => {
+  const r = [at(0)];
+  for (let h = Math.floor(HOURLY_MS / HOUR) + 6; h < 24 * 30; h += 3) r.push(at(h * HOUR));
+  const out = downsampleReadings(r, T);
+  const olderDays = out.filter((x) => T - x.t > HOURLY_MS).map((x) => Math.floor(x.t / DAY));
+  assert.ok(olderDays.length > 5, "the long tier is actually being exercised");
   assert.equal(new Set(olderDays).size, olderDays.length, "at most one reading per day bucket");
-  assert.ok(out.length < r.length / 2, "substantially thinned");
 });
 
 test("drops readings past the retention window", () => {
