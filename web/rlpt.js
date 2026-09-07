@@ -29,38 +29,6 @@
     return (h&&h[key]&&h[key].length>1)?h[key]:null;
   };
 
-  // The rating over the last fortnight, drawn small enough to sit in a table
-  // cell. This replaced a +/- figure printed under each rating: the number was
-  // the same three characters whether a player had climbed steadily or lost it
-  // all back, and the shape is the part worth seeing.
-  //
-  // Inline SVG rather than a canvas: it is a handful of points, it scales, and
-  // it inherits colour from the row it sits in.
-  var SPARK_W=160, SPARK_H=30;
-  var sparkline=function(id,key){
-    var pts=seriesFor(id,key);
-    if(!pts)return '<span class="dash">&middot;</span>';
-    var lo=Infinity, hi=-Infinity, t0=pts[0][0], t1=pts[pts.length-1][0];
-    for(var i=0;i<pts.length;i++){ if(pts[i][1]<lo)lo=pts[i][1]; if(pts[i][1]>hi)hi=pts[i][1]; }
-    var span=(t1-t0)||1, range=(hi-lo)||1;
-    // A flat series would otherwise be drawn along the very bottom of the box;
-    // centring it says "no movement" instead of "at its lowest".
-    var flat=hi===lo;
-    var xy=pts.map(function(p){
-      var x=((p[0]-t0)/span)*(SPARK_W-3)+1.5;
-      var y=flat?SPARK_H/2:(SPARK_H-3)-(((p[1]-lo)/range)*(SPARK_H-6))+1.5;
-      return [x,y];
-    });
-    var d=xy.map(function(p,i){return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join('');
-    var net=pts[pts.length-1][1]-pts[0][1];
-    var cls=net>0?'up':net<0?'dn':'flat';
-    var last=xy[xy.length-1];
-    var title=nf(lo)+'–'+nf(hi)+' over 14 days, '+(net===0?'no net change':(net>0?'up ':'down ')+nf(Math.abs(net)));
-    return '<svg class="spark '+cls+'" viewBox="0 0 '+SPARK_W+' '+SPARK_H+'" preserveAspectRatio="none" '+
-      'role="img" aria-label="'+esc(title)+'"><title>'+esc(title)+'</title>'+
-      '<path d="'+d+'" fill="none" stroke="currentColor" stroke-width="1.4" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>'+
-      '<circle cx="'+last[0].toFixed(1)+'" cy="'+last[1].toFixed(1)+'" r="1.9" fill="currentColor"/></svg>';
-  };
   var MMR_COL_TITLE='Current rating in this playlist.';
 
   // The rating chart in the opened row.
@@ -93,20 +61,14 @@
     var net=pts[pts.length-1][1]-pts[0][1];
     var cls=net>0?'up':net<0?'dn':'flat';
 
-    // Three gridlines: the two ends of the drawn range and its middle. Enough
-    // to read a value off, few enough not to become the loudest thing here.
+    // Just the ends of the drawn range, labelled. Enough to read a value
+    // against; anything more competes with the line it is there to support.
     var grid='';
-    [bot,mid,top].forEach(function(r){
+    [bot,top].forEach(function(r){
       var y=yOf(r).toFixed(1);
       grid+='<line class="cg" x1="'+x0+'" y1="'+y+'" x2="'+x1+'" y2="'+y+'"/>'+
             '<text class="ct" x="'+(x1+7)+'" y="'+(+y+3.5).toFixed(1)+'">'+nf(Math.round(r))+'</text>';
     });
-
-    // Every reading gets a dot. They are small because an active fortnight can
-    // carry a couple of hundred, and the marker is what the reader aims at.
-    var dots=xy.map(function(p){
-      return '<circle class="cp" cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="1.7"/>';
-    }).join('');
 
     var when=function(off){ return new Date(mmrBase+off*60000).toLocaleDateString([],{day:'numeric',month:'short'}); };
     // The points travel with the chart so the pointer handler does not have to
@@ -122,7 +84,6 @@
         grid+
         '<path class="ca" d="'+area+'"/>'+
         '<path class="cl" d="'+line+'" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
-        dots+
         '<g class="cmark" hidden><line class="cml" y1="'+y0+'" y2="'+y1+'"/><circle class="cmc" r="4"/></g>'+
         '<text class="ct dim" x="'+x0+'" y="'+(CH_H-5)+'">'+esc(when(t0))+'</text>'+
         '<text class="ct dim" text-anchor="end" x="'+x1+'" y="'+(CH_H-5)+'">'+esc(when(t1))+'</text>'+
@@ -907,7 +868,6 @@
             '</div>'+
             '<div class="pfig"><b>'+(fig==null?'&middot;':fig)+'</b><span>'+(METRIC_LABEL[k]||'')+'</span></div>'+
           '</div>'+
-          '<div class="ptrend"><span class="ptl">'+esc(PL_NAME[mmrKey])+' <i>14d</i></span>'+sparkline(p.id,mmrKey)+'</div>'+
           '<div class="prow">'+stats.join('')+'</div>'+
         '</div>';
       }).join('')+'</div>';
@@ -923,24 +883,15 @@
     // Status is here rather than in a column because the hours cells already
     // say "private" or "hidden"; a column repeating it was the same fact twice.
     var detailRow=function(p,span){
-      var pls=['ones','twos','threes'];
-      // Rank and games per playlist. The rating itself is not repeated here:
-      // it is three columns away in the same row, and printing it twice was
-      // the panel's least useful third.
-      var plRows=pls.map(function(k){
-        var g=p.gamesByPl&&p.gamesByPl[k]&&p.gamesByPl[k][win];
-        var sg=p.seasonByPl?p.seasonByPl[k]:null;
-        return '<tr'+(k===mmrKey?' class="on"':'')+'><th>'+PL_NAME[k]+'</th>'+
-          '<td class="tr">'+(p.tier&&p.tier[k]?esc(p.tier[k]):'<span class="dash">&middot;</span>')+'</td>'+
-          '<td>'+(sg!=null?nf(sg):'<span class="dash">&middot;</span>')+'</td>'+
-          '<td>'+(g&&g.games!=null&&!g.partial?nf(g.games):'<span class="dash">&middot;</span>')+'</td></tr>';
-      }).join('');
-
+      // Only what the row above cannot already say. The per-playlist block
+      // that used to sit here repeated the three ratings printed three columns
+      // to the left, which is what made the panel feel like filler.
       var facts=[
         ['Steam', statusChip(p.status)],
         ['Hours, 2 weeks', hours2wkCell(p).replace(/^<td[^>]*>|<\/td>$/g,'')],
         ['Hours, total', totalHoursCell(p).replace(/^<td[^>]*>|<\/td>$/g,'')],
-        ['Last played', p.lastPlayedAt?esc(agoShort(p.lastPlayedAt)):'<span class="dash">&middot;</span>']
+        ['Last played', p.lastPlayedAt?esc(agoShort(p.lastPlayedAt)):'<span class="dash">&middot;</span>'],
+        ['Rank', p.tier&&p.tier[mmrKey]?esc(p.tier[mmrKey]):'<span class="dash">&middot;</span>']
       ];
       if(isLive(p)&&p.session){
         var mins=p.session.startedAt?Math.round((Date.now()-p.session.startedAt)/60000):null;
@@ -949,20 +900,12 @@
           (mins!=null?' over '+(mins<60?mins+' min':Math.round(mins/6)/10+' h'):'')]);
       }
 
-      // Chart first and full width, then the two small blocks under it. The
-      // chart beside a five-column table left both cramped and put the table
-      // where the eye lands first, which is the wrong way round for a panel
-      // opened to see a rating over time.
       return '<tr class="pexp"><td colspan="'+span+'"><div class="pexp-in">'+
         '<div class="pexp-h">'+esc(PL_NAME[mmrKey])+' rating <span>last 14 days</span></div>'+
         bigChart(p.id,mmrKey)+
-        '<div class="pexp-cols">'+
-          '<table class="pltab"><thead><tr><th></th><th class="tr">Rank</th><th>Games, season</th><th>Games, '+
-            esc(WIN_LABEL[win]||win)+'</th></tr></thead><tbody>'+plRows+'</tbody></table>'+
-          '<div class="pexp-facts">'+facts.map(function(f){
-            return '<div><span class="pk">'+f[0]+'</span><span class="pvv">'+f[1]+'</span></div>';
-          }).join('')+'</div>'+
-        '</div>'+
+        '<div class="pexp-facts">'+facts.map(function(f){
+          return '<div><span class="pk">'+f[0]+'</span><span class="pvv">'+f[1]+'</span></div>';
+        }).join('')+'</div>'+
       '</div></td></tr>';
     };
 

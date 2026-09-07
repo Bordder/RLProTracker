@@ -377,18 +377,6 @@
   tr.isnorank .nm b{color:var(--slate)}
   /* The rating trend. Colour carries the net direction over the fortnight, so
      the column answers "which way" at a glance and the shape answers "how". */
-  /* The rating shape on each podium card. Three of these is a different
-     proposition from ninety-four down a table: there is room for it here, and
-     the card is the one place the board slows down enough to look. */
-  .ptrend{display:flex;align-items:center;gap:10px;margin:2px 0 2px}
-  .ptl{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;
-    font-size:9.5px;font-weight:700;color:var(--dim);white-space:nowrap}
-  .ptl i{font-style:normal;color:var(--line2);font-weight:600}
-  .ptrend .spark{flex:1;height:30px;min-width:0}
-  .spark{display:block;overflow:visible;color:var(--slate)}
-  .spark.up{color:var(--live)}
-  .spark.dn{color:#E0655A}
-  .spark.flat{color:var(--dim)}
   /* ---- Fewer columns on the wide table --------------------------------
      Status and Total h come out. Status was the same fact twice: the hours
      cells already print "private" or "hidden" when Steam will not say. Total h
@@ -428,51 +416,35 @@
   .pexp-in{display:flex;flex-direction:column;gap:14px;
     padding:14px 16px;border-radius:9px;background:var(--surface);border:1px solid var(--line2);
     border-left:2px solid var(--accent)}
-  .pexp-cols{display:flex;flex-wrap:wrap;gap:16px 40px;align-items:flex-start}
-  .pltab{flex:0 1 auto}
   .pexp-h{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;
-    font-size:11px;font-weight:800;color:var(--slate);margin-bottom:6px}
+    font-size:11px;font-weight:800;color:var(--slate)}
   .pexp-h span{color:var(--dim);font-weight:600;letter-spacing:.06em}
-  /* The pointer marker and its label. The wrapper is the positioning context
-     for a tip that follows the marker along the chart. */
-  /* Capped, or the chart scales with the table and a wide screen gets a
-     264px-tall panel for a rating that moved 40 points. */
+
+  /* The rating chart. Capped, or it scales with the table and a wide screen
+     gets a 264px-tall panel for a rating that moved forty points. */
   .chartwrap{position:relative;max-width:680px}
   .chart{width:100%;height:auto;display:block;color:var(--slate);cursor:crosshair}
-  .chart .cg{stroke:var(--line);stroke-width:1;shape-rendering:crispEdges}
-  .chart .cp{fill:currentColor;opacity:.55}
+  .chart.up{color:var(--live)} .chart.dn{color:#E0655A} .chart.flat{color:var(--dim)}
+  .chart .cl{stroke:currentColor}
+  .chart .ca{fill:currentColor;opacity:.10}
+  .chart .cg{stroke:var(--line);stroke-width:1;shape-rendering:crispEdges;opacity:.55}
+  .chart .ct{font-family:var(--mono);font-size:10px;fill:var(--slate)}
+  .chart .ct.dim{fill:var(--dim)}
+  .chart-none{font-size:12.5px;color:var(--dim);padding:26px 0}
+
+  /* The pointer marker names the nearest reading: which rating, and when. */
   .chart .cml{stroke:var(--slate);stroke-width:1;stroke-dasharray:2 3;opacity:.7}
   .chart .cmc{fill:var(--bone);stroke:currentColor;stroke-width:2}
   .chart-tip{position:absolute;top:-2px;pointer-events:none;white-space:nowrap;
     background:var(--ink);border:1px solid var(--line2);border-radius:6px;padding:4px 8px;
     display:flex;gap:8px;align-items:baseline;box-shadow:0 4px 14px rgba(0,0,0,.45)}
+  /* display:flex beats the browser's own [hidden] rule, so without this the
+     empty tip sat in the chart's corner from the moment the panel opened. */
+  .chart-tip[hidden]{display:none}
   .chart-tip b{font-family:var(--mono);font-size:12.5px;color:var(--bone);font-weight:600}
   .chart-tip span{font-family:var(--mono);font-size:11px;color:var(--dim)}
-  .chart.up{color:var(--live)} .chart.dn{color:#E0655A} .chart.flat{color:var(--dim)}
-  .chart .cl{stroke:currentColor}
-  .chart .ca{fill:currentColor;opacity:.10}
-  .chart .cd{fill:currentColor}
-  .chart .ct{font-family:var(--mono);font-size:10px;fill:var(--slate)}
-  .chart .ct.dim{fill:var(--dim)}
-  .chart-none{font-size:12.5px;color:var(--dim);padding:26px 0}
-  .pexp-side{display:flex;flex-direction:column;gap:12px;min-width:0}
 
-  /* Per playlist, so the split between a 2v2 specialist and a 1v1 grinder is
-     visible somewhere. The ranked playlist is marked, because it is the one
-     the table's ordering is using. */
-  .pltab{border-collapse:collapse;font-size:12.5px;width:auto}
-  .pltab th{font-family:var(--display);text-transform:uppercase;letter-spacing:.07em;
-    font-size:10px;font-weight:700;color:var(--dim);text-align:right;padding:0 0 5px 12px}
-  .pltab thead th:first-child{padding-left:0}
-  .pltab tbody th{font-family:var(--mono);font-size:11.5px;color:var(--slate);text-align:left;
-    padding:4px 12px 4px 0;letter-spacing:0}
-  .pltab td{font-family:var(--mono);font-size:12.5px;color:var(--bone);text-align:right;
-    padding:4px 0 4px 12px;white-space:nowrap}
-  .pltab td.tr,.pltab th.tr{text-align:right;color:var(--slate);font-size:11px}
-  .pltab tbody tr.on th{color:var(--accent)}
-  .pltab tbody tr+tr td,.pltab tbody tr+tr th{border-top:1px solid var(--line)}
-
-  .pexp-facts{display:flex;flex-wrap:wrap;gap:9px 22px}
+  .pexp-facts{display:flex;flex-wrap:wrap;gap:10px 28px;align-items:flex-start}
   .pexp-facts>div{display:flex;flex-direction:column;gap:2px;min-width:0}
   .pexp .pk{font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;
     font-size:10px;font-weight:700;color:var(--dim)}
@@ -959,6 +931,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=b6adcde9" defer></script>
+<script src="rlpt.js?v=20cd4f2d" defer></script>
 </body>
 </html>
