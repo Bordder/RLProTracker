@@ -106,7 +106,7 @@
     });
 
     $("cols").innerHTML = rows.join("") +
-      '<div class="col"><div class="col-axis"><span>24 hours ago</span><span>now</span></div></div>';
+      '<div class="col foot"><div class="col-axis"><span>24 hours ago</span><span>now</span></div></div>';
 
     // The verdict is the worst state of any collector. That is only fair
     // because each threshold is scaled to its own cadence, so the slow hourly
@@ -143,11 +143,12 @@
     var withHours = sp.filter(function (p) { return p.totalHours != null; }).length;
     var teams = (teamT && teamT.teams) || [];
 
+    // "94 / 94" is noise: the denominator only says something when the two
+    // differ, which for ranked players means a profile we cannot read.
     var cov = [
-      { k: "Players ranked", v: ranked, of: players.length },
+      { k: "Players ranked", v: ranked, of: ranked === players.length ? null : players.length },
       { k: "Teams covered", v: teams.length, of: null },
-      { k: "Playtime visible", v: withHours, of: sp.length },
-      { k: "Snapshots held", v: (tracker && tracker.snapshotCount) || 0, of: null }
+      { k: "Playtime visible", v: withHours, of: sp.length }
     ];
     $("cov").innerHTML = cov.map(function (c) {
       return '<div><span class="k">' + esc(c.k) + '</span><span class="v">' + esc(c.v) +

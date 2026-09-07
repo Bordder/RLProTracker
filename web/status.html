@@ -87,14 +87,9 @@
   .bar span.is-late{background:var(--warn)}
   .bar span.is-bad{background:var(--bad)}
   .bar span.is-unknown{background:#1B1F28}
+  .col.foot{padding:7px 17px 8px;background:var(--ink)}
   .col-axis{display:flex;justify-content:space-between;font-family:var(--mono);
-    font-size:10.5px;color:var(--dim);letter-spacing:.02em;margin-top:6px}
-  .legend{font-size:12.5px;color:var(--dim);margin:10px 0 0}
-  .legend i{display:inline-block;width:9px;height:9px;border-radius:2px;
-    vertical-align:baseline;margin:0 4px 0 10px}
-  .legend i:first-child{margin-left:0}
-  .legend .lg-ok{background:var(--ok)} .legend .lg-late{background:var(--warn)}
-  .legend .lg-bad{background:var(--bad)} .legend .lg-un{background:#1B1F28}
+    font-size:10px;color:var(--dim);letter-spacing:.09em;text-transform:uppercase}
 
   .cov{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:6px}
   .cov div{border:1px solid var(--line);border-radius:9px;background:var(--surface);padding:12px 14px}
@@ -124,7 +119,7 @@
     <a class="brand" href="/">RL Pro Tracker<span>.</span></a>
   </header>
   <nav class="crumbs" aria-label="Breadcrumb">
-    <a href="/">Tracker</a> <span aria-hidden="true">/</span> <span aria-current="page">Status</span>
+    <a href="/">homepage</a> <span aria-hidden="true">/</span> <span aria-current="page">status</span>
   </nav>
   <h1>Status</h1>
 
@@ -134,29 +129,17 @@
   </div>
   <p class="checked" id="checked">&nbsp;</p>
 
-  <h2>Collectors, last 24 hours</h2>
+  <h2>Data collection</h2>
   <div class="panel" id="cols">
     <div class="col"><div class="col-head"><div class="col-name"><b>Loading&hellip;</b></div></div></div>
   </div>
-  <p class="legend">
-    <i class="lg-ok" aria-hidden="true"></i>on time
-    <i class="lg-late" aria-hidden="true"></i>slipped
-    <i class="lg-bad" aria-hidden="true"></i>missed
-    <i class="lg-un" aria-hidden="true"></i>no record.
-    One block per half hour. Hover any block for what happened in it.
-  </p>
 
   <h2>Coverage</h2>
   <div class="cov" id="cov"></div>
 
-  <h2>How often things run</h2>
-  <p>Ranked stats are collected every <b>2 minutes</b> and every tracked player is refreshed on
-  every run. Steam playtime is hourly, because Steam only recomputes the two-week figure a few
-  times a day. Presence polling runs every 5 minutes and exists to estimate hours for players
-  whose Steam playtime is hidden.</p>
-  <p class="note">This page reads the same published data the board does, so it cannot show a
-  problem the board would hide. It refreshes itself every 30 seconds. The raw figures behind it
-  are at <code>/api/status</code>.</p>
+  <p class="note">Ranked stats every <b>2 minutes</b>, Steam playtime <b>hourly</b>, presence
+  <b>every 5 minutes</b>. This page reads the same published data the board does, so it cannot
+  show a problem the board would hide. Raw figures at <code>/api/status</code>.</p>
 
   <footer class="legal">
     <div class="links"><a href="/">Back to the tracker</a><a href="/how-it-works">How it works</a><a href="/faq">FAQ</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div>
@@ -164,6 +147,6 @@
     A fan-made project, not affiliated with Psyonix, Epic Games or RLCS. Rocket League is a trademark of Psyonix LLC. Player and team names belong to their respective owners.</p>
   </footer>
 </div>
-<script src="status.js?v=9bc444cc" defer></script>
+<script src="status.js?v=904c068a" defer></script>
 </body>
 </html>
