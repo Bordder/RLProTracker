@@ -55,6 +55,11 @@
     return d + " day" + (d === 1 ? "" : "s");
   };
 
+  // One word per state, which is what a reader takes away. Statuspage-style
+  // pages lead with this rather than a percentage for the same reason: the
+  // word is the answer, the number is the evidence.
+  var STATE_WORD = { ok: "Operational", late: "Delayed", bad: "Stalled" };
+
   var stateOf = function (ageMs, feed) {
     if (ageMs == null) return "bad";
     var min = ageMs / 60000;
@@ -77,19 +82,22 @@
 
   var render = function (results) {
     var now = Date.now();
-    var rows = [];
+    var rows = [], hists = [];
     var worst = "ok";
     var reachable = 0;
+    var newest = null;
 
     FEEDS.forEach(function (feed, i) {
       var at = parseAt(results[i]);
       var age = at == null ? null : now - at;
       var st = stateOf(age, feed);
       if (at != null) reachable++;
+      if (i === 0) newest = age;
       if (st === "bad") worst = "bad";
       else if (st === "late" && worst === "ok") worst = "late";
 
       var hist = history(results[FEEDS.length + i], feed, now);
+      hists.push(hist);
 
       rows.push(
         '<div class="col is-' + st + '">' +
@@ -98,6 +106,7 @@
             "<span>" + esc(feed.sub) + "</span></div>" +
             '<span class="col-pct" title="' + esc(hist.explain) + '">' + hist.pctText + "</span>" +
             '<span class="col-age">' + (at == null ? "no reading" : esc(ageWords(age)) + " ago") + "</span>" +
+            '<span class="col-state">' + STATE_WORD[st] + "</span>" +
           "</div>" +
           '<div class="bar" role="img" aria-label="' + esc(feed.name + ": " + hist.explain) + '">' +
           hist.cells + "</div>" +
@@ -154,6 +163,65 @@
       return '<div><span class="k">' + esc(c.k) + '</span><span class="v">' + esc(c.v) +
         (c.of != null ? " <small>/ " + esc(c.of) + "</small>" : "") + "</span></div>";
     }).join("");
+
+    summary(worst, reachable, newest, hists);
+  };
+
+  // Three figures under the verdict: the state now, when the board last moved,
+  // and how the day went. The last one takes the WORST collector for each block
+  // of the day, so a run of blocks counts as one interruption however many
+  // collectors were caught in it - which is how a reader would count it.
+  var summary = function (worst, reachable, newest, hists) {
+    var blocks = [];
+    for (var i = 0; i < SLOTS; i++) {
+      var w = null;
+      for (var h = 0; h < hists.length; h++) {
+        var st = hists[h].states[i];
+        if (st === "bad") w = "bad";
+        else if (st === "late" && w !== "bad") w = "late";
+        else if (st === "ok" && w == null) w = "ok";
+      }
+      blocks.push(w);
+    }
+
+    var known = 0, clean = 0, lost = 0, breaks = 0, inBreak = false;
+    for (var j = 0; j < blocks.length; j++) {
+      if (blocks[j] == null) { inBreak = false; continue; }
+      known++;
+      if (blocks[j] === "ok") { clean++; inBreak = false; }
+      else {
+        lost += SLOT_MIN;
+        if (!inBreak) breaks++;
+        inBreak = true;
+      }
+    }
+    var pct = known ? Math.round((clean / known) * 1000) / 10 : null;
+
+    var word = reachable === 0 ? "Down" : (worst === "ok" ? "Up" : worst === "late" ? "Delayed" : "Stalled");
+    var wordSub = reachable === 0
+      ? "The published data did not load."
+      : (worst === "ok"
+        ? "All four collectors reporting."
+        : "One collector is behind. See the rows below.");
+
+    var cards = [
+      { cls: reachable === 0 ? "bad" : worst, k: "Current status", v: word, c: wordSub },
+      { cls: "", k: "Newest numbers", v: newest == null ? "unknown" : ageWords(newest) + " ago",
+        c: "Ranked stats, collected every 2 minutes." },
+      { cls: pct == null ? "" : (pct >= 99 ? "ok" : pct >= 95 ? "late" : "bad"),
+        k: "Last 24 hours", v: pct == null ? "&mdash;" : (pct === 100 ? "100%" : pct.toFixed(1) + "%"),
+        // "behind" would read as how stale the data is now, which is the
+        // card to the left. This is how much of the day was affected.
+        c: breaks === 0 ? "No interruptions." :
+          breaks + (breaks === 1 ? " interruption, " : " interruptions, ") + ageWords(lost * 60000) + " affected." }
+    ];
+
+    $("sum").innerHTML = cards.map(function (c) {
+      return '<div class="sc' + (c.cls ? " is-" + c.cls : "") + '">' +
+        '<span class="k">' + esc(c.k) + "</span>" +
+        '<span class="v">' + c.v + "</span>" +
+        '<span class="c">' + esc(c.c) + "</span></div>";
+    }).join("");
   };
 
   // One collector's 24 hours, as 48 half-hour blocks.
@@ -174,7 +242,7 @@
     var nowMin = Math.floor(now / 60000);
     var start = nowMin - SLOTS * SLOT_MIN;
     var first = runs.length ? runs[0] : null;
-    var cells = [], ok = 0, known = 0;
+    var cells = [], states = [], ok = 0, known = 0;
 
     for (var i = 0; i < SLOTS; i++) {
       var from = start + i * SLOT_MIN;
@@ -184,6 +252,7 @@
       // red would invent a failure that never happened.
       if (first == null || from + SLOT_MIN <= first) {
         cells.push('<span class="is-unknown" title="' + clock(from) + ': not recorded"></span>');
+        states.push(null);
         continue;
       }
 
@@ -202,6 +271,7 @@
       for (var m = 1; m < marks.length; m++) gap = Math.max(gap, marks[m] - marks[m - 1]);
 
       var st = gap <= feed.late ? "ok" : (gap <= feed.bad ? "late" : "bad");
+      states.push(st);
       known++;
       if (st === "ok") ok++;
       cells.push('<span class="is-' + st + '" title="' + clock(from) + ": " + n +
@@ -210,6 +280,7 @@
 
     var pct = known ? Math.round((ok / known) * 1000) / 10 : null;
     return {
+      states: states,
       cells: cells.join(""),
       pctText: pct == null ? "&mdash;" : (pct === 100 ? "100%" : pct.toFixed(1) + "%"),
       explain: known === 0

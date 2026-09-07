@@ -51,6 +51,22 @@
   .verdict.is-bad{border-left-color:var(--bad)} .verdict.is-bad .dot{background:var(--bad)}
   .checked{font-size:12px;color:var(--dim);margin:0 0 10px}
 
+  /* ---- Summary ---------------------------------------------------------
+     Three figures under the verdict, the shape isdownforeveryone and every
+     uptime monitor lands on: the state, when it last moved, and how the last
+     day went. The verdict says whether to trust the board; these say how much.
+     Value large, caption small underneath, so the row scans in one pass. */
+  .sum{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin:0 0 22px}
+  .sc{border:1px solid var(--line);border-radius:10px;background:var(--surface);padding:13px 15px}
+  .sc .k{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.06em;
+    font-size:11px;color:var(--dim);display:block;margin-bottom:5px}
+  .sc .v{font-family:var(--display);font-weight:900;text-transform:uppercase;letter-spacing:.01em;
+    font-size:26px;line-height:1;color:var(--bone);display:block}
+  .sc .c{display:block;font-size:12px;color:var(--dim);margin-top:5px;line-height:1.45}
+  .sc.is-ok .v{color:var(--ok)}
+  .sc.is-late .v{color:var(--warn)}
+  .sc.is-bad .v{color:var(--bad)}
+
   /* ---- Collectors ------------------------------------------------------
      One panel, one row per collector, each with its own 24-hour bar. The
      shape is the convention every status page uses (GitHub, OpenAI, anything
@@ -74,10 +90,12 @@
   .col-name b{color:var(--bone);font-weight:600;font-size:14.5px;white-space:nowrap}
   .col-name span{color:var(--dim);font-size:12.5px;min-width:0;overflow:hidden;
     text-overflow:ellipsis;white-space:nowrap}
-  .col-pct{font-family:var(--mono);font-size:13px;color:var(--bone);white-space:nowrap;cursor:help}
-  .col.is-late .col-pct{color:var(--warn)}
-  .col.is-bad .col-pct{color:var(--bad)}
+  .col-pct{font-family:var(--mono);font-size:12px;color:var(--slate);white-space:nowrap;cursor:help}
   .col-age{font-family:var(--mono);font-size:12px;color:var(--dim);white-space:nowrap}
+  .col-state{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.07em;
+    font-size:12px;white-space:nowrap;color:var(--ok)}
+  .col.is-late .col-state{color:var(--warn)}
+  .col.is-bad .col-state{color:var(--bad)}
 
   /* One tick per half hour over 24 hours. Solid colour, not a part-filled
      block: with 48 of them the eye reads the COUNT of bad ticks, which is what
@@ -129,6 +147,8 @@
   </div>
   <p class="checked" id="checked">&nbsp;</p>
 
+  <div class="sum" id="sum"></div>
+
   <h2>Data collection</h2>
   <div class="panel" id="cols">
     <div class="col"><div class="col-head"><div class="col-name"><b>Loading&hellip;</b></div></div></div>
@@ -147,6 +167,6 @@
     A fan-made project, not affiliated with Psyonix, Epic Games or RLCS. Rocket League is a trademark of Psyonix LLC. Player and team names belong to their respective owners.</p>
   </footer>
 </div>
-<script src="status.js?v=904c068a" defer></script>
+<script src="status.js?v=009720f0" defer></script>
 </body>
 </html>
