@@ -42,6 +42,20 @@ async function fetchTracker(env) {
 // uncollapsed probe would let ordinary traffic halt collection.
 const HOT_TTL = 20;
 
+// Only this site may read the feed from a page.
+//
+// Pages answers with Access-Control-Allow-Origin: * by default, so any
+// site could pull these numbers straight into its own page and run on this
+// collector's bandwidth. The board itself is same-origin and needs no CORS
+// header at all; naming the origin keeps that working and stops the rest.
+const ALLOW_ORIGIN = "https://198x.online";
+const withCors = (res) => {
+  const r = new Response(res.body, res);
+  r.headers.set("access-control-allow-origin", ALLOW_ORIGIN);
+  r.headers.set("vary", "Origin");
+  return r;
+};
+
 export async function onRequestGet(context) {
   const request = context && context.request;
   const cache = caches.default;
@@ -51,20 +65,20 @@ export async function onRequestGet(context) {
 
   if (hotKey) {
     const hot = await cache.match(hotKey);
-    if (hot) return hot;
+    if (hot) return withCors(hot);
   }
 
   try {
     const res = await fetchTracker(context && context.env);
-    if (!res.ok) return Response.json({ error: "upstream" }, { status: 502 });
+    if (!res.ok) return withCors(Response.json({ error: "upstream" }, { status: 502 }));
     const { computedAt } = await res.json();
     const body = { computedAt: computedAt ?? null };
     const headers = { "cache-control": `public, max-age=20, s-maxage=${HOT_TTL}` };
     if (hotKey && typeof context.waitUntil === "function") {
       context.waitUntil(cache.put(hotKey, Response.json(body, { headers })));
     }
-    return Response.json(body, { headers });
+    return withCors(Response.json(body, { headers }));
   } catch {
-    return Response.json({ error: "upstream" }, { status: 502 });
+    return withCors(Response.json({ error: "upstream" }, { status: 502 }));
   }
 }

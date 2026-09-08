@@ -1,3 +1,14 @@
+// DO NOT WIRE THIS INTO A WORKFLOW.
+//
+// It prints proxy hostnames and their exit IPs. The repo is public, so Actions
+// logs are public with it, and publishing this output hands over the whole
+// fleet. GitHub masks registered secrets automatically, but an exit IP is a
+// value derived at runtime and is not masked by anything.
+//
+// "Proxy health check at run start" is on the roadmap and is exactly the change
+// that would do this. If it is ever wanted in CI, make it report pass/fail
+// counts and indices only - never an address.
+//
 // Check every configured proxy: is the tunnel alive, what IP does it exit from,
 // and does tracker.gg accept it? Reads the same env vars as the scraper, so it
 // tells you which endpoints are actually usable right now.

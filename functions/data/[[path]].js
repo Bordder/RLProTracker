@@ -53,19 +53,33 @@ const ALLOWED = /^[a-z0-9-]+\.json$/i;
 // would stop collection entirely and drop the site back to stale raw reads.
 const HOT_TTL = 20;
 
+// Only this site may read the feed from a page.
+//
+// Pages answers with Access-Control-Allow-Origin: * by default, so any
+// site could pull these numbers straight into its own page and run on this
+// collector's bandwidth. The board itself is same-origin and needs no CORS
+// header at all; naming the origin keeps that working and stops the rest.
+const ALLOW_ORIGIN = "https://198x.online";
+const withCors = (res) => {
+  const r = new Response(res.body, res);
+  r.headers.set("access-control-allow-origin", ALLOW_ORIGIN);
+  r.headers.set("vary", "Origin");
+  return r;
+};
+
 export async function onRequestGet(context) {
   const { request, params, waitUntil } = context;
   const file = (params.path || []).join("/");
   // Only ever proxy the derived JSON: no path traversal, no fetching arbitrary
   // repo contents through the site's origin.
-  if (!ALLOWED.test(file)) return new Response("not found", { status: 404 });
+  if (!ALLOWED.test(file)) return withCors(new Response("not found", { status: 404 }));
 
   const cache = caches.default;
   const cacheKey = new Request(new URL(`/__data/${file}`, request.url).toString(), { method: "GET" });
   const hotKey = new Request(new URL(`/__hot/${file}`, request.url).toString(), { method: "GET" });
 
   const hot = await cache.match(hotKey);
-  if (hot) return hot;
+  if (hot) return withCors(hot);
 
   let upstream = null;
   try {
@@ -91,7 +105,7 @@ export async function onRequestGet(context) {
     });
     waitUntil(cache.put(cacheKey, backup));
     waitUntil(cache.put(hotKey, fresh()));
-    return fresh();
+    return withCors(fresh());
   }
 
   const stale = await cache.match(cacheKey);
@@ -101,8 +115,8 @@ export async function onRequestGet(context) {
     // Says plainly that this is a fallback, so a confusing number on the page
     // can be traced without guessing.
     headers.set("x-data-stale", "upstream-unavailable");
-    return new Response(stale.body, { headers });
+    return withCors(new Response(stale.body, { headers }));
   }
 
-  return new Response("upstream error", { status: 502 });
+  return withCors(new Response("upstream error", { status: 502 }));
 }

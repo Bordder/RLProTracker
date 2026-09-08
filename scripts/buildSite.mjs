@@ -74,10 +74,13 @@ await writeFile(join(ROOT, "web", "_headers"), [
   "  X-Content-Type-Options: nosniff",
   "  Referrer-Policy: no-referrer",
   "  Permissions-Policy: geolocation=(), microphone=(), camera=()",
-  "",
-  "# Data JSON is rewritten every few minutes; never let a CDN or browser pin it.",
-  "/data/derived/*",
-  "  Cache-Control: no-cache",
+  // The site was answering "Strict-Transport-Security: max-age=0; preload",
+  // which is the header for NO HSTS - max-age=0 tells a browser to forget
+  // the policy immediately, and preload beside it is contradictory. Six
+  // months rather than the usual year, and no preload: preload is a
+  // one-way door that needs a submission to hstspreload.org and is painful
+  // to undo, and nothing here needs it.
+  "  Strict-Transport-Security: max-age=15552000; includeSubDomains",
   "",
   "# Font FILES are content-addressed by name and never change under the same name.",
   "/fonts/*.woff2",
