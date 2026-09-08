@@ -711,8 +711,21 @@
      SSA exist further right. Wrapping to a second line hides nothing and needs
      no gesture to discover. */
   @media (max-width:560px){
-    .wseg{display:flex;flex-wrap:wrap;overflow-x:visible;width:100%;justify-content:flex-start}
+    /* Wrapping was the earlier answer to a clipped MENA chip. It cost more than
+       it fixed once the filters went sticky: the region row took two lines and
+       the metric row, stretched to width:100%, left a wide empty slab to the
+       right of "Games". Both now size to their content and scroll horizontally
+       when there is more than fits, so each is exactly one line high. */
+    .wseg{display:flex;flex-wrap:nowrap;width:max-content;max-width:100%;
+      overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start}
+    .wseg::-webkit-scrollbar{display:none}
     .wseg button{flex:0 0 auto}
+    /* The wrapping this replaced was chosen so nobody could miss that OCE and
+       SSA exist off to the right. The row scrolls now, so it says so instead:
+       the last chip fades under the right edge, which reads as "more this way"
+       where a hard cut reads as the end of the list. */
+    .rseg{mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent);
+      -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent)}
   }
 
   @media (max-width:700px){
@@ -728,7 +741,9 @@
       display:grid;height:auto;align-items:center;gap:0 10px;
       grid-template-columns:22px minmax(0,1fr) auto auto;
       background:none;border:0;border-bottom:1px solid var(--line);border-radius:0;
-      padding:9px 2px;margin:0;
+      /* Left padding clears the accent bar the leader row carries; without it
+         the bar sits under the rank number and the chevron. */
+      padding:9px 2px 9px 9px;margin:0;
     }
     .feed>tbody>tr:last-child{border-bottom:0}
     .feed>tbody>tr.isnorank{opacity:1}
@@ -772,6 +787,12 @@
     .feed>tbody>tr>td.c-g14 .g14v,.feed>tbody>tr>td.c-sg .sgv{font-size:14px}
     .feed>tbody>tr>td.c-hr{font-size:13px}
     .feed>tbody>tr>td.c-hr .na{font-size:10px}
+
+    /* The window figure (24h / 7d) comes out of the collapsed row. Two numbers
+       side by side made the row read as a comparison it was not: the board is
+       ordered by one of them. It stays when it IS the sort, and it is in the
+       opened row either way, next to season games and both hours columns. */
+    .feed:not([data-sort="g14"])>tbody>tr:not(.open)>td.c-g14{display:none}
 
     /* Region, status and the rest of the numbers are one tap away rather than
        gone: a row opens into the full set. */
