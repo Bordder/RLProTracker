@@ -834,6 +834,17 @@
     }
     #playersView .feed>tbody>tr.open>td.c-rg .chip-pair{display:inline-flex}
     #playersView .feed>tbody>tr.open>td .sx,#playersView .feed>tbody>tr.open>td .rg{font-size:9.5px;padding:3px 7px;letter-spacing:.06em}
+
+    /* "hours hidden" is the longest of the status labels and the hours tiles are
+       three of twelve columns, so it ran past the tile edge and read as "HOURS
+       HIDD". The cells inherit nowrap from the collapsed row, where it is right;
+       inside an opened card there is height to spare, so it wraps onto a second
+       line instead of being shortened or set smaller than the 10px it already
+       is. Tighter tracking buys back most of the width on its own. */
+    #playersView .feed>tbody>tr.open>td.c-hr{white-space:normal}
+    #playersView .feed>tbody>tr.open>td.c-hr .na{
+      display:inline-block;letter-spacing:.01em;line-height:1.25;
+    }
     /* The collapsed line hides 2v2 when it is ordering by another playlist.
        An open row shows everything, so it says so more specifically. */
     #playersView .feed[data-sort]>tbody>tr.open>td.c-mmr.m2{display:block}
