@@ -734,6 +734,12 @@
     /* The playlist tag inside the MMR button is the one thing that must not
        shrink into the word beside it. */
     .wseg button .mpl{margin-left:4px;padding:1px 4px}
+
+    /* Playing is the one segment holding a single button, so that button spans
+       the row on its own. Its content is a flex line (the pulsing dot, the word,
+       the count), which text-align cannot move, and it sat against the left edge
+       of a full-width pill looking like a mistake. */
+    .pseg button.pbtn{justify-content:center}
   }
 
   @media (max-width:700px){
