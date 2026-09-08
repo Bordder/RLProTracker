@@ -716,16 +716,24 @@
        the metric row, stretched to width:100%, left a wide empty slab to the
        right of "Games". Both now size to their content and scroll horizontally
        when there is more than fits, so each is exactly one line high. */
-    .wseg{display:flex;flex-wrap:nowrap;width:max-content;max-width:100%;
-      overflow-x:auto;-webkit-overflow-scrolling:touch;justify-content:flex-start}
+    /* Both filter rows fit their phone in one line, with nothing off-screen and
+       no slack at the end. Two moves get there: the buttons lose the desktop's
+       generous horizontal padding and a little type size, which is what made
+       six region chips need 393px inside a 347px row; and they then grow to
+       fill whatever is left, in proportion to their own text, so a row that
+       comes up short distributes the remainder instead of parking it on the
+       right. Wrapping is off, and overflow stays scrollable as a floor for the
+       narrowest handsets rather than as the normal case. */
+    .wseg{display:flex;flex-wrap:nowrap;width:100%;
+      overflow-x:auto;-webkit-overflow-scrolling:touch}
     .wseg::-webkit-scrollbar{display:none}
-    .wseg button{flex:0 0 auto}
-    /* The wrapping this replaced was chosen so nobody could miss that OCE and
-       SSA exist off to the right. The row scrolls now, so it says so instead:
-       the last chip fades under the right edge, which reads as "more this way"
-       where a hard cut reads as the end of the list. */
-    .rseg{mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent);
-      -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 26px),transparent)}
+    .wseg button{flex:1 1 auto;min-width:0;padding-left:6px;padding-right:6px;
+      font-size:11px;letter-spacing:.02em;text-align:center}
+    .rseg button{font-size:10.5px;letter-spacing:.05em;padding-left:6px;padding-right:6px}
+    .rseg button .rn{margin-left:3px;font-size:9px}
+    /* The playlist tag inside the MMR button is the one thing that must not
+       shrink into the word beside it. */
+    .wseg button .mpl{margin-left:4px;padding:1px 4px}
   }
 
   @media (max-width:700px){
