@@ -658,6 +658,11 @@
   var regionQ='';   // '' = every region
   var liveOnly=false;
   var podiumIds={};  // whoever is shown large above the table
+  // The podium is a wide-screen device. On a phone its three cards cost 870px,
+  // which is most of a screen spent on three players, so the list carries the
+  // top three itself and marks them instead. Kept as a live query rather than a
+  // one-off read so that rotating or resizing re-renders correctly.
+  var PHONE=window.matchMedia('(max-width:700px)');
 
     function buildTable(mount, columns, items, accessors, rowFn, def, matchFn){
       var sk=def.k, sd=def.dir;
@@ -730,7 +735,7 @@
       },h2:function(p){return p.hours2wk!=null?p.hours2wk:p.estHours2wk;},ht:function(p){return p.totalHours;}};
     var playerRow=function(p){
       var mmr=p.hasMmr?(mmrCell(p.mmr.ones,'m1')+mmrCell(p.mmr.twos,'m2')+mmrCell(p.mmr.threes,'m3')):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
-      return '<tr class="'+(p.hasMmr?'':'isnorank')+'" data-player="'+esc(p.name)+'">'+
+      return '<tr class="'+(p.hasMmr?'':'isnorank')+(p.__pos<=3?' lead lead'+p.__pos:'')+'" data-player="'+esc(p.name)+'">'+
         '<td class="c-rk">'+rankMark(p.__pos||p.__rank)+'</td>'+
         '<td class="c-who">'+teamMark(p.team)+'<span class="nm"><b>'+esc(p.name)+(isLive(p)?playMark(p):'')+'</b><i>'+esc(p.team||'Free agent')+'</i></span></td>'+
         // The phone layout needs both chips in one container so they can sit
@@ -874,6 +879,7 @@
     // apply, rather than the one the table is still in.
     var renderPodium=function(nextKey){
       if(!podEl)return;
+      if(PHONE.matches){ podEl.innerHTML=''; podiumIds={}; return; }
       var k=nextKey||paintP.sortKey(), acc=pAcc[k];
       // Ranking by name or region is a lookup, not a leaderboard, so no podium.
       if(!acc||k==='name'||k==='region'||k==='status'||searchQ){ podEl.innerHTML=''; podiumIds={}; return; }
@@ -1217,6 +1223,12 @@
 
     // ---- search ----
     var input=document.getElementById('search'), wrap=document.getElementById('searchWrap');
+    // Crossing the phone breakpoint changes whether the podium exists at all,
+    // and the table's row count depends on that, so both are repainted.
+    var onPhoneChange=function(){ renderPodium(); paintP(); };
+    if(PHONE.addEventListener) PHONE.addEventListener('change',onPhoneChange);
+    else if(PHONE.addListener) PHONE.addListener(onPhoneChange);
+
     input.addEventListener('input',function(){ searchQ=input.value.trim().toLowerCase(); wrap.classList.toggle('has',!!searchQ); renderPodium(); paintP(); paintT(); });
     document.getElementById('searchClear').addEventListener('click',function(){ input.value=''; searchQ=''; wrap.classList.remove('has'); renderPodium(); paintP(); paintT(); input.focus(); });
 
