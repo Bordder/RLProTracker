@@ -124,9 +124,12 @@
   var REGION={
     'Karmine Corp':'EU','Gentle Mates':'EU','Team Vitality':'EU','Ninjas in Pyjamas':'EU','Man City Esports':'EU',
     'NRG':'NA','Shopify Rebellion':'NA','Spacestation Gaming':'NA','Wildcard':'NA','TSM':'NA','FUT Esports':'NA','Virtus.pro':'NA',
-    'MIBR':'SAM','FURIA':'SAM','Mate y Tapa':'SAM','Bigodes':'SAM',
+    'MIBR':'SAM','FURIA':'SAM','Bigodes':'SAM',
     'Twisted Minds':'MENA','Team Falcons':'MENA','R8 Esports':'MENA',
-    'Five Fears':'OCE',
+    // Mate y Tapa won the EU LCQ and entered Worlds as the EU seed: the roster is
+    // Spanish and Argentinian, but the region here is the competitive one.
+    // Five Fears announced an SSA entry in Nov 2025 and qualified through SSA Open 3.
+    'Mate y Tapa':'EU','Five Fears':'SSA',
     // Regional sides, tracked beyond the World Championship field.
     'Geekay Esports':'EU','Team BSK':'EU','Novo Esports':'EU','FN':'EU','GHT':'EU',
     'Gen.G Mobil1 Racing':'NA','Dignitas':'NA','M80':'NA','Lil Step Bros':'NA','S.O.S.':'NA',
