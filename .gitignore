@@ -30,3 +30,11 @@ data/tracker-state.json
 data/steam-history.json
 data/last-known-hours.json
 data/proxy-use.json
+
+# Bracket page, built out of tree on purpose (9 Sept 2026). Nothing in here is
+# committed, pushed or deployed: anything under web/ ships on the next
+# `wrangler pages deploy`, and a half-finished bracket must not be publicly
+# reachable at a guessable URL while the main site is being shipped. Move files
+# into scripts/ and web/ deliberately, in their own commit, when the page is
+# wanted live.
+rlcs-bracket/
