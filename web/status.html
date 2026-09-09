@@ -45,7 +45,7 @@
   .verdict .dot{width:11px;height:11px;border-radius:50%;flex:none;margin-top:6px;background:var(--dim)}
   .verdict .vt{font-family:var(--display);font-weight:900;text-transform:uppercase;
     font-size:1.5rem;line-height:1.1;color:var(--bone);letter-spacing:.01em}
-  .verdict .vs{font-size:13.5px;margin-top:2px}
+  .verdict .vs{font-size:13.5px;margin-top:2px;min-height:3.2em}
   .verdict.is-ok{border-left-color:var(--ok)} .verdict.is-ok .dot{background:var(--ok)}
   .verdict.is-late{border-left-color:var(--warn)} .verdict.is-late .dot{background:var(--warn)}
   .verdict.is-bad{border-left-color:var(--bad)} .verdict.is-bad .dot{background:var(--bad)}
@@ -62,7 +62,11 @@
     font-size:11px;color:var(--dim);display:block;margin-bottom:5px}
   .sc .v{font-family:var(--display);font-weight:900;text-transform:uppercase;letter-spacing:.01em;
     font-size:26px;line-height:1;color:var(--bone);display:block}
-  .sc .c{display:block;font-size:12px;color:var(--dim);margin-top:5px;line-height:1.45}
+  .sc .c{display:block;font-size:12px;color:var(--dim);margin-top:5px;line-height:1.45;
+    /* Captions run to one or two lines depending on the column width and what
+       happened in the last day. Reserve both, or the row resizes every time a
+       collector's state changes under a reader. */
+    min-height:2.9em}
   .sc.is-ok .v{color:var(--ok)}
   .sc.is-late .v{color:var(--warn)}
   .sc.is-bad .v{color:var(--bad)}
@@ -117,6 +121,19 @@
   .cov .v small{font-size:12px;color:var(--dim)}
   .note{font-size:13.5px;color:var(--dim);margin-top:14px}
 
+  /* ---- Before the script runs ------------------------------------------
+     The page used to ship these three containers empty (or, for the panel, as
+     one short "Loading" row) and grow by roughly 800px the moment the feeds
+     landed, which pushed the whole page down: Cloudflare measured 0.39 CLS on
+     this URL, the only bad page on the site.
+
+     The cure is to ship the real structure with the figures left blank, so
+     what the script writes lands in a box that is already the right size. The
+     collector names and coverage labels are duplicated from status.js to do
+     it; they are fixed strings, and the duplication buys a page that also
+     reads sensibly for the second before the JSON arrives. */
+  .skel .v, .skel .col-pct, .skel .col-age, .skel .col-state{color:var(--dim)}
+
   @media (max-width:560px){
     .col{padding:13px 13px 11px}
     .col-head{flex-wrap:wrap;gap:4px 10px}
@@ -147,15 +164,27 @@
   </div>
   <p class="checked" id="checked">&nbsp;</p>
 
-  <div class="sum" id="sum"></div>
+  <div class="sum" id="sum">
+    <div class="sc skel"><span class="k">Current status</span><span class="v">&mdash;</span><span class="c">&nbsp;</span></div>
+    <div class="sc skel"><span class="k">Newest numbers</span><span class="v">&mdash;</span><span class="c">&nbsp;</span></div>
+    <div class="sc skel"><span class="k">Last 24 hours</span><span class="v">&mdash;</span><span class="c">&nbsp;</span></div>
+  </div>
 
   <h2>Data collection</h2>
   <div class="panel" id="cols">
-    <div class="col"><div class="col-head"><div class="col-name"><b>Loading&hellip;</b></div></div></div>
+    <div class="col skel"><div class="col-head"><div class="col-name"><i aria-hidden="true"></i><b>Ranked stats</b><span>MMR per playlist and games played</span></div><span class="col-pct">&mdash;</span><span class="col-age">&nbsp;</span><span class="col-state">&nbsp;</span></div><div class="bar" aria-hidden="true"></div></div>
+    <div class="col skel"><div class="col-head"><div class="col-name"><i aria-hidden="true"></i><b>Steam playtime</b><span>Total and two-week hours</span></div><span class="col-pct">&mdash;</span><span class="col-age">&nbsp;</span><span class="col-state">&nbsp;</span></div><div class="bar" aria-hidden="true"></div></div>
+    <div class="col skel"><div class="col-head"><div class="col-name"><i aria-hidden="true"></i><b>Presence poll</b><span>Estimates hours for players whose playtime is hidden</span></div><span class="col-pct">&mdash;</span><span class="col-age">&nbsp;</span><span class="col-state">&nbsp;</span></div><div class="bar" aria-hidden="true"></div></div>
+    <div class="col skel"><div class="col-head"><div class="col-name"><i aria-hidden="true"></i><b>Team aggregates</b><span>Roster averages built from the ranked stats above</span></div><span class="col-pct">&mdash;</span><span class="col-age">&nbsp;</span><span class="col-state">&nbsp;</span></div><div class="bar" aria-hidden="true"></div></div>
+    <div class="col foot"><div class="col-axis"><span>24 hours ago</span><span>now</span></div></div>
   </div>
 
   <h2>Coverage</h2>
-  <div class="cov" id="cov"></div>
+  <div class="cov" id="cov">
+    <div class="skel"><span class="k">Players ranked</span><span class="v">&mdash;</span></div>
+    <div class="skel"><span class="k">Teams covered</span><span class="v">&mdash;</span></div>
+    <div class="skel"><span class="k">Playtime visible</span><span class="v">&mdash;</span></div>
+  </div>
 
   <p class="note">Ranked stats every <b>2 minutes</b>, Steam playtime <b>hourly</b>, presence
   <b>every 5 minutes</b>. This page reads the same published data the board does, so it cannot
@@ -167,6 +196,6 @@
     A fan-made project, not affiliated with Psyonix, Epic Games or RLCS. Rocket League is a trademark of Psyonix LLC. Player and team names belong to their respective owners.</p>
   </footer>
 </div>
-<script src="status.js?v=37dbbc73" defer></script>
+<script src="status.js?v=19e49927" defer></script>
 </body>
 </html>

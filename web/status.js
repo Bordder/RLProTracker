@@ -131,7 +131,7 @@
       sub = "Everything is up to date.";
     } else if (worst === "late") {
       title = "Running behind";
-      sub = "A collector has missed several runs. Numbers are still shown but may be a little old.";
+      sub = "A collector has missed several runs. Numbers are still shown but may be old.";
     } else {
       title = "Something is not updating";
       sub = "A collector has stopped reporting. Treat the affected figures as out of date.";
