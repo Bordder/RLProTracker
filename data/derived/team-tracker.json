@@ -1,6 +1,6 @@
 {
-  "computedAt": "2026-09-09T16:44:55.628Z",
-  "snapshotCount": 898,
+  "computedAt": "2026-09-09T16:46:44.614Z",
+  "snapshotCount": 899,
   "teams": [
     {
       "team": "Karmine Corp",
@@ -83,6 +83,22 @@
       }
     },
     {
+      "team": "Gentle Mates",
+      "players": 3,
+      "ranked": 3,
+      "avgMmr": {
+        "ones": 1371,
+        "twos": 2588,
+        "threes": 1478
+      },
+      "seasonGames": 3299,
+      "games": {
+        "d1": 9,
+        "d7": 291,
+        "d14": null
+      }
+    },
+    {
       "team": "Virtus.pro",
       "players": 3,
       "ranked": 3,
@@ -95,22 +111,6 @@
       "games": {
         "d1": 58,
         "d7": 471,
-        "d14": null
-      }
-    },
-    {
-      "team": "Gentle Mates",
-      "players": 3,
-      "ranked": 3,
-      "avgMmr": {
-        "ones": 1371,
-        "twos": 2587,
-        "threes": 1478
-      },
-      "seasonGames": 3298,
-      "games": {
-        "d1": 8,
-        "d7": 290,
         "d14": null
       }
     },
@@ -307,22 +307,6 @@
       }
     },
     {
-      "team": "S.O.S.",
-      "players": 1,
-      "ranked": 1,
-      "avgMmr": {
-        "ones": 1535,
-        "twos": 2413,
-        "threes": 1840
-      },
-      "seasonGames": 2044,
-      "games": {
-        "d1": 45,
-        "d7": null,
-        "d14": null
-      }
-    },
-    {
       "team": "GHT",
       "players": 3,
       "ranked": 3,
@@ -334,6 +318,22 @@
       "seasonGames": 3107,
       "games": {
         "d1": 56,
+        "d7": null,
+        "d14": null
+      }
+    },
+    {
+      "team": "S.O.S.",
+      "players": 1,
+      "ranked": 1,
+      "avgMmr": {
+        "ones": 1535,
+        "twos": 2412,
+        "threes": 1840
+      },
+      "seasonGames": 2045,
+      "games": {
+        "d1": 46,
         "d7": null,
         "d14": null
       }
@@ -475,9 +475,9 @@
         "twos": 2266,
         "threes": 1696
       },
-      "seasonGames": 1846,
+      "seasonGames": 1847,
       "games": {
-        "d1": 33,
+        "d1": 34,
         "d7": null,
         "d14": null
       }
