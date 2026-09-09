@@ -664,10 +664,21 @@
   .fb h3{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:700;color:var(--bone);margin:0 0 4px}
   .fb .lead{font-size:12px;color:var(--slate);margin:0 0 12px}
   .fb .row{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 10px}
-  .fb input,.fb select,.fb textarea{font-family:var(--body);font-size:13px;color:var(--bone);background:var(--bg2);border:1px solid var(--line2);border-radius:8px;padding:9px 11px;outline:none;transition:border-color .15s}
+  /* One line-height across all three, so the select cannot end up a pixel
+     taller than the field beside it once its native appearance is removed. */
+  .fb input,.fb select,.fb textarea{font-family:var(--body);font-size:13px;color:var(--bone);background:var(--bg2);border:1px solid var(--line2);border-radius:8px;padding:9px 11px;outline:none;transition:border-color .15s;line-height:1.15}
   .fb input:focus,.fb select:focus,.fb textarea:focus{border-color:var(--accent-line)}
   .fb input.u{flex:1;min-width:140px}
-  .fb select{min-width:150px}
+  /* The native control lays its own label out and put it low in the box, so it
+     sat a couple of pixels under the placeholder in the field beside it. Taking
+     the appearance off hands the vertical centring back to our own padding and
+     line-height; the arrow has to be drawn back on, because appearance:none
+     removes it. Padding-right clears it, and text stays left-aligned. */
+  .fb select{min-width:150px;appearance:none;-webkit-appearance:none;
+    padding-right:30px;background-repeat:no-repeat;
+    background-position:right 11px center;background-size:9px 6px;
+    background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 6'%3E%3Cpath d='M1 1l3.5 3.5L8 1' fill='none' stroke='%237E8A99' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")}
+  .fb select:focus{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 6'%3E%3Cpath d='M1 1l3.5 3.5L8 1' fill='none' stroke='%23FF5A1F' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")}
   .fb textarea{width:100%;min-height:82px;resize:vertical}
   .fb .hp{position:absolute!important;left:-9999px;width:1px;height:1px;opacity:0}
   .fb button{appearance:none;border:0;cursor:pointer;background:var(--accent);color:var(--ink);font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-weight:700;font-size:12.5px;padding:10px 22px;border-radius:8px;transition:opacity .15s}
@@ -679,6 +690,12 @@
   .fb .msg.ok{color:var(--live)} .fb .msg.err{color:#E0655A}
   .copyright{margin-top:24px;padding-top:14px;border-top:1px solid var(--line);font-size:11.5px;color:var(--dim);line-height:1.6}
   .copyright b{color:var(--slate);font-weight:600}
+  /* The takedown address was the only anchor on the page with no rule of its
+     own and fell through to the browser default: #0000EE on a dim grey
+     paragraph, which is the worst contrast anywhere on the site. */
+  .copyright a{color:var(--bone);font-weight:700;text-decoration:underline;
+    text-decoration-color:var(--accent-line);text-underline-offset:2px}
+  .copyright a:hover{color:var(--accent);text-decoration-color:var(--accent)}
 
   :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:3px}
   @media (max-width:640px){
