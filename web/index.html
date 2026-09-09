@@ -512,13 +512,18 @@
     .wrap{display:flex; flex-direction:column}
     header{display:contents}
     .kicker{order:1}
-    .controls{order:2}
-    .wrow{order:3}
-    #dataStatus{order:4}
-    #playersView,#teamsView{order:5}
-    .headline{order:6; margin-top:26px}
-    .dek{order:7}
-    .devnote{order:8}
+    /* The note is the one piece of framing that is time-sensitive: it says what
+       the site is currently waiting on, and under the board nobody on a phone
+       ever reached it. Straight under the kicker, above the tabs.
+       Its margin lives on .devnote itself and .controls carries its own top
+       margin, so deleting the note from the markup leaves no gap behind. */
+    .devnote{order:2; margin:14px 0 0}
+    .controls{order:3}
+    .wrow{order:4}
+    #dataStatus{order:5}
+    #playersView,#teamsView{order:6}
+    .headline{order:7; margin-top:26px}
+    .dek{order:8}
     #stats{order:9}
     footer.foot{order:10}
     #podium{order:11}
@@ -805,7 +810,13 @@
     .feed[data-sort="threes"]>tbody>tr>td.c-mmr.m2,
     .feed[data-sort="sg"]>tbody>tr>td.c-mmr.m2,
     .feed[data-sort="h2"]>tbody>tr>td.c-mmr.m2,
-    .feed[data-sort="ht"]>tbody>tr>td.c-mmr.m2{display:none}
+    .feed[data-sort="ht"]>tbody>tr>td.c-mmr.m2,
+    /* 24h and 7d used to keep 2v2 beside them so the line never collapsed to a
+       single number. Every other metric collapses to one, so 2v2 was the odd
+       one out: a rating printed next to a games count, on a board the reader
+       just told to order by games. It reads as a comparison rather than as the
+       one figure asked for. */
+    .feed[data-sort="g14"]>tbody>tr>td.c-mmr.m2{display:none}
 
     /* Each figure carries its own label above it, from the column's data-l. */
     .feed>tbody>tr>td.c-g14::before,
