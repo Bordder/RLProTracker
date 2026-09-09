@@ -746,7 +746,7 @@
         '<td class="c-rg">'+regionChip(p.region)+'<span class="chip-pair">'+statusChip(p.status)+'</span></td>'+
         '<td class="c-st">'+statusChip(p.status)+'</td>'+mmr+
         '<td class="c-sg" data-l="games">'+(p.seasonGames!=null?'<span class="sgv">'+nf(p.seasonGames)+'</span>':'<span class="dash">&middot;</span>')+'</td>'+
-        '<td class="c-g14" data-l="'+esc(WIN_LABEL[win]||win)+'">'+fmtGames(p,win)+'</td>'+
+        '<td class="c-g14" data-l="'+esc((WIN_LABEL[win]||win)+' games')+'">'+fmtGames(p,win)+'</td>'+
         '<td class="c-hr c-hr2" data-l="2wk h">'+hours2wkCell(p)+'</td>'+
         '<td class="c-hr c-hrt" data-l="total h">'+totalHoursCell(p)+'</td>'+
         '</tr>';

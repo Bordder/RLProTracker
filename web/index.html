@@ -751,9 +751,19 @@
     .wseg{display:flex;flex-wrap:nowrap;width:100%;
       overflow-x:auto;-webkit-overflow-scrolling:touch}
     .wseg::-webkit-scrollbar{display:none}
+    /* The two chip rows sit one above the other, so they have to read as one
+       control rather than two. Same type size and tracking here; the 9px
+       vertical padding the metric chips already carry for thumbs is given to
+       the region chips too, which makes both 34px rather than 34 and 32. */
     .wseg button{flex:1 1 auto;min-width:0;padding-left:6px;padding-right:6px;
-      font-size:11px;letter-spacing:.02em;text-align:center}
-    .rseg button{font-size:10.5px;letter-spacing:.05em;padding-left:6px;padding-right:6px}
+      font-size:10.5px;letter-spacing:.05em;text-align:center}
+    .rseg button{font-size:10.5px;letter-spacing:.05em;padding-left:6px;padding-right:6px;
+      padding-top:9px;padding-bottom:9px}
+    /* Height is pinned rather than left to the line box. The MMR chip carries
+       the 2v2 tag, which has padding of its own and made that row 2px taller
+       than the region row below it - close enough to look like a mistake
+       rather than a difference. */
+    .wseg button,.rseg button{min-height:34px;display:inline-flex;align-items:center;justify-content:center}
     .rseg button .rn{margin-left:3px;font-size:9px}
     /* The playlist tag inside the MMR button is the one thing that must not
        shrink into the word beside it. */
@@ -1020,8 +1030,8 @@
       <button data-k="mmr" aria-pressed="true" title="Click to switch playlist">MMR<span class="mpl" id="mmrPl">2v2</span></button>
       <button data-k="g14" data-w="d1" aria-pressed="false">24h</button>
       <button data-k="g14" data-w="d7" aria-pressed="false">7d</button>
-      <button data-k="h2" aria-pressed="false">Hours 2wk</button>
-      <button data-k="sg" aria-pressed="false">Games</button>
+      <button data-k="h2" aria-pressed="false">2wk hours</button>
+      <button data-k="sg" aria-pressed="false">Total games</button>
     </div>
     <div class="wseg rseg" id="regionSeg" role="group" aria-label="Region"></div>
   </div>
@@ -1075,6 +1085,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=f05226ac" defer></script>
+<script src="rlpt.js?v=2c29fcb1" defer></script>
 </body>
 </html>
