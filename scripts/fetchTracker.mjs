@@ -20,7 +20,7 @@ import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import { appendRows, countReadings } from "./trackerHistory.mjs";
-import { parseProxies as parseProxyList } from "./proxies.mjs";
+import { parseProxies as parseProxyList, unauthenticatedIndices } from "./proxies.mjs";
 import { chromium } from "playwright-extra";
 import stealth from "puppeteer-extra-plugin-stealth";
 
@@ -336,6 +336,14 @@ function parseProxies() {
   const out = parseProxyList();
   if (out.length && process.env.PROXY_HOST && process.env.PROXY_PORTS && process.env.PROXY_LIST) {
     console.log("note: PROXY_LIST is set, so PROXY_HOST/PROXY_PORTS are ignored");
+  }
+  // A mixed list is nearly always a mistyped entry: four colon-separated fields
+  // shortened to two parses cleanly, keeps its slot, and then fails to
+  // authenticate on every attempt it is handed. Nothing else reports it, because
+  // the failure looks like an ordinary dead tunnel. Indices only, never hosts.
+  const bare = unauthenticatedIndices(out);
+  if (bare.length && bare.length < out.length) {
+    console.log(`warning: proxy ${bare.length === 1 ? "entry" : "entries"} ${bare.join(", ")} of ${out.length} carry no credentials while the rest do - check PROXY_LIST for a truncated entry`);
   }
   return out.length ? out : [null];
 }

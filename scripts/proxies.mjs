@@ -23,9 +23,19 @@ export function parseProxies(env = process.env) {
   const out = [];
 
   // Format A: PROXY_LIST - one proxy per line or comma. Accepts
-  // "host:port:user:pass", "host:port" (uses PROXY_USER/PASS), or
-  // "http://user:pass@host:port". Lets us mix providers to spread bandwidth
+  // "host:port:user:pass", "http://user:pass@host:port", or a credential-free
+  // "host:port" / "http://host:port". Lets us mix providers to spread bandwidth
   // across their separate caps.
+  //
+  // A credential-free entry does NOT pick up PROXY_USER/PROXY_PASS, which an
+  // earlier version of this comment claimed it did. Those two belong to Format B
+  // and to one known host; a bare host:port is a public or no-auth proxy and
+  // handing it our credentials would post them to a machine we do not control.
+  // It still takes a slot, because ORDER IS THE IDENTITY above. The cost is that
+  // a four-part entry mistyped into two parts becomes a silent authentication
+  // failure whose share of the work piles onto whichever proxies do answer, so
+  // callers that can log should say when the list contains a mix: see
+  // unauthenticatedIndices below.
   const list = env.PROXY_LIST;
   if (list) {
     for (const raw of list.split(/[\n,]+/).map((s) => s.trim()).filter(Boolean)) {
@@ -51,4 +61,17 @@ export function parseProxies(env = process.env) {
   }
 
   return out;
+}
+
+// Which entries carry no credentials, by index. Indices only: hostnames must
+// never reach a public Actions log, which is the same reason proxy-use.json
+// records indices.
+//
+// A list that is entirely unauthenticated is a deliberate no-auth fleet and is
+// fine. A list that is MOSTLY authenticated with one or two that are not is
+// almost always a typo, and the symptom is invisible without this: those entries
+// keep their slots, fail to authenticate at request time rather than parse time,
+// and their share of the players retries onto the proxies that work.
+export function unauthenticatedIndices(proxies) {
+  return proxies.map((p, i) => (p && p.username ? -1 : i)).filter((i) => i >= 0);
 }

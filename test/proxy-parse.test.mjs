@@ -7,7 +7,7 @@
 // the offending line, so looking up a reported index gave the wrong proxy.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseProxies } from "../scripts/proxies.mjs";
+import { parseProxies, unauthenticatedIndices } from "../scripts/proxies.mjs";
 
 const hosts = (env) => parseProxies(env).map((p) => p.server);
 
@@ -72,4 +72,23 @@ test("index 8 is the ninth entry, whatever the formats before it are", () => {
   ];
   const out = parseProxies({ PROXY_LIST: entries.join("\n") });
   assert.equal(out[8].server, "http://target.example:9");
+});
+
+test("unauthenticatedIndices names the entries that carry no credentials", () => {
+  // The mixed case is the one worth catching: a four-field entry mistyped into
+  // two parses fine, keeps its slot, and then fails auth on every attempt.
+  const mixed = parseProxies({ PROXY_LIST: "a.example:1:u:p,open.example:8080,c.example:3:u:p" });
+  assert.deepEqual(unauthenticatedIndices(mixed), [1]);
+
+  // A deliberate no-auth fleet is not a mistake, so callers gate on "some but
+  // not all" rather than on this being non-empty.
+  const none = parseProxies({ PROXY_LIST: "a.example:1,b.example:2" });
+  assert.deepEqual(unauthenticatedIndices(none), [0, 1]);
+
+  const all = parseProxies({ PROXY_LIST: "a.example:1:u:p,b.example:2:u:p" });
+  assert.deepEqual(unauthenticatedIndices(all), []);
+
+  // The URL form without credentials counts too, and indices stay absolute.
+  const url = parseProxies({ PROXY_LIST: "http://u:p@a.example:1,http://b.example:2" });
+  assert.deepEqual(unauthenticatedIndices(url), [1]);
 });
