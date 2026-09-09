@@ -15,7 +15,15 @@
 
 const OWNER = "Bordder";
 const REPO = "RLProTracker";
-const MAX_MESSAGE = 2000;
+// A ceiling and a floor on the message. The form enforces both, but the form is
+// not the only thing that can post here, so these are the ones that count.
+//
+// 500 rather than 2000: a symptom, a device and a repro step fit inside it, and
+// it bounds what an abusive body costs to parse. 25: enough to turn away "gg"
+// and "nice site", not enough to reject a real report, the shortest useful ones
+// running around 35 characters.
+const MAX_MESSAGE = 500;
+const MIN_MESSAGE = 25;
 const MAX_USER = 60;
 const TYPES = ["Feedback", "Feature request", "Bug", "Other"];
 
@@ -40,6 +48,7 @@ async function handlePost(context) {
   const user = String(payload.user ?? "").trim().slice(0, MAX_USER);
   const type = TYPES.includes(payload.type) ? payload.type : "Feedback";
   if (!message) return json({ error: "empty-message" }, 400);
+  if (message.length < MIN_MESSAGE) return json({ error: "too-short", min: MIN_MESSAGE }, 400);
 
   const title = `${type}${user ? ` from ${user}` : ""}: ${message.split("\n")[0].slice(0, 60)}`;
   const body = [

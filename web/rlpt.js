@@ -1246,24 +1246,47 @@
     // Worker is unreachable, so feedback is never simply lost.
     var FB_ENDPOINT=window.__FB_ENDPOINT__||'/feedback';
     var REPO='https://github.com/Bordder/RLProTracker';
+    // A floor and a ceiling on the message, both mirrored server-side in
+    // functions/feedback.js because anything can post to that endpoint directly.
+    //
+    // 500 rather than the old 2000: a symptom, a device and a repro step fit in
+    // it, and it bounds what an abusive body costs to parse. 25 rather than
+    // nothing: it turns away "gg" and "nice site" without reaching far enough to
+    // catch a real report, the shortest useful ones running around 35 characters
+    // ("Vatira's MMR looks about 200 too low").
+    var FB_MIN=25, FB_MAX=500;
     var fb=document.getElementById('fbForm');
     if(fb){
       var fbRes=document.getElementById('fbResult');
       var fbBtn=document.getElementById('fbBtn');
+      var fbMsgEl=document.getElementById('fbMsg');
+      var fbCount=document.getElementById('fbCount');
+      // A hard cap with no counter is how someone loses a paragraph they just
+      // typed, and a floor with no counter is a submit that fails for no visible
+      // reason. Say where they are the whole way.
+      var paintCount=function(){
+        var n=(fbMsgEl.value||'').trim().length;
+        var need=FB_MIN-n;
+        fbCount.className='count'+(n===0?'':(need>0?' short':(n>=FB_MAX?' full':'')));
+        fbCount.textContent=n===0?'':(need>0?(need+' more character'+(need===1?'':'s')):(n+' / '+FB_MAX));
+      };
+      fbMsgEl.addEventListener('input',paintCount);
+      paintCount();
       fb.addEventListener('submit',function(e){
         e.preventDefault();
         var hp=document.getElementById('fbHp').value;
         var user=(document.getElementById('fbUser').value||'').trim().slice(0,60);
         var type=document.getElementById('fbType').value;
-        var msg=(document.getElementById('fbMsg').value||'').trim().slice(0,2000);
-        if(!msg){ fbRes.textContent='Add a message first.'; fbRes.className='msg err'; document.getElementById('fbMsg').focus(); return; }
+        var msg=(fbMsgEl.value||'').trim().slice(0,FB_MAX);
+        if(!msg){ fbRes.textContent='Add a message first.'; fbRes.className='msg err'; fbMsgEl.focus(); return; }
+        if(msg.length<FB_MIN){ fbRes.textContent='A little more detail please, at least '+FB_MIN+' characters.'; fbRes.className='msg err'; fbMsgEl.focus(); return; }
         fbBtn.disabled=true;
         fbRes.textContent='Sending…'; fbRes.className='msg';
         fetch(FB_ENDPOINT,{method:'POST',headers:{'content-type':'application/json'},
           body:JSON.stringify({user:user,type:type,message:msg,hp:hp})})
           .then(function(r){ if(!r.ok)throw new Error('http '+r.status); return r.json(); })
           .then(function(){
-            fbRes.textContent='Sent. Thanks!'; fbRes.className='msg ok'; fb.reset();
+            fbRes.textContent='Sent. Thanks!'; fbRes.className='msg ok'; fb.reset(); paintCount();
           })
           .catch(function(){
             // Last resort: hand the user the prefilled issue rather than dropping
