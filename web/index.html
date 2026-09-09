@@ -332,6 +332,23 @@
 
   /* ---- Table / feed ---- */
   .scroll{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:var(--surface)}
+  /* The header below is declared sticky, and inside this container it did
+     nothing. overflow-x:auto makes an element a scroll container on BOTH axes -
+     the computed overflow-y is auto too - so the header stuck to a box that has
+     no height of its own and therefore never scrolls, and it left the screen
+     with the page. Measured on the live site at 1440: the header ran from 851px
+     to -649px on a 1500px scroll.
+     Above 1200 the board does not need to scroll sideways (content 1054-1174
+     against a container capped at 1174), so the container can stop being a
+     scroll container and the header sticks to the viewport instead. Below that
+     the sideways scroll is needed and the header is not sticky, which is the
+     behaviour that was already shipping.
+     HAZARD: this holds only while the widest row still fits. Adding a column
+     would push content past 1174 and, with no scroll container, it would spill
+     out of the page rather than scroll. Re-measure if you add one. */
+  @media (min-width:1200px){
+    .scroll{overflow:visible}
+  }
   table.feed{width:100%;border-collapse:collapse;min-width:860px}
   .feed thead th{
     position:sticky;top:0;z-index:2;background:var(--bg2);text-align:left;
