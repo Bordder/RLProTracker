@@ -120,3 +120,14 @@ export async function onRequestGet(context) {
 
   return withCors(new Response("upstream error", { status: 502 }));
 }
+
+// Pages routes by exported handler name, so exporting onRequestGet alone leaves
+// HEAD to fall through to the static 404 page: curl -I on this endpoint reported
+// 404 while a GET reported 200. Browsers never notice, but an uptime monitor or
+// a link checker probing with HEAD reads the feed as down. HEAD must return the
+// GET headers with no body, which is exactly a null-bodied copy of the response.
+export async function onRequestHead(context) {
+  const res = await onRequestGet(context);
+  return new Response(null, { status: res.status, headers: res.headers });
+}
+
