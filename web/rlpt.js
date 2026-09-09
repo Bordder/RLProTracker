@@ -22,28 +22,20 @@
       ? '<td class="'+cls+'" data-l="'+lab+'"><span class="dash">&middot;</span></td>'
       : '<td class="'+cls+'" data-l="'+lab+'"><span class="mv '+tierClass(v)+'">'+nf(v)+'</span></td>';
   };
-  // A fortnight of ratings per player, from its own feed.
-  // Rating history, fetched the first time somebody opens a chart rather than
-  // on every page load. Ninety days of it is far larger than the board itself
-  // and most visitors never open a row, so it should not be on the critical
-  // path for anyone.
-  var mmrHist={}, mmrBase=0, mmrTiers={}, mmrState='idle';
+  // Rating history, fetched the first time somebody opens the ratings tab
+  // rather than on every page load. Ninety days of it is far larger than the
+  // board itself and most visitors never go there, so it should not be on the
+  // critical path for anyone.
+  var mmrHist={}, mmrBase=0, mmrState='idle';
   var loadMmrHistory=function(then){
     if(mmrState==='done'){ then(); return; }
     if(mmrState==='loading')return;
     mmrState='loading';
     getJson('mmr-history.json').then(function(j){
-      if(j&&j.players){ mmrHist=j.players; mmrBase=j.base||0; mmrTiers=j.tiers||{}; }
+      if(j&&j.players){ mmrHist=j.players; mmrBase=j.base||0; }
       mmrState='done';
       then();
     });
-  };
-  // Which rank a rating sits in, for the chart's bands and its tooltip.
-  var tierAt=function(key,r){
-    var bands=mmrTiers[key]||[];
-    for(var i=0;i<bands.length;i++) if(r>=bands[i].min&&r<bands[i].max) return bands[i].name;
-    if(bands.length&&r>=bands[bands.length-1].min) return bands[bands.length-1].name;
-    return null;
   };
   var seriesFor=function(id,key){
     var h=mmrHist[id];
@@ -52,85 +44,6 @@
 
   var MMR_COL_TITLE='Current rating in this playlist.';
 
-  // The rating chart in the opened row.
-  //
-  // Rank bands behind the line, because a rating alone means nothing to anyone
-  // who does not already know where Supersonic Legend starts. The bands come
-  // from the data - every reading carries its tier beside its rating - so
-  // there is no threshold table here to go stale after a season change.
-  //
-  // For 2v2 this draws a single band, and that is the honest picture: 93 of
-  // the 94 tracked pros are Supersonic Legend. In 1v1 and 3v3 they span seven
-  // ranks and the bands do real work.
-  var CH_W=1280, CH_H=270, CH_PADL=52, CH_PADR=14, CH_PADT=12, CH_PADB=26;
-  var chartReg={}, chartSeq=0;
-  var bigChart=function(id,key){
-    var pts=seriesFor(id,key);
-    if(!pts)return '<div class="chart-none">'+
-      (mmrState!=='done'?'Loading the rating history…':'No rating history yet. It fills in as the collector runs.')+'</div>';
-    var lo=Infinity, hi=-Infinity, t0=pts[0][0], t1=pts[pts.length-1][0];
-    for(var i=0;i<pts.length;i++){ if(pts[i][1]<lo)lo=pts[i][1]; if(pts[i][1]>hi)hi=pts[i][1]; }
-    var span=(t1-t0)||1;
-    // Headroom, and a floor under the range.
-    //
-    // The floor is what stops a quiet week being magnified into a mountain
-    // range: without it a rating that wandered eight points would be drawn
-    // with the same peaks and troughs as one that swung three hundred, and
-    // every chart on the site would look equally dramatic. 60 points is about
-    // a division, so anything smaller reads as the flat line it was.
-    var mid=(hi+lo)/2, half=Math.max((hi-lo)/2*1.12,30);
-    var top=mid+half, bot=mid-half;
-    var x0=CH_PADL, x1=CH_W-CH_PADR, y0=CH_PADT, y1=CH_H-CH_PADB;
-    var yOf=function(r){ return y1-((r-bot)/((top-bot)||1))*(y1-y0); };
-    var clamp=function(v){ return Math.max(y0,Math.min(y1,v)); };
-
-    // Round ratings down the left. Rank bands used to sit behind the line and
-    // supply these, but every tracked pro is Supersonic Legend in 2v2, so on
-    // the playlist the board ranks by they drew one flat stripe and said
-    // nothing anyone needed.
-    var edges=[];
-    var rough=(top-bot)/4, step=Math.pow(10,Math.floor(Math.log(rough)/Math.LN10));
-    [1,2,2.5,5,10].some(function(m){ if(step*m>=rough){ step=step*m; return true; } return false; });
-    for(var g=Math.ceil(bot/step)*step; g<top; g+=step) edges.push(g);
-    // The current rating is the one figure a reader came for, so it is placed
-    // first and any gridline label too close to it loses its number - the line
-    // stays. Otherwise the two sit on top of each other whenever the player
-    // happens to be near a boundary.
-    var cur=pts[pts.length-1][1], curY=yOf(cur);
-    var axis='<text class="ct now" text-anchor="end" x="'+(x0-6)+'" y="'+(curY+3.5).toFixed(1)+'">'+nf(cur)+'</text>';
-    edges.forEach(function(r){
-      var y=yOf(r);
-      axis+='<line class="cg" x1="'+x0+'" y1="'+y.toFixed(1)+'" x2="'+x1+'" y2="'+y.toFixed(1)+'"/>';
-      if(Math.abs(y-curY)>=13)
-        axis+='<text class="ct" text-anchor="end" x="'+(x0-6)+'" y="'+(y+3.5).toFixed(1)+'">'+nf(r)+'</text>';
-    });
-
-    var xy=pts.map(function(p){ return [x0+((p[0]-t0)/span)*(x1-x0),yOf(p[1])]; });
-    var line=xy.map(function(p,i){return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join('');
-
-    // Dated ticks across the bottom, one per day at most, thinned so the
-    // labels never touch.
-    var dayMs=1440, ticks='', stepDays=Math.max(1,Math.ceil((span/dayMs)/6));
-    for(var d=Math.ceil(t0/dayMs)*dayMs; d<=t1; d+=dayMs*stepDays){
-      var tx=x0+((d-t0)/span)*(x1-x0);
-      ticks+='<text class="ct dim" text-anchor="middle" x="'+tx.toFixed(1)+'" y="'+(CH_H-7)+'">'+
-        esc(new Date(mmrBase+d*60000).toLocaleDateString([],{day:'numeric',month:'short'}))+'</text>';
-    }
-
-    var cid=++chartSeq;
-    chartReg[cid]={pts:pts.map(function(p,i){ return [+xy[i][0].toFixed(1),+xy[i][1].toFixed(1),p[0],p[1]]; }),w:CH_W,key:key};
-
-    return '<div class="chartwrap" data-chart="'+cid+'">'+
-      '<svg class="chart" viewBox="0 0 '+CH_W+' '+CH_H+'" preserveAspectRatio="xMidYMid meet" role="img" '+
-        'aria-label="'+esc(PL_NAME[key]+' rating, '+nf(lo)+' to '+nf(hi)+', '+chartSpanWords(span))+'">'+
-        axis+
-        '<path class="cl" d="'+line+'" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
-        '<g class="cmark" hidden><line class="cml" y1="'+y0+'" y2="'+y1+'"/><circle class="cmc" r="3.6"/></g>'+
-        ticks+
-      '</svg>'+
-      '<div class="chart-tip" hidden></div>'+
-      '</div>';
-  };
   var PL_NAME={ones:'1v1',twos:'2v2',threes:'3v3'};
   // The window is however much history exists, which grows toward 90 days from
   // the day the longer retention shipped. Saying "last 14 days" over a chart
@@ -139,14 +52,48 @@
     var d=Math.max(1,Math.round(spanMin/1440));
     return d<14?('last '+d+' day'+(d===1?'':'s')):d<60?('last '+Math.round(d/7)+' weeks'):('last '+Math.round(d/30)+' months');
   };
-  var chartSpanOf=function(id,key){
-    var pts=seriesFor(id,key);
-    return pts?chartSpanWords(pts[pts.length-1][0]-pts[0][0]):'';
-  };
   var WIN_LABEL={d1:'24h',d7:'7d',d14:'14d'};
   // The column header says what is being counted; "24h" on its own named a
   // period and left the reader to guess it meant games.
   var COL_LABEL={d1:'Games, 24h',d7:'Games, 7d',d14:'Games, 14d'};
+  // ---- copy a row as a line of text ----
+  //
+  // A row read out loud in Discord, not a screenshot: plain text rather than
+  // markdown, because Discord renders a table badly and a code fence turns a
+  // one-line answer into a block. Same order as the columns, so what is copied
+  // matches what was being looked at.
+  //
+  // The button is a gutter icon that only appears on hover or keyboard focus.
+  // On 94 rows a permanently visible control is 94 pieces of furniture.
+  var COPY_SVG='<svg class="cp" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a2 2 0 0 1 2-2h10"></path></svg>';
+  var OK_SVG='<svg class="ok" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg>';
+  var copyBtn=function(label){
+    return '<button class="copyrow" type="button" title="Copy as text" aria-label="Copy '+esc(label)+' as text">'+COPY_SVG+OK_SVG+'</button>';
+  };
+  // execCommand is deprecated and still the only thing that works without a
+  // secure context, which is what a local preview over plain http is.
+  var legacyCopy=function(text){
+    var ta=document.createElement('textarea');
+    ta.value=text; ta.setAttribute('readonly','');
+    ta.style.position='fixed'; ta.style.top='-1000px'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    var ok=false; try{ ok=document.execCommand('copy'); }catch(e){}
+    document.body.removeChild(ta);
+    return ok;
+  };
+  var copyText=function(text,btn){
+    var done=function(){
+      // The icon becoming a tick is the whole confirmation: a toast for a copy
+      // is more interruption than the action was.
+      btn.classList.add('done');
+      setTimeout(function(){ btn.classList.remove('done'); },1200);
+    };
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text).then(done,function(){ if(legacyCopy(text))done(); });
+      return;
+    }
+    if(legacyCopy(text))done();
+  };
   // Coarse "how long ago", for a cell that has room for about five characters.
   var agoShort=function(t){
     if(t==null)return null;
@@ -657,6 +604,7 @@
     var searchQ='';
   var regionQ='';   // '' = every region
   var liveOnly=false;
+  var syncUrl;      // assigned by the URL block below; see 'the view, in the address bar'
   var podiumIds={};  // whoever is shown large above the table
   // The podium is a wide-screen device. On a phone its three cards cost 870px,
   // which is most of a screen spent on three players, so the list carries the
@@ -712,6 +660,10 @@
         // only pick that cell if the table says which one it is.
         tbl.dataset.sort=sk;
         trh.querySelectorAll('th').forEach(function(th){ th.classList.remove('s-asc','s-desc'); if(th.dataset.k===sk)th.classList.add(sd==='asc'?'s-asc':'s-desc'); });
+
+        // Every control that changes what is on screen repaints, so this is the
+        // one place the address bar has to be kept in step with.
+        if(typeof syncUrl==='function')syncUrl();
       }
       scroll.appendChild(tbl); mount.innerHTML=''; mount.appendChild(scroll);
       // The metric buttons drive the same sort the column headers do, so the
@@ -725,7 +677,7 @@
 
     var win='d1'; // recent-games window: d1 (24h, live now) / d7 / d14
     var mmrKey='twos'; // which playlist the MMR mode ranks on: ones / twos / threes
-    var pCols=[{label:'#',cls:'c-rk'},{label:'Player',cls:'c-who',k:'name'},{label:'Region',cls:'c-rg',k:'region'},{label:'Status',cls:'c-st',k:'status'},{label:'1v1',cls:'c-mmr',k:'ones',num:true,title:MMR_COL_TITLE},{label:'2v2',cls:'c-mmr',k:'twos',num:true,title:MMR_COL_TITLE},{label:'3v3',cls:'c-mmr',k:'threes',num:true,title:MMR_COL_TITLE},{label:'Games, season',cls:'c-sg',k:'sg',num:true,title:'Ranked games played since the current competitive season began'},{label:COL_LABEL[win],cls:'c-g14',k:'g14',num:true,title:'Ranked games played in the window selected above the table'},{label:'2wk h',cls:'c-hr',k:'h2',num:true},{label:'Total h',cls:'c-hr c-hrt',k:'ht',num:true}];
+    var pCols=[{label:'#',cls:'c-rk'},{label:'Player',cls:'c-who',k:'name'},{label:'Region',cls:'c-rg',k:'region'},{label:'Status',cls:'c-st',k:'status'},{label:'1v1',cls:'c-mmr',k:'ones',num:true,title:MMR_COL_TITLE},{label:'2v2',cls:'c-mmr',k:'twos',num:true,title:MMR_COL_TITLE},{label:'3v3',cls:'c-mmr',k:'threes',num:true,title:MMR_COL_TITLE},{label:'Total games',cls:'c-sg',k:'sg',num:true,title:'Ranked games played since the current competitive season began'},{label:COL_LABEL[win],cls:'c-g14',k:'g14',num:true,title:'Ranked games played in the window selected above the table'},{label:'2wk h',cls:'c-hr c-hr2',k:'h2',num:true},{label:'Total h',cls:'c-hr c-hrt',k:'ht',num:true},{label:'',cls:'c-cp'}];
     var pAcc={name:function(p){return(p.name||'').toLowerCase();},region:function(p){return p.region||null;},status:function(p){return p.status?String(p.status).toLowerCase():null;},ones:function(p){return p.mmr?p.mmr.ones:null;},twos:function(p){return p.mmr?p.mmr.twos:null;},threes:function(p){return p.mmr?p.mmr.threes:null;},sg:function(p){return p.seasonGames;},g14:function(p){
         // "pending" in the cell means the window has not filled yet, so there is
         // nothing to rank: a new player's first reading is their whole season,
@@ -749,12 +701,13 @@
         '<td class="c-g14" data-l="'+esc((WIN_LABEL[win]||win)+' games')+'">'+fmtGames(p,win)+'</td>'+
         '<td class="c-hr c-hr2" data-l="2wk h">'+hours2wkCell(p)+'</td>'+
         '<td class="c-hr c-hrt" data-l="total h">'+totalHoursCell(p)+'</td>'+
+        '<td class="c-cp">'+copyBtn(p.name)+'</td>'+
         '</tr>';
     };
     var pMatch=function(p,q){return (String(p.name||'')+' '+String(p.team||'')+' '+String(p.region||'')).toLowerCase().indexOf(q)>=0;};
 
-    var tCols=[{label:'#',cls:'c-rk'},{label:'Team',cls:'c-who',k:'name'},{label:'Region',cls:'c-rg',k:'region'},{label:'',cls:'c-fill'},{label:'Avg 1v1',cls:'c-mmr',k:'ones',num:true},{label:'Avg 2v2',cls:'c-mmr',k:'twos',num:true},{label:'Avg 3v3',cls:'c-mmr',k:'threes',num:true},{label:'Games',cls:'c-sg',k:'sg',num:true,title:'Total ranked games played by the roster since the current competitive season began'},{label:'2wk h',cls:'c-hr',k:'h2',num:true},{label:'Total h',cls:'c-hr',k:'ht',num:true}];
-    var tAcc={name:function(t){return(t.team||'').toLowerCase();},region:function(t){return t.region||null;},ones:function(t){return t.avgMmr?t.avgMmr.ones:null;},twos:function(t){return t.avgMmr?t.avgMmr.twos:null;},threes:function(t){return t.avgMmr?t.avgMmr.threes:null;},sg:function(t){return t.seasonGames;},h2:function(t){return t.hours2wk;},ht:function(t){return t.totalHours;}};
+    var tCols=[{label:'#',cls:'c-rk'},{label:'Team',cls:'c-who',k:'name'},{label:'Region',cls:'c-rg',k:'region'},{label:'',cls:'c-fill'},{label:'Avg 1v1',cls:'c-mmr',k:'ones',num:true},{label:'Avg 2v2',cls:'c-mmr',k:'twos',num:true},{label:'Avg 3v3',cls:'c-mmr',k:'threes',num:true},{label:'Games',cls:'c-sg',k:'sg',num:true,title:'Total ranked games played by the roster since the current competitive season began'},{label:'Games, 24h',cls:'c-g14',k:'g14',num:true,title:'Ranked games played by the whole roster in the last 24 hours'},{label:'2wk h',cls:'c-hr',k:'h2',num:true},{label:'Total h',cls:'c-hr',k:'ht',num:true},{label:'',cls:'c-cp'}];
+    var tAcc={name:function(t){return(t.team||'').toLowerCase();},region:function(t){return t.region||null;},ones:function(t){return t.avgMmr?t.avgMmr.ones:null;},twos:function(t){return t.avgMmr?t.avgMmr.twos:null;},threes:function(t){return t.avgMmr?t.avgMmr.threes:null;},sg:function(t){return t.seasonGames;},g14:function(t){return t.games?t.games.d1:null;},h2:function(t){return t.hours2wk;},ht:function(t){return t.totalHours;}};
     // Team totals only sum the players who publish hours. Printing 0 for a team
   // where nobody does reads as "this team never plays", and a partial sum needs
   // saying so or it looks like the whole roster.
@@ -766,6 +719,24 @@
     return body;
   };
 
+  // Fixed at 24 hours rather than following the players tab's window toggle:
+  // that control is hidden while the teams table is up, so a header that could
+  // silently read 7d would leave no visible way to tell. Same reason the roster
+  // panel fixes its own window.
+  //
+  // The sum only counts players whose 24h window has actually filled, so a team
+  // carrying a newly added player is understated. Marked the way partial hours
+  // are rather than printed as if it were the whole roster.
+  var teamGamesCell=function(t){
+    var v=t.games?t.games.d1:null;
+    if(v==null)return'<span class="dash">&middot;</span>';
+    var roster=byTeam[t.team]||[];
+    var counted=roster.filter(function(p){var g=p.games&&p.games.d1;return g&&g.games!=null&&!g.partial;}).length;
+    var body=v?'<span class="g14v">'+nf(v)+'</span>':'<span class="mv">0</span>';
+    if(roster.length&&counted&&counted<roster.length)
+      return'<span class="part" title="'+counted+' of '+roster.length+' players have been tracked for a full 24 hours; the rest are still pending.">'+body+'</span>';
+    return body;
+  };
   var teamRow=function(t){
       var a=t.avgMmr||{};
       return '<tr class="team-row '+(t.ranked?'':'isnorank')+'" data-team="'+esc(t.team)+'" tabindex="0" aria-expanded="false">'+
@@ -775,10 +746,60 @@
         '<td class="c-fill"></td>'+
         mmrCell(a.ones,'m1')+mmrCell(a.twos,'m2')+mmrCell(a.threes,'m3')+
         '<td class="c-sg" data-l="season">'+(t.seasonGames!=null?'<span class="sgv">'+nf(t.seasonGames)+'</span>':'<span class="dash">&middot;</span>')+'</td>'+
+        '<td class="c-g14" data-l="24h games">'+teamGamesCell(t)+'</td>'+
         '<td class="c-hr c-hr2" data-l="2wk h">'+teamHoursCell(t,t.hours2wk,hf)+'</td>'+
-        '<td class="c-hr c-hrt" data-l="total h">'+teamHoursCell(t,t.totalHours,function(x){return nf(Math.round(x));})+'</td></tr>';
+        '<td class="c-hr c-hrt" data-l="total h">'+teamHoursCell(t,t.totalHours,function(x){return nf(Math.round(x));})+'</td>'+
+        '<td class="c-cp">'+copyBtn(t.team)+'</td></tr>';
     };
     var tMatch=function(t,q){return (String(t.team||'')+' '+String(t.region||'')).toLowerCase().indexOf(q)>=0;};
+    // The copied line follows the board rather than a fixed set of figures: the
+    // playlist is whichever one is being read, so a line pasted from a 1v1 view
+    // says 1v1. A figure that is missing is left out instead of printed as a
+    // dash, which reads as noise away from the table.
+    var SEP=' · ';
+    var mmrBit=function(m,prefix){
+      if(!m)return null;
+      var out=[];
+      ['ones','twos','threes'].forEach(function(k){
+        if(m[k]!=null)out.push((prefix||'')+PL_LABEL[k]+' '+nf(m[k]));
+      });
+      return out.length?out:null;
+    };
+    var copyLinePlayer=function(p){
+      var bits=[p.name+(p.team?(' ('+p.team+')'):'')];
+      if(p.mmr&&p.mmr[mmrKey]!=null)bits.push(PL_LABEL[mmrKey]+' '+nf(p.mmr[mmrKey]));
+      var h=p.hours2wk!=null?p.hours2wk:p.estHours2wk;
+      if(h!=null)bits.push(hf(h)+'h in 2wk');
+      return bits.join(SEP);
+    };
+    // A player's line inside a team paste. Every playlist rather than the one
+    // being read, because the point of pasting a team is the comparison down
+    // the roster, and season games is the figure that separates them.
+    var rosterLine=function(p){
+      var bits=[p.name], m=mmrBit(p.mmr);
+      if(m)bits=bits.concat(m);
+      if(p.seasonGames!=null)bits.push(nf(p.seasonGames)+' games this season');
+      var h=p.hours2wk!=null?p.hours2wk:p.estHours2wk;
+      if(h!=null)bits.push(hf(h)+'h in 2wk');
+      if(p.totalHours!=null)bits.push(nf(Math.round(p.totalHours))+'h total');
+      return bits.join(SEP);
+    };
+    // Team first with everything it has, then a blank line, then the roster one
+    // player per line. Pasted into Discord that is a readable block rather than
+    // a paragraph, and the blank line is what keeps the team from reading as
+    // just another member of its own roster.
+    var copyLineTeam=function(t){
+      var bits=[t.team+(t.region?(' ('+t.region+')'):'')], m=mmrBit(t.avgMmr,'avg ');
+      if(m)bits=bits.concat(m);
+      if(t.seasonGames!=null)bits.push(nf(t.seasonGames)+' games this season');
+      if(t.tracked&&t.hours2wk!=null)bits.push(hf(t.hours2wk)+'h in 2wk');
+      if(t.tracked&&t.totalHours!=null)bits.push(nf(Math.round(t.totalHours))+'h total');
+      var out=[bits.join(SEP)];
+      var roster=(byTeam[t.team]||[]).slice();
+      roster.sort(function(a,b){return (b.mmr&&b.mmr.twos||0)-(a.mmr&&a.mmr.twos||0);});
+      if(roster.length)out.push('',roster.map(rosterLine).join('\n'));
+      return out.join('\n');
+    };
 
     // Roster-comparison panel for a team (players side by side, best per row highlighted).
     var byTeam={}; players.forEach(function(p){ (byTeam[p.team]=byTeam[p.team]||[]).push(p); });
@@ -849,7 +870,13 @@
     // filter, so it is always the head of the list below it rather than a
     // second, competing ranking.
     var podEl=document.getElementById('podium');
-    var METRIC_LABEL={twos:'2v2 MMR',ones:'1v1 MMR',threes:'3v3 MMR',sg:'games',g14:'games',h2:'hours, 2wk',ht:'hours total',name:'',region:'',status:''};
+    var METRIC_LABEL={twos:'2v2 MMR',ones:'1v1 MMR',threes:'3v3 MMR',sg:'total games',g14:'games',h2:'hours, 2wk',ht:'hours total',name:'',region:'',status:''};
+    // The headline names its window. Ranking by 24h printed "74 GAMES" over a
+    // stat cell reading "1,785 GAMES", two different figures under one word.
+    var podLabel=function(k){
+      if(k==='g14')return (WIN_LABEL[win]||win)+' games';
+      return METRIC_LABEL[k]||'';
+    };
     // Every podium card carries the same six figures the table columns do, so
     // reading across the top three is the same job as reading down the list.
     var POD_STATS=[
@@ -858,11 +885,6 @@
       {k:'threes',lab:'3v3',    get:function(p){ return p.mmr&&p.mmr.threes!=null?nf(p.mmr.threes):null; }},
       {k:'sg',    lab:'games', get:function(p){ return p.seasonGames!=null?nf(p.seasonGames):null; }},
       {k:'g14',   lab:null, na:'pending', get:function(p){ var g=p.games&&p.games[win]; return g&&g.games!=null&&!g.partial?nf(g.games):null; }},
-      // A second window beside the one the board is ranked by, so a card says
-      // whether today is a burst or a habit. It is 7d normally, and 24h when
-      // the board is already showing 7d, which keeps the row six cells wide
-      // whatever the ranking and never prints the same window twice.
-      {k:'g2nd',  lab:null, na:'pending', get:function(p){ var w=(win==='d7'?'d1':'d7'); var g=p.games&&p.games[w]; return g&&g.games!=null&&!g.partial?nf(g.games):null; }},
       {k:'h2',    lab:'2wk h',  get:function(p){ var h=p.hours2wk!=null?p.hours2wk:p.estHours2wk; return h!=null?(p.hours2wk!=null?hf(h):'<span class="est">'+hf(h)+'</span>'):null; }}
     ];
     var podFigure=function(p,k){
@@ -899,12 +921,21 @@
         var fig=podFigure(p,k);
         // Skip the stat the card is already headlining: ranked by 2v2 MMR, the
         // big figure and the 2v2 cell underneath were the same number twice.
-        var stats=POD_STATS.filter(function(st){ return st.k!==k; }).map(function(st){
-          var lab=st.lab;
-          if(!lab) lab=(st.k==='g2nd') ? (WIN_LABEL[win==='d7'?'d1':'d7']) : (WIN_LABEL[win]||win);
-          return podStat(lab, st.get(p), false, st.na);
+        // Two ratings then the season's games, whatever the board is ranked by,
+        // so every card reads the same way. Filtering the list and taking the
+        // first three did not: ranking by 24h or by hours left all three ratings
+        // in and pushed games off the end, so the trio changed shape depending
+        // on a control above the cards rather than on anything about the player.
+        // Games is the exception when it is already the headline figure.
+        var pls=['ones','twos','threes'].filter(function(x){ return x!==k; });
+        var want=(k==='sg')?pls:pls.slice(0,2).concat(['sg']);
+        var stats=want.map(function(key){
+          var st=POD_STATS.filter(function(x){ return x.k===key; })[0];
+          return st?podStat(st.lab, st.get(p), false, st.na):'';
         });
         return '<div class="pc p'+(i+1)+'" data-player="'+esc(p.name)+'" role="button" tabindex="0" aria-expanded="false">'+
+          // Same control as the table rows carry, in the card's own corner.
+          copyBtn(p.name)+
           '<div class="phead">'+
             '<div class="ptop">'+
               '<span class="pnum">'+String(i+1).padStart(2,'0')+'</span>'+
@@ -920,7 +951,7 @@
                 statusChip(p.status)+
               '</span>'+
             '</div>'+
-            '<div class="pfig"><b>'+(fig==null?'&middot;':fig)+'</b><span>'+(METRIC_LABEL[k]||'')+'</span></div>'+
+            '<div class="pfig"><b>'+(fig==null?'&middot;':fig)+'</b><span>'+podLabel(k)+'</span></div>'+
           '</div>'+
           '<div class="prow">'+stats.join('')+'</div>'+
         '</div>';
@@ -931,15 +962,14 @@
     // ---- the top three open too -------------------------------------------
     //
     // The cards headline the board and were the one part of it with nothing
-    // behind them. The panel is the same one the rows use, rendered under the
-    // three cards rather than inside one of them: at a third of the width the
-    // chart would have been unreadable, and the full width is already there.
+    // behind them. Same panel the rows open into, rendered under all three
+    // rather than inside one of them: at a third of the width the figures
+    // would wrap to one word a line, and the full width is already there.
     var openPod=null;
     var applyOpenPod=function(){
       var host=document.getElementById('podExp');
       if(!host)return;
-      var cards=podEl.querySelectorAll('.pc');
-      var found=null;
+      var cards=podEl.querySelectorAll('.pc'), found=null;
       Array.prototype.forEach.call(cards,function(c){
         var on=!!openPod&&c.getAttribute('data-player')===openPod;
         c.classList.toggle('open',on);
@@ -951,109 +981,104 @@
     };
     podEl.addEventListener('click',function(e){
       if(e.target.closest&&e.target.closest('a'))return;
+      // Copying must not also open the card: the icon sits inside it.
+      var cb=e.target.closest?e.target.closest('.copyrow'):null;
+      if(cb){
+        var ccard=cb.closest('.pc'), cname=ccard&&ccard.getAttribute('data-player');
+        var cp=players.filter(function(x){return x.name===cname;})[0];
+        if(cp)copyText(copyLinePlayer(cp),cb);
+        return;
+      }
+      var jump=e.target.closest?e.target.closest('.pexp-link'):null;
+      if(jump){
+        rvPicked=[jump.getAttribute('data-id')]; rvTouched=true;
+        show('ratings');
+        return;
+      }
+      // Clicks inside the open panel are not a request to close it.
       if(e.target.closest&&e.target.closest('#podExp'))return;
       var card=e.target.closest?e.target.closest('.pc'):null;
       if(!card)return;
       var who=card.getAttribute('data-player');
       openPod=(openPod===who)?null:who;
-      // One panel on the page at a time. Two open charts is two screens of
+      // One panel on the page at a time. Two open at once is two screens of
       // scrolling between the board and the row somebody was reading.
-      if(openPod&&openPlayer){ openPlayer=null; rebuildOpenPlayer(); }
-      // Draw what we can now, then again once the history lands.
+      if(openPod&&openPlayer){ openPlayer=null; applyOpenPlayer(); }
       applyOpenPod();
-      if(openPod)loadMmrHistory(applyOpenPod);
     });
-    // Wrapped, not passed directly: chartHover is declared further down, so at
-    // this point the bare name is still undefined and the listener would bind
-    // to nothing at all.
-    podEl.addEventListener('mousemove',function(e){chartHover(e);});
-    podEl.addEventListener('mouseleave',function(e){chartLeave(e);},true);
 
-    // ---- player rows open for the rest of their numbers ----
+    // ---- a row opens for the rest of its numbers ---------------------------
     //
-    // The phone list shows two figures; the other nine are a tap away rather
-    // than a screen away. One row at a time, and the open one is restored after
-    // a repaint so a refresh does not close it under the reader.
+    // On a phone the row itself reflows into tiles; on a wide screen it opens a
+    // panel underneath. One row at a time, and the open one is restored after a
+    // repaint so a refresh does not close it under the reader.
+    //
+    // The rating chart that used to head this panel is gone: wedged into a
+    // table row it was fighting the layout around it, and rating history now
+    // has a tab of its own with the room to hold more than one line. In its
+    // place are the figures the wide table no longer prints, in the order the
+    // columns used to run.
+    // The table cell prints "3d ago" in place of a zero, because a zero on its
+    // own cannot tell someone who stopped last night from someone nobody has
+    // seen in a fortnight. In here Last played is two lines below, so the
+    // substitution would print the same words twice and the zero is the honest
+    // figure.
+    var panelGames=function(p,w){
+      var g=p.games&&p.games[w||win];
+      if(!g||g.games==null)return'<span class="dash">&middot;</span>';
+      if(g.partial)return'<span class="pending">pending</span>';
+      return'<span class="g14v">'+nf(g.games)+'</span>';
+    };
     var openPlayer=null;
-    // What the wide table no longer shows, for the row the reader opened.
-    // Status is here rather than in a column because the hours cells already
-    // say "private" or "hidden"; a column repeating it was the same fact twice.
-    // The panel a player opens into, shared by the table rows and the top
-    // three cards so the two can never drift apart.
     var detailInner=function(p){
+      // Steam first because it qualifies everything after it: whether the
+      // hours below are measured, estimated or simply unavailable is decided
+      // by what the profile lets us see. Then activity newest-first - the
+      // window, the fortnight, the lifetime - and last played closes it,
+      // being the one figure that is a date rather than a total.
+      //
+      // Rank is gone. 93 of the 94 tracked pros are Supersonic Legend in 2v2,
+      // so it printed the same three words on almost every panel.
+      // Both windows, named rather than following the board's toggle: the top
+      // three used to carry them and no longer do, and a panel that silently
+      // changes which window it means is worse than one that says.
       var facts=[
         ['Steam', statusChip(p.status)],
+        ['Games, 24h', panelGames(p,'d1')],
+        ['Games, 7d', panelGames(p,'d7')],
         ['Hours, 2 weeks', hours2wkCell(p).replace(/^<td[^>]*>|<\/td>$/g,'')],
         ['Hours, total', totalHoursCell(p).replace(/^<td[^>]*>|<\/td>$/g,'')],
-        ['Last played', p.lastPlayedAt?esc(agoShort(p.lastPlayedAt)):'<span class="dash">&middot;</span>'],
-        ['Rank', p.tier&&p.tier[mmrKey]?esc(p.tier[mmrKey]):'<span class="dash">&middot;</span>']
+        ['Last played', p.lastPlayedAt?esc(agoShort(p.lastPlayedAt)):'<span class="dash">&middot;</span>']
       ];
       if(isLive(p)&&p.session){
+        // Both figures on the value line, so the entry is two lines like every
+        // other one and the panel does not grow taller when somebody is live.
         var mins=p.session.startedAt?Math.round((Date.now()-p.session.startedAt)/60000):null;
+        var g=p.session.games;
+        // Always minutes, even at 128m. An hours figure rounds a session into
+        // something vaguer than the thing being described: "2h" covers anything
+        // from 105 to 134 minutes, and the point of this line is that it is
+        // happening right now.
+        var forWhen=mins==null?null:(mins+'m');
+        var played=g!=null?(nf(g)+(g===1?' game':' games')):null;
+        // Last played says "5m ago" for somebody who is on the ladder right now,
+        // which is the same fact worded as if they had stopped.
+        facts=facts.filter(function(f){ return f[0]!=='Last played'; });
         facts.unshift(['Playing now',
-          (p.session.games!=null?nf(p.session.games)+(p.session.games===1?' game':' games'):'')+
-          (mins!=null?' over '+(mins<60?mins+' min':Math.round(mins/6)/10+' h'):'')]);
+          [forWhen,played].filter(Boolean).join(':')||'yes']);
       }
       return '<div class="pexp-in">'+
-        '<div class="pexp-h">'+esc(PL_NAME[mmrKey])+' rating <span>'+esc(chartSpanOf(p.id,mmrKey))+'</span></div>'+
-        bigChart(p.id,mmrKey)+
         '<div class="pexp-facts">'+facts.map(function(f){
           return '<div><span class="pk">'+f[0]+'</span><span class="pvv">'+f[1]+'</span></div>';
         }).join('')+'</div>'+
+        // Straight through to this player's rating history rather than making
+        // the reader find them again in the other tab's search.
+        '<button type="button" class="pexp-link" data-id="'+esc(p.id)+'" '+
+          'aria-label="Rating history for '+esc(p.name)+'">Rating history &rarr;</button>'+
       '</div>';
     };
     var detailRow=function(p,span){
       return '<tr class="pexp"><td colspan="'+span+'">'+detailInner(p)+'</td></tr>';
-    };
-
-    // The chart's pointer marker: snap to the nearest reading and name it.
-    // Answers the two questions a chart of a slow-moving rating cannot answer
-    // by shape alone - which rating, and when.
-    var chartHover=function(e){
-      var wrap=e.target.closest?e.target.closest('.chartwrap'):null;
-      var reg=wrap?chartReg[wrap.getAttribute('data-chart')]:null;
-      if(!reg||!reg.pts.length)return;
-      var svg=wrap.querySelector('svg.chart'), tip=wrap.querySelector('.chart-tip');
-      var mark=wrap.querySelector('.cmark');
-      if(!svg||!tip||!mark)return;
-      var box=svg.getBoundingClientRect();
-      if(!box.width)return;
-      // Screen pixels back into the fixed viewBox the chart was drawn in.
-      var ux=((e.clientX-box.left)/box.width)*reg.w;
-      var best=0, bestD=Infinity;
-      for(var i=0;i<reg.pts.length;i++){
-        var d=Math.abs(reg.pts[i][0]-ux);
-        if(d<bestD){bestD=d;best=i;}
-      }
-      var pt=reg.pts[best];
-      mark.removeAttribute('hidden');
-      mark.querySelector('.cml').setAttribute('x1',pt[0]);
-      mark.querySelector('.cml').setAttribute('x2',pt[0]);
-      mark.querySelector('.cmc').setAttribute('cx',pt[0]);
-      mark.querySelector('.cmc').setAttribute('cy',pt[1]);
-      var when=new Date(mmrBase+pt[2]*60000);
-      tip.innerHTML='<b>'+nf(pt[3])+'</b>'+
-        '<span>'+esc(when.toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'})+
-        ', '+when.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}))+'</span>';
-      tip.removeAttribute('hidden');
-      // Follow the marker, but never hang off either end of the chart.
-      var pct=Math.max(0,Math.min(1,pt[0]/reg.w));
-      tip.style.left=(pct*box.width)+'px';
-      tip.style.transform='translateX('+(pct<.15?'0':pct>.85?'-100%':'-50%')+')';
-    };
-    var chartLeave=function(e){
-      var wrap=e.target.closest?e.target.closest('.chartwrap'):null;
-      if(!wrap)return;
-      var mark=wrap.querySelector('.cmark'), tip=wrap.querySelector('.chart-tip');
-      if(mark)mark.setAttribute('hidden','');
-      if(tip)tip.setAttribute('hidden','');
-    };
-    pv.addEventListener('mousemove',chartHover);
-    pv.addEventListener('mouseleave',chartLeave,true);
-    var rebuildOpenPlayer=function(){
-      var rows=pv.querySelectorAll('tbody tr.pexp');
-      Array.prototype.forEach.call(rows,function(tr){ tr.parentNode.removeChild(tr); });
-      applyOpenPlayer();
     };
     var applyOpenPlayer=function(){
       var rows=pv.querySelectorAll('tbody tr');
@@ -1071,15 +1096,27 @@
     };
     pv.addEventListener('click',function(e){
       if(e.target.closest&&e.target.closest('a'))return;
+      // Copying must not also open the row: the icon sits inside it.
+      var cb=e.target.closest?e.target.closest('.copyrow'):null;
+      if(cb){
+        var crow=cb.closest('tbody tr'), cname=crow&&crow.getAttribute('data-player');
+        var cp=players.filter(function(x){return x.name===cname;})[0];
+        if(cp)copyText(copyLinePlayer(cp),cb);
+        return;
+      }
+      var jump=e.target.closest?e.target.closest('.pexp-link'):null;
+      if(jump){
+        rvPicked=[jump.getAttribute('data-id')]; rvTouched=true;
+        show('ratings');
+        return;
+      }
       var tr=e.target.closest?e.target.closest('tbody tr'):null;
       if(!tr||tr.classList.contains('pexp'))return;
       var name=tr.getAttribute('data-player');
       openPlayer=(openPlayer===name)?null:name;
       if(openPlayer&&openPod){ openPod=null; applyOpenPod(); }
       applyOpenPlayer();
-      if(openPlayer)loadMmrHistory(function(){ rebuildOpenPlayer(); });
     });
-
     // ---- team drilldown: click a team to compare its roster; only one open at a time ----
     var openTeam=null; // team name of the expanded row, so refreshes can restore it
     var toggleTeam=function(tr){
@@ -1106,8 +1143,19 @@
       openTeam=null;      // toggleTeam sets it again
       toggleTeam(tr);
     };
-    tv.addEventListener('click',function(e){ var tr=e.target.closest?e.target.closest('tr.team-row'):null; if(tr)toggleTeam(tr); });
-    tv.addEventListener('keydown',function(e){ if(e.key!=='Enter'&&e.key!==' ')return; var tr=e.target.closest?e.target.closest('tr.team-row'):null; if(tr){ e.preventDefault(); toggleTeam(tr); } });
+    tv.addEventListener('click',function(e){
+      var cb=e.target.closest?e.target.closest('.copyrow'):null;
+      if(cb){
+        var crow=cb.closest('tr.team-row'), cname=crow&&crow.getAttribute('data-team');
+        var ct=teams.filter(function(x){return x.team===cname;})[0];
+        if(ct)copyText(copyLineTeam(ct),cb);
+        return;
+      }
+      var tr=e.target.closest?e.target.closest('tr.team-row'):null; if(tr)toggleTeam(tr);
+    });
+    // Enter on the copy button is a copy, not a row toggle: the button sits
+    // inside a row that is itself focusable.
+    tv.addEventListener('keydown',function(e){ if(e.key!=='Enter'&&e.key!==' ')return; if(e.target.closest&&e.target.closest('.copyrow'))return; var tr=e.target.closest?e.target.closest('tr.team-row'):null; if(tr){ e.preventDefault(); toggleTeam(tr); } });
 
     // ---- rank-by buttons ----
     //
@@ -1233,12 +1281,573 @@
     document.getElementById('searchClear').addEventListener('click',function(){ input.value=''; searchQ=''; wrap.classList.remove('has'); renderPodium(); paintP(); paintT(); input.focus(); });
 
     // ---- view toggle ----
-    var tabP=document.getElementById('tabPlayers'), tabT=document.getElementById('tabTeams');
+    var tabP=document.getElementById('tabPlayers'), tabT=document.getElementById('tabTeams'), tabR=document.getElementById('tabRatings');
     var wrowEl=document.getElementById('wrow');
     var podWrap=document.getElementById('podium');
-    var show=function(isP){ tabP.setAttribute('aria-selected',isP?'true':'false'); tabT.setAttribute('aria-selected',isP?'false':'true'); pv.hidden=!isP; tv.hidden=isP; if(wrowEl)wrowEl.style.display=isP?'':'none'; if(podWrap)podWrap.style.display=isP?'':'none'; };
-    tabP.addEventListener('click',function(){show(true);});
-    tabT.addEventListener('click',function(){show(false);});
+    // Three panels, one at a time. The ordering buttons and the podium belong
+    // to the players list and follow it rather than sitting over a table they
+    // cannot reorder.
+    var TABS=['players','teams','ratings'];
+    var tabNow='players';
+    var show=function(which){
+      if(TABS.indexOf(which)<0)which='players';
+      tabNow=which;
+      tabP.setAttribute('aria-selected',which==='players'?'true':'false');
+      tabT.setAttribute('aria-selected',which==='teams'?'true':'false');
+      if(tabR)tabR.setAttribute('aria-selected',which==='ratings'?'true':'false');
+      pv.hidden=which!=='players';
+      tv.hidden=which!=='teams';
+      if(rvEl)rvEl.hidden=which!=='ratings';
+      if(wrowEl)wrowEl.style.display=which==='players'?'':'none';
+      if(podWrap)podWrap.style.display=which==='players'?'':'none';
+      // The board's search filters a table, and the ratings tab has neither a
+      // table nor the same question: it has a search of its own for putting a
+      // player on the chart. Two search boxes doing different things, one of
+      // them inert, is worse than one.
+      if(wrap)wrap.style.display=which==='ratings'?'none':'';
+      if(which==='ratings')rvOpen();
+      // Switching tabs changes the view without repainting either table, so
+      // this is the one control that has to tell the address bar itself.
+      if(typeof syncUrl==='function')syncUrl();
+    };
+    tabP.addEventListener('click',function(){show('players');});
+    tabT.addEventListener('click',function(){show('teams');});
+    if(tabR)tabR.addEventListener('click',function(){show('ratings');});
+    // ---- the ratings tab ---------------------------------------------------
+    //
+    // Rating history used to open inside a table row and inside a podium card.
+    // Both were the wrong shape for it: a chart squeezed into a row is fighting
+    // the table around it, and one player at a time answers the least
+    // interesting question. Here it has the width of the page and more than one
+    // line on it, so the question becomes who is climbing and who is not.
+    //
+    // The playlist is this tab's own, not the board's. Changing the chart to 1v1
+    // should not silently reorder the table waiting behind it.
+    var rvEl=document.getElementById('ratingsView');
+    // Six lines is where a chart stops being a comparison and starts being a
+    // plate of spaghetti; it is also how many colours stay apart on this ground.
+    var RV_MAX=6;
+    var rvKey='twos', rvPicked=null, rvTouched=false, rvFilter='', rvReg=null;
+    // Which of the picked players actually have a line in the window on screen,
+    // so the legend can say when one of them does not.
+    var rvDrawn={};
+    // How much of the history to draw. Ratings barely move over a fortnight
+    // and then swing forty points in an evening, so a chart of the whole
+    // history draws the interesting part as a smudge against the right edge.
+    // Cutting the window is what makes those hours readable: the vertical
+    // scale is computed from whatever is shown, so a narrower window is a
+    // real zoom rather than a crop.
+    var RV_RANGES=[{k:'all',lab:'All',mins:null},{k:'7d',lab:'7d',mins:7*1440},
+                   {k:'24h',lab:'24h',mins:1440},{k:'6h',lab:'6h',mins:360}];
+    var rvRange='all';
+    var rvListOpen=false, rvCursor=-1;
+    var RV_W=1280, RV_H=380, RV_PADL=58, RV_PADR=16, RV_PADT=14, RV_PADB=30;
+
+    var rvPool=function(){ return players.filter(function(p){ return !!seriesFor(p.id,rvKey); }); };
+    // Opening the tab on an empty chart makes the reader do setup work before
+    // they have seen what the page is for. The three highest ratings in the
+    // chosen playlist are the ones most people came to look at anyway.
+    var rvDefault=function(){
+      return rvPool().slice().sort(function(a,b){
+        return (b.mmr&&b.mmr[rvKey]||0)-(a.mmr&&a.mmr[rvKey]||0);
+      }).slice(0,3).map(function(p){ return p.id; });
+    };
+    // The history arrives after the first paint, so the default cannot be picked
+    // until it is here: before then every player looks like they have no series.
+    // Once the reader has chosen for themselves, an empty chart is their empty
+    // chart and nothing refills it.
+    var rvSeed=function(){
+      if(rvTouched||(rvPicked&&rvPicked.length))return;
+      var def=rvDefault();
+      if(def.length)rvPicked=def;
+    };
+    var rvPlayer=function(id){ return players.filter(function(x){return x.id===id;})[0]; };
+
+    var multiChart=function(ids){
+      var series=[];
+      ids.forEach(function(id,i){
+        var p=rvPlayer(id), pts=p?seriesFor(id,rvKey):null;
+        // ci is the player's own slot, kept through every filter below. Taking
+        // the colour from the drawn-series index instead meant that dropping one
+        // line recoloured the ones after it: the legend would say Zen was blue
+        // while the chart drew them orange.
+        if(pts)series.push({id:id,name:p.name,pts:pts,ci:i%RV_MAX});
+      });
+      if(!series.length)return '<div class="chart-none">'+
+        (mmrState!=='done'?'Loading the rating history…'
+         :ids.length?('No '+PL_NAME[rvKey]+' history yet for anyone on the chart.')
+         :'Search above to put a player on the chart.')+'</div>';
+      // One window shared by every line, measured from the newest reading on the
+      // chart rather than from the clock: a player last seen on Tuesday should
+      // still be drawn beside one who played an hour ago.
+      var mins=(RV_RANGES.filter(function(r){return r.k===rvRange;})[0]||{}).mins;
+      if(mins){
+        var newest=-Infinity;
+        series.forEach(function(sr){ var last=sr.pts[sr.pts.length-1][0]; if(last>newest)newest=last; });
+        var cut=newest-mins;
+        series=series.map(function(sr){
+          var kept=sr.pts.filter(function(pt){ return pt[0]>=cut; });
+          // A rating does not stop existing between games, so a player with no
+          // readings inside the window is carried across it at the last figure
+          // known before it. A flat line is the true picture: they did not move.
+          // The same carry closes both ends, so every line spans the full width
+          // instead of starting or stopping wherever that player last queued.
+          var before=null;
+          for(var i=0;i<sr.pts.length;i++){ if(sr.pts[i][0]<cut)before=sr.pts[i]; else break; }
+          if(before&&(!kept.length||kept[0][0]>cut))kept.unshift([cut,before[1]]);
+          var last=kept.length?kept[kept.length-1]:null;
+          if(last&&last[0]<newest)kept.push([newest,last[1]]);
+          return kept.length>1?{id:sr.id,name:sr.name,pts:kept,ci:sr.ci}:null;
+        }).filter(Boolean);
+        if(!series.length)return '<div class="chart-none">No readings in the last '+
+          esc((RV_RANGES.filter(function(r){return r.k===rvRange;})[0]||{}).lab)+' for anyone on the chart.</div>';
+      }
+      var t0=Infinity,t1=-Infinity,lo=Infinity,hi=-Infinity;
+      series.forEach(function(sr){ sr.pts.forEach(function(pt){
+        if(pt[0]<t0)t0=pt[0]; if(pt[0]>t1)t1=pt[0];
+        if(pt[1]<lo)lo=pt[1]; if(pt[1]>hi)hi=pt[1];
+      }); });
+      var span=(t1-t0)||1;
+      // Same floor under the range as the old chart had, for the same reason: a
+      // rating that wandered eight points must not be drawn as a mountain range.
+      var mid=(hi+lo)/2, half=Math.max((hi-lo)/2*1.1,30);
+      var top=mid+half, bot=mid-half;
+      var x0=RV_PADL,x1=RV_W-RV_PADR,y0=RV_PADT,y1=RV_H-RV_PADB;
+      var yOf=function(r){ return y1-((r-bot)/((top-bot)||1))*(y1-y0); };
+
+      var edges=[], rough=(top-bot)/5, step=Math.pow(10,Math.floor(Math.log(rough)/Math.LN10));
+      [1,2,2.5,5,10].some(function(m){ if(step*m>=rough){ step=step*m; return true; } return false; });
+      for(var g=Math.ceil(bot/step)*step; g<top; g+=step) edges.push(g);
+      var axis='';
+      edges.forEach(function(r){
+        var y=yOf(r);
+        axis+='<line class="cg" x1="'+x0+'" y1="'+y.toFixed(1)+'" x2="'+x1+'" y2="'+y.toFixed(1)+'"/>'+
+          '<text class="ct" text-anchor="end" x="'+(x0-6)+'" y="'+(y+3.5).toFixed(1)+'">'+nf(r)+'</text>';
+      });
+
+      var paths='', reg=[];
+      rvDrawn={};
+      series.forEach(function(sr){
+        rvDrawn[sr.id]=true;
+        var xy=sr.pts.map(function(pt){ return [x0+((pt[0]-t0)/span)*(x1-x0),yOf(pt[1])]; });
+        paths+='<path class="cl s'+sr.ci+'" d="'+xy.map(function(q,j){
+          return (j?'L':'M')+q[0].toFixed(1)+' '+q[1].toFixed(1);
+        }).join('')+'" fill="none" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+        reg.push({name:sr.name,i:sr.ci,pts:sr.pts.map(function(pt,j){
+          return [+xy[j][0].toFixed(1),+xy[j][1].toFixed(1),pt[0],pt[1]];
+        })});
+      });
+
+      // Dates across a long window, clock times across a short one. "9 Sept"
+      // repeated six times is not an axis.
+      var ticks='', dayMs=1440, tickAt=function(m,label){
+        var tx=x0+((m-t0)/span)*(x1-x0);
+        ticks+='<text class="ct dim" text-anchor="middle" x="'+tx.toFixed(1)+'" y="'+(RV_H-9)+'">'+esc(label)+'</text>';
+      };
+      if(span<=2*dayMs){
+        // Snapped to the clock, not to the first reading. Stepping from t0 put
+        // the labels at 07:21, 11:21, 15:21 - correct, and unreadable as an
+        // axis. Epoch milliseconds divide evenly into these steps, so a multiple
+        // of one lands on :00, :15, :30 or :45 wherever the reader is.
+        var STEPS=[15,30,60,120,180,240,360,720];
+        var stepMin=STEPS[STEPS.length-1];
+        for(var si=0;si<STEPS.length;si++){ if(span/STEPS[si]<=8){ stepMin=STEPS[si]; break; } }
+        var stepMs=stepMin*60000, a0=mmrBase+t0*60000, a1=mmrBase+t1*60000;
+        for(var a=Math.ceil(a0/stepMs)*stepMs; a<=a1; a+=stepMs)
+          tickAt((a-mmrBase)/60000,new Date(a).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}));
+      }else{
+        var stepDays=Math.max(1,Math.ceil((span/dayMs)/7));
+        for(var d=Math.ceil(t0/dayMs)*dayMs; d<=t1; d+=dayMs*stepDays)
+          tickAt(d,new Date(mmrBase+d*60000).toLocaleDateString([],{day:'numeric',month:'short'}));
+      }
+      rvReg={series:reg,w:RV_W};
+      return '<div class="chartwrap rvwrap">'+
+        '<svg class="chart" viewBox="0 0 '+RV_W+' '+RV_H+'" preserveAspectRatio="xMidYMid meet" role="img" '+
+          'aria-label="'+esc(PL_NAME[rvKey]+' rating over the '+chartSpanWords(span)+', '+
+            series.map(function(sr){return sr.name;}).join(', '))+'">'+
+          axis+paths+
+          '<g class="cmark" hidden><line class="cml" y1="'+y0+'" y2="'+y1+'"/></g>'+
+          ticks+
+        '</svg>'+
+        '<div class="chart-tip" hidden></div>'+
+      '</div>';
+    };
+
+    // The shell is built once. Everything after this repaints only the part that
+    // changed, so typing in the search box never rebuilds the input underneath
+    // the cursor: the old version re-rendered the whole tab on every keystroke
+    // and had to put the caret back by hand afterwards.
+    var rvBuilt=false, rvIn=null, rvListEl=null, rvCountEl=null, rvLegEl=null, rvChartEl=null;
+    var rvShell=function(){
+      if(rvBuilt||!rvEl)return;
+      rvEl.innerHTML=
+        '<div class="rvhead">'+
+          // The window is a stepper rather than four more buttons, the way the
+          // board's MMR control steps through playlists: it is one setting with
+          // four values, and four abreast made the row read as eight equal
+          // choices when only the first three are a choice of what to look at.
+          '<div class="wseg rvpl" role="group" aria-label="Playlist and window">'+
+            ['ones','twos','threes'].map(function(k){
+              return '<button type="button" data-pl="'+k+'" aria-pressed="'+(k===rvKey?'true':'false')+'">'+PL_NAME[k]+'</button>';
+            }).join('')+
+            '<span class="wsep" aria-hidden="true"></span>'+
+            '<button type="button" class="rvrg" data-rgstep title="Click to change how much history is shown">'+
+              'Show<span class="mpl" id="rvRg"></span></button>'+
+          '</div>'+
+          '<div class="rvsearch">'+
+            '<svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true">'+
+              '<circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>'+
+            '<input id="rvFilter" type="text" autocomplete="off" role="combobox" aria-expanded="false" '+
+              'aria-controls="rvList" aria-autocomplete="list" placeholder="Add a player to the chart…" '+
+              'aria-label="Add a player to the chart">'+
+            '<div class="rvlist" id="rvList" role="listbox" aria-label="Players" hidden></div>'+
+          '</div>'+
+          '<div class="rvcount" id="rvCount"></div>'+
+        '</div>'+
+        '<div class="rvlegend" id="rvLegend"></div>'+
+        '<div id="rvChart"></div>';
+      rvIn=document.getElementById('rvFilter');
+      rvListEl=document.getElementById('rvList');
+      rvCountEl=document.getElementById('rvCount');
+      rvLegEl=document.getElementById('rvLegend');
+      rvChartEl=document.getElementById('rvChart');
+      rvBuilt=true;
+    };
+
+    var rvMatches=function(){
+      var q=rvFilter.toLowerCase();
+      var pool=rvPool().filter(function(p){ return (rvPicked||[]).indexOf(p.id)<0; });
+      if(q)pool=pool.filter(function(p){
+        return (String(p.name)+' '+String(p.team||'')).toLowerCase().indexOf(q)>=0;
+      });
+      // Highest rating first, so an empty box is still a useful list rather than
+      // whatever order the roster happens to be in.
+      return pool.sort(function(a,b){ return (b.mmr&&b.mmr[rvKey]||0)-(a.mmr&&a.mmr[rvKey]||0); });
+    };
+
+    var rvPaintList=function(){
+      if(!rvListEl)return;
+      var full=(rvPicked||[]).length>=RV_MAX;
+      if(!rvListOpen){ rvListEl.hidden=true; if(rvIn)rvIn.setAttribute('aria-expanded','false'); return; }
+      var rows=rvMatches();
+      if(rvCursor>=rows.length)rvCursor=rows.length-1;
+      rvListEl.innerHTML=full
+        ? '<div class="rvempty">Six lines is the limit. Remove one to add another.</div>'
+        : rows.length
+          ? rows.map(function(p,i){
+              var cur=p.mmr&&p.mmr[rvKey]!=null?nf(p.mmr[rvKey]):'&middot;';
+              return '<button type="button" class="rvopt'+(i===rvCursor?' at':'')+'" role="option" '+
+                'aria-selected="'+(i===rvCursor?'true':'false')+'" data-id="'+esc(p.id)+'">'+
+                '<b>'+esc(p.name)+'</b><i>'+esc(p.team||'Free agent')+'</i><span>'+cur+'</span></button>';
+            }).join('')
+          : '<div class="rvempty">'+(mmrState!=='done'?'Loading the rating history…':'Nobody left to add by that name.')+'</div>';
+      rvListEl.hidden=false;
+      if(rvIn)rvIn.setAttribute('aria-expanded','true');
+      var at=rvListEl.querySelector('.rvopt.at');
+      if(at&&at.scrollIntoView)at.scrollIntoView({block:'nearest'});
+    };
+
+    var rvPaintLegend=function(){
+      if(!rvLegEl)return;
+      var picked=rvPicked||[];
+      rvLegEl.innerHTML=picked.length
+        ? picked.map(function(id,i){
+            var p=rvPlayer(id);
+            if(!p)return '';
+            var cur=p.mmr&&p.mmr[rvKey]!=null?nf(p.mmr[rvKey]):'&middot;';
+            // A name with no line on the chart says so rather than sitting there
+            // as a colour the reader cannot find.
+            var off=!rvDrawn[id];
+            return '<button type="button" class="rvleg s'+(i%RV_MAX)+(off?' off':'')+'" data-id="'+esc(id)+'" '+
+              'title="'+(off?'No readings in this window. Click to remove.':'Remove from the chart')+'" '+
+              'aria-label="Remove '+esc(p.name)+' from the chart">'+
+              '<i></i><b>'+esc(p.name)+'</b><span>'+(off?'no data':cur)+'</span><em>&times;</em></button>';
+          }).join('')
+        : '<span class="rvnone">No players on the chart yet.</span>';
+      if(rvCountEl)rvCountEl.textContent=picked.length+' of '+RV_MAX;
+    };
+
+    var rvPaintChart=function(){
+      if(rvChartEl)rvChartEl.innerHTML=multiChart(rvPicked||[]);
+    };
+
+    var rvRender=function(){
+      if(!rvEl)return;
+      rvShell();
+      rvSeed();
+      Array.prototype.forEach.call(rvEl.querySelectorAll('.rvpl button[data-pl]'),function(b){
+        b.setAttribute('aria-pressed',b.getAttribute('data-pl')===rvKey?'true':'false');
+      });
+      var rgEl=document.getElementById('rvRg');
+      if(rgEl)rgEl.textContent=(RV_RANGES.filter(function(r){return r.k===rvRange;})[0]||RV_RANGES[0]).lab;
+      // Chart first: the legend reports which lines it actually drew.
+      rvPaintChart(); rvPaintLegend(); rvPaintList();
+      if(typeof syncUrl==='function')syncUrl();
+    };
+
+    var rvAdd=function(id){
+      if(!rvPicked)rvPicked=[];
+      if(rvPicked.indexOf(id)>=0||rvPicked.length>=RV_MAX)return;
+      rvTouched=true;
+      rvPicked.push(id);
+      // The name that was just added is gone from the list, so the query that
+      // found it has done its job.
+      rvFilter=''; if(rvIn)rvIn.value=''; rvCursor=-1;
+      rvPaintChart(); rvPaintLegend(); rvPaintList();
+      if(typeof syncUrl==='function')syncUrl();
+    };
+    var rvRemove=function(id){
+      if(!rvPicked)return;
+      var at=rvPicked.indexOf(id);
+      if(at<0)return;
+      rvTouched=true;
+      rvPicked.splice(at,1);
+      rvPaintChart(); rvPaintLegend(); rvPaintList();
+      if(typeof syncUrl==='function')syncUrl();
+    };
+
+    if(rvEl){
+      rvEl.addEventListener('click',function(e){
+        var pl=e.target.closest?e.target.closest('[data-pl]'):null;
+        if(pl){ rvKey=pl.getAttribute('data-pl'); rvCursor=-1; rvRender(); return; }
+        var rg=e.target.closest?e.target.closest('[data-rgstep]'):null;
+        if(rg){
+          var at=0;
+          RV_RANGES.forEach(function(r,i){ if(r.k===rvRange)at=i; });
+          rvRange=RV_RANGES[(at+1)%RV_RANGES.length].k;
+          rvRender();
+          return;
+        }
+        var opt=e.target.closest?e.target.closest('.rvopt'):null;
+        if(opt){ rvAdd(opt.getAttribute('data-id')); if(rvIn)rvIn.focus(); return; }
+        var leg=e.target.closest?e.target.closest('.rvleg'):null;
+        if(leg){ rvRemove(leg.getAttribute('data-id')); return; }
+      });
+      rvEl.addEventListener('input',function(e){
+        if(e.target.id!=='rvFilter')return;
+        rvFilter=e.target.value.trim();
+        rvCursor=rvFilter?0:-1;
+        rvListOpen=true;
+        rvPaintList();
+      });
+      rvEl.addEventListener('focusin',function(e){
+        if(e.target.id!=='rvFilter')return;
+        rvListOpen=true; rvPaintList();
+      });
+      // A list that stays open over the chart is in the way of the thing the
+      // reader just changed, so anything outside the search closes it.
+      document.addEventListener('click',function(e){
+        if(!rvListOpen)return;
+        if(e.target.closest&&e.target.closest('.rvsearch'))return;
+        rvListOpen=false; rvPaintList();
+      });
+      rvEl.addEventListener('keydown',function(e){
+        if(e.target.id!=='rvFilter')return;
+        if(e.key==='Escape'){ rvListOpen=false; rvPaintList(); return; }
+        if(e.key==='Backspace'&&!rvFilter&&(rvPicked||[]).length){
+          // Empty box, so backspace means "undo the last one I added", the way
+          // every tag field behaves.
+          rvRemove(rvPicked[rvPicked.length-1]); return;
+        }
+        if(e.key!=='ArrowDown'&&e.key!=='ArrowUp'&&e.key!=='Enter')return;
+        var rows=rvMatches();
+        if(e.key==='Enter'){
+          if(rvListOpen&&rvCursor>=0&&rows[rvCursor]){ e.preventDefault(); rvAdd(rows[rvCursor].id); }
+          return;
+        }
+        e.preventDefault();
+        if(!rvListOpen){ rvListOpen=true; rvCursor=0; rvPaintList(); return; }
+        if(!rows.length)return;
+        rvCursor=e.key==='ArrowDown'
+          ? (rvCursor+1>=rows.length?0:rvCursor+1)
+          : (rvCursor-1<0?rows.length-1:rvCursor-1);
+        rvPaintList();
+      });
+      // The chart's pointer marker: snap to the nearest reading and name every
+      // line at that moment. A chart of slow-moving ratings cannot answer
+      // "which" and "when" by shape alone.
+      rvEl.addEventListener('mousemove',function(e){
+        var wrap=e.target.closest?e.target.closest('.chartwrap'):null;
+        if(!wrap||!rvReg||!rvReg.series.length)return;
+        var svg=wrap.querySelector('svg.chart'), tip=wrap.querySelector('.chart-tip'), mark=wrap.querySelector('.cmark');
+        if(!svg||!tip||!mark)return;
+        var box=svg.getBoundingClientRect();
+        if(!box.width)return;
+        var ux=((e.clientX-box.left)/box.width)*rvReg.w;
+        var when=null, rows='';
+        rvReg.series.forEach(function(sr){
+          var best=0,bestD=Infinity;
+          for(var i=0;i<sr.pts.length;i++){
+            var d=Math.abs(sr.pts[i][0]-ux);
+            if(d<bestD){ bestD=d; best=i; }
+          }
+          var pt=sr.pts[best];
+          if(when==null)when=pt[2];
+          rows+='<span class="tl s'+sr.i+'"><i></i>'+esc(sr.name)+'<b>'+nf(pt[3])+'</b></span>';
+        });
+        var w=new Date(mmrBase+when*60000);
+        tip.innerHTML='<span class="tw">'+esc(w.toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'})+
+          ', '+w.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}))+'</span>'+rows;
+        tip.removeAttribute('hidden');
+        mark.removeAttribute('hidden');
+        mark.querySelector('.cml').setAttribute('x1',ux.toFixed(1));
+        mark.querySelector('.cml').setAttribute('x2',ux.toFixed(1));
+        var pct=Math.max(0,Math.min(1,ux/rvReg.w));
+        tip.style.left=(pct*box.width)+'px';
+        tip.style.transform='translateX('+(pct<.2?'0':pct>.8?'-100%':'-50%')+')';
+      });
+      rvEl.addEventListener('mouseleave',function(e){
+        var wrap=e.target.closest?e.target.closest('.chartwrap'):null;
+        if(!wrap)return;
+        var mark=wrap.querySelector('.cmark'), tip=wrap.querySelector('.chart-tip');
+        if(mark)mark.setAttribute('hidden','');
+        if(tip)tip.setAttribute('hidden','');
+      },true);
+    }
+    // The history file is only fetched when this tab is first opened: it is the
+    // largest thing the page can ask for and most visitors never come here.
+    var rvOpen=function(){
+      rvRender();
+      if(mmrState!=='done')loadMmrHistory(rvRender);
+    };
+
+    // ---- the view, in the address bar ----
+    //
+    // A link should open the board the person sharing it was actually looking
+    // at. Everything the controls change goes in the query string, and only
+    // when it differs from the default, so an untouched board stays at a bare
+    // 198x.online/ rather than carrying eight parameters that all say 'normal'.
+    //
+    // replaceState rather than pushState: these chips read as filters, not as
+    // pages, and one history entry per tap would make the back button walk out
+    // of the board a step at a time instead of leaving the site.
+    //
+    // The values are words, not the internal sort keys. g14 is a leftover from
+    // when that column was 14 days and would now be a lie in a place people
+    // read; sg and ht mean nothing on sight.
+    var SORT_URL={ones:'mmr',twos:'mmr',threes:'mmr',sg:'season',g14:'games',h2:'hours',ht:'totalhours',name:'name',region:'region',status:'status'};
+    var URL_SORT={mmr:'twos',season:'sg',games:'g14',hours:'h2',totalhours:'ht',name:'name',region:'region',status:'status'};
+    // Matches what buildTable picks for a fresh column, so a direction only
+    // appears in the link when it is not the one a click would have given.
+    var NAT_DIR={name:'asc',region:'asc',status:'asc'};
+    var natDir=function(k){ return NAT_DIR[k]||'desc'; };
+    var isTeams=function(){ return tabNow==='teams'; };
+    // Nothing is written until the incoming link has been read, or the first
+    // paint would overwrite the parameters it is about to apply.
+    var urlReady=false;
+
+    syncUrl=function(){
+      if(!urlReady||!window.history||!history.replaceState)return;
+      var q=[];
+      // The ratings tab has no ordering, no region and no search, so it
+      // carries only what it actually shows: the playlist and the lines.
+      if(tabNow==='ratings'){
+        q.push('tab=ratings');
+        if(rvKey!=='twos')q.push('pl='+rvKey);
+        if(rvRange!=='all')q.push('range='+rvRange);
+        var names=(rvPicked||[]).map(function(id){
+          var pp=players.filter(function(x){return x.id===id;})[0];
+          return pp?pp.name:null;
+        }).filter(Boolean);
+        if(names.length)q.push('who='+encodeURIComponent(names.join(',')));
+        var rnext=location.pathname+(q.length?('?'+q.join('&')):'')+location.hash;
+        if(rnext!==location.pathname+location.search+location.hash){
+          try{ history.replaceState(null,'',rnext); }catch(e){}
+        }
+        return;
+      }
+      var teamsOn=isTeams(), paint=teamsOn?paintT:paintP;
+      var k=paint.sortKey(), d=paint.sortDir();
+      var isMmr=(k==='ones'||k==='twos'||k==='threes');
+      if(teamsOn)q.push('tab=teams');
+      // 2v2 MMR descending is what a bare URL already means.
+      if(SORT_URL[k]&&!(isMmr&&k==='twos'&&d==='desc'))q.push('sort='+SORT_URL[k]);
+      if(isMmr&&k!=='twos')q.push('mmr='+k);
+      if(d!==natDir(k))q.push('dir='+d);
+      // Skipped on the teams tab, where the window control is hidden and the
+      // 24h column is fixed: a link has to describe what is on screen, and
+      // win=d7 there would describe something the recipient cannot see.
+      if(win!=='d1'&&!teamsOn)q.push('win='+win);
+      if(regionQ)q.push('region='+encodeURIComponent(regionQ));
+      if(searchQ)q.push('q='+encodeURIComponent(searchQ));
+      if(liveOnly)q.push('playing=1');
+      var next=location.pathname+(q.length?('?'+q.join('&')):'')+location.hash;
+      if(next===location.pathname+location.search+location.hash)return;
+      // Safari throws once replaceState is called more than 100 times in 30
+      // seconds, which a held-down backspace in the search box can reach. The
+      // address bar falling behind is not worth breaking the handler over.
+      try{ history.replaceState(null,'',next); }catch(e){}
+    };
+
+    // A parameter that is missing, misspelt or impossible is ignored rather
+    // than obeyed: ?region=XX should open the normal board, not an empty one.
+    var applyUrl=function(){
+      var sp;
+      try{ sp=new URLSearchParams(location.search); }catch(e){ return; }
+      var get=function(n){ var v=sp.get(n); return v==null?'':String(v).trim(); };
+
+      var tab=get('tab').toLowerCase();
+      if(tab==='teams')show('teams');
+
+      if(tab==='ratings'){
+        var pl=get('pl').toLowerCase();
+        if(pl==='ones'||pl==='twos'||pl==='threes')rvKey=pl;
+        var rg=get('range').toLowerCase();
+        if(RV_RANGES.filter(function(r){return r.k===rg;}).length)rvRange=rg;
+        var who=get('who').split(',').slice(0,RV_MAX);
+        var wantIds=[];
+        who.forEach(function(nm){
+          nm=nm.trim(); if(!nm)return;
+          var pp=players.filter(function(x){return x.name===nm;})[0];
+          if(pp&&wantIds.indexOf(pp.id)<0)wantIds.push(pp.id);
+        });
+        // An empty or unrecognised list falls back to the default three
+        // rather than opening an empty chart.
+        if(wantIds.length)rvPicked=wantIds;
+        show('ratings');
+      }
+
+      var w=get('win').toLowerCase();
+      if(w==='d1'||w==='d7'){
+        win=w;
+        var th=pv.querySelector('th.c-g14 span'); if(th)th.textContent=COL_LABEL[win];
+      }
+
+      var m=get('mmr').toLowerCase();
+      if(m==='ones'||m==='twos'||m==='threes'){ mmrKey=m; showMmrPlaylist(); }
+
+      // Checked against the regions actually on the board, not a fixed list, so
+      // a region nobody plays in cannot empty the table.
+      var r=get('region').toUpperCase();
+      if(r&&players.filter(function(p){return p.region===r;}).length){ regionQ=r; buildRegions(); }
+
+      // Capped: the search is a filter, not a place to park a paragraph.
+      var qs=get('q').slice(0,60);
+      if(qs){ input.value=qs; searchQ=qs.toLowerCase(); wrap.classList.add('has'); }
+
+      // Only honoured while somebody is on the ladder. buildPlaying drops the
+      // filter when nobody is, and a link that arrives at a quiet hour would
+      // otherwise show an empty board with no control to undo it.
+      if(get('playing')==='1'&&playingSeg&&!playingSeg.hidden){ liveOnly=true; buildPlaying(); }
+
+      var sk=URL_SORT[get('sort').toLowerCase()];
+      if(sk==='twos')sk=mmrKey; // 'mmr' means whichever playlist is selected
+      var d=get('dir').toLowerCase(); if(d!=='asc'&&d!=='desc')d='';
+      if(sk){
+        var dir=d||natDir(sk);
+        if(isTeams()){ if(tAcc[sk])paintT.setSort(sk,dir); }
+        else if(pAcc[sk]){ markMetric(sk); paintP.setSort(sk,dir); }
+      }
+
+      markMetric(paintP.sortKey());
+      renderPodium(); paintP(); paintT();
+      if(tabNow==='ratings')rvRender();
+      // Writing straight back tidies the link as well as recording it: an
+      // unknown value drops out, and a parameter that spells out the default
+      // disappears.
+      urlReady=true; syncUrl();
+    };
+    applyUrl();
 
     // ---- feedback -> posted to the Worker, which files the GitHub issue ----
     // The site is static, so it cannot hold a token; the Worker holds it and
