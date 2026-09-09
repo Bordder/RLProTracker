@@ -14,11 +14,8 @@ const PL = ["ones", "twos", "threes"];
 
 const avg = (arr) => (arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : null);
 
-async function main() {
-  const { players, computedAt, snapshotCount } = JSON.parse(
-    await readFile(join(ROOT, "data", "derived", "tracker.json"), "utf8")
-  );
-
+// The whole computation, separated from the file reading so it can be tested.
+export function teamTracker(players) {
   const byTeam = new Map();
   for (const p of players) {
     const t = p.team ?? "Unknown";
@@ -56,6 +53,15 @@ async function main() {
   }
 
   teams.sort((a, b) => (b.avgMmr.twos ?? 0) - (a.avgMmr.twos ?? 0));
+  return teams;
+}
+
+async function main() {
+  const { players, computedAt, snapshotCount } = JSON.parse(
+    await readFile(join(ROOT, "data", "derived", "tracker.json"), "utf8")
+  );
+
+  const teams = teamTracker(players);
 
   await mkdir(join(ROOT, "data", "derived"), { recursive: true });
   await writeFile(join(ROOT, "data", "derived", "team-tracker.json"), JSON.stringify({ computedAt, snapshotCount, teams }, null, 2));
@@ -65,4 +71,8 @@ async function main() {
   }
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+// Only run when invoked directly: importing this for its exports must not
+// start reading and rewriting the derived files.
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  main().catch((e) => { console.error(e); process.exit(1); });
+}

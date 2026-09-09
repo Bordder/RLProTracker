@@ -12,11 +12,11 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 const sum = (arr) => arr.reduce((a, b) => a + (b ?? 0), 0);
 
-async function main() {
-  const { players, computedAt, snapshotCount } = JSON.parse(
-    await readFile(join(ROOT, "data", "derived", "steam-hours.json"), "utf8")
-  );
-
+// The whole computation, separated from the file reading so it can be tested.
+// Only players with a totalHours are summed: a team's figure is the sum of the
+// members who publish, and `tracked` against `players` is what lets the board
+// say so rather than printing a partial sum as if it were the whole roster.
+export function teamHours(players) {
   const byTeam = new Map();
   for (const p of players) {
     const team = p.team ?? "Unknown";
@@ -42,6 +42,15 @@ async function main() {
   }
 
   teams.sort((a, b) => b.windows.d14 - a.windows.d14);
+  return teams;
+}
+
+async function main() {
+  const { players, computedAt, snapshotCount } = JSON.parse(
+    await readFile(join(ROOT, "data", "derived", "steam-hours.json"), "utf8")
+  );
+
+  const teams = teamHours(players);
 
   await writeFile(
     join(ROOT, "data", "derived", "team-hours.json"),
@@ -53,4 +62,8 @@ async function main() {
   }
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+// Only run when invoked directly: importing this for its exports must not
+// start reading and rewriting the derived files.
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
+  main().catch((e) => { console.error(e); process.exit(1); });
+}
