@@ -220,7 +220,7 @@
     'Rafha Esports':'MENA','DOS':'MENA','Team Stallions':'MENA',
     'Pioneers':'SSA',
     // Added 10 September 2026, one player rather than a full roster.
-    'Canterbury-Bankstown Bulldogs':'OCE'
+    'Canterbury-Bankstown Bulldogs':'OCE','PWR':'OCE','Take Flyte':'OCE'
   };
   var REGION_CLASS={EU:'rg-eu',NA:'rg-na',SAM:'rg-sam',MENA:'rg-mena',OCE:'rg-oce',APAC:'rg-apac',SSA:'rg-ssa'};
 
@@ -247,7 +247,8 @@
     'dignitas':'DIG', 'm80':'M80', 'fut-esports':'FUT', 'geekay-esports':'GK',
     'ght':'GHT', 'r8-esports':'R8', 'wildcard':'WC', 'tsm':'TSM',
     'team-falcons':'FAL',
-    'canterbury-bankstown-bulldogs':'CBB'
+    'canterbury-bankstown-bulldogs':'CBB',
+    'pwr':'PWR', 'take-flyte':'TF'
   };
   var LOGO_INSET={'virtuspro':6};
   var TEAM_LOGO={'geng-mobil1-racing':'png','karmine-corp':'png','lil-step-bros':'png','mibr':'png','nrg':'png','shopify-rebellion':'png','spacestation-gaming':'png','team-bsk':'png','tsm':'png','wildcard':'svg'};

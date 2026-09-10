@@ -1,5 +1,5 @@
 {
-  "note": "RLCS 2026 field. The first twenty are the World Championship teams; the rest are regional sides tracked for coverage. players[] holds the Liquipedia page title used to resolve each SteamID; fix a title here if the roster fetcher reports no-steam-link / error for it.",
+  "note": "RLCS 2026 field. The first twenty are the World Championship teams; the rest are regional sides tracked for coverage. players[] holds the Liquipedia page title used to resolve each SteamID; fix a title here if the roster fetcher reports no-steam-link / error for it. freeAgents[] is for players with no team: each entry is {name, steamId64} (or a bare name to resolve like a team player), and they render as \"Free agent\" with no region, since region follows the team. They are deliberately excluded from every team total.",
   "season": "RLCS 2026",
   "teams": [
     {
@@ -307,6 +307,20 @@
         "hntr",
         "Caleb",
         "kaka"
+      ]
+    },
+    {
+      "name": "PWR",
+      "stage": "regional",
+      "players": [
+        "Superlachie"
+      ]
+    },
+    {
+      "name": "Take Flyte",
+      "stage": "regional",
+      "players": [
+        "Amphis"
       ]
     }
   ]
