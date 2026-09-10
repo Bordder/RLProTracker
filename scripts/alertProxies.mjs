@@ -70,7 +70,8 @@ const embed = {
     {
       name: "Replacing one",
       value:
-        "Replace it at the provider, then edit the line **in place** in `local/proxy-check/proxies.txt`, run `make-secret.bat`, and update the `PROXY_LIST` secret. Deleting a line renumbers every index below it, and `data/proxy-use.json` reports by index.",
+        "Replace it at the provider, then edit the line **in place** in `proxies.txt` at the repo root - do not reorder or delete, since `data/proxy-use.json` reports by index. Then update the secret:\n" +
+        "```\n(Get-Content proxies.txt) -join \',\' | gh secret set PROXY_LIST --repo Bordder/RLProTracker\n```",
     },
   ],
   footer: { text: `${process.env.REPO ?? ""}` },
