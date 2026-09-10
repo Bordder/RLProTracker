@@ -238,3 +238,60 @@ print(int((datetime.datetime.now(datetime.timezone.utc)-dt).total_seconds()//60)
           else
             echo "DISCORD_WEBHOOK not set; no notification sent"
           fi
+
+      - name: Warn when the collector's scrape success rate drops
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+          # The gap the other checks leave. Staleness watches whether data is
+          # ARRIVING; this watches whether it is COMPLETE. They are not the same:
+          # a run where 89% of scrapes fail still publishes on time, because a
+          # failed player is retried next run and matchesPlayed is cumulative, so
+          # every freshness alarm stays green while most of the board is going
+          # unread.
+          #
+          # Measured 2026-09-10: the fleet sat at 72-80% failure from at least
+          # 14:53, reached 89% by 20:13 with 14 of 15 proxies failing every
+          # attempt, and nothing said a word. It was found by hand.
+          #
+          # Reads what real collector traffic already writes, so it costs one
+          # request and no proxy load at all.
+          FAIL_PCT=50   # sustained failure above this is worth waking someone
+
+          use=$(curl -sS --max-time 20 \
+            "https://raw.githubusercontent.com/${REPO}/data/data/proxy-use.json" || echo '{}')
+
+          summary=$(printf '%s' "$use" | python3 -c '
+import json,sys
+try:
+    d=json.load(sys.stdin)
+    u=d.get("use") or []
+    att=sum(x.get("attempts",0) for x in u)
+    fail=sum(x.get("fails",0) for x in u)
+    dead=sum(1 for x in u if x.get("attempts") and x.get("fails")==x.get("attempts"))
+    print(round(fail/att*100) if att else 0, dead, d.get("proxyCount",0), d.get("at","?"))
+except Exception:
+    print("- - - -")
+' 2>/dev/null || printf -- "- - - -")
+          pct=$(printf '%s' "$summary" | cut -d" " -f1)
+          dead=$(printf '%s' "$summary" | cut -d" " -f2)
+          total=$(printf '%s' "$summary" | cut -d" " -f3)
+          at=$(printf '%s' "$summary" | cut -d" " -f4)
+
+          if [ "${pct:--}" = "-" ]; then
+            echo "could not read proxy-use.json; skipping"
+            exit 0
+          fi
+          echo "scrape failure ${pct}%, ${dead}/${total} proxies failing every attempt, as of ${at}"
+          [ "$pct" -lt "$FAIL_PCT" ] && { echo "below the ${FAIL_PCT}% threshold"; exit 0; }
+
+          if [ -n "${DISCORD_WEBHOOK:-}" ]; then
+            text="**RL Pro Tracker: ${pct}% of scrapes are failing.** ${dead} of ${total} proxies fail every attempt (as of ${at}). Data still publishes on time, so the freshness alarms stay green - but most of the board is going unread and the numbers age quietly. Check the Proxy health workflow for per-proxy verdicts. api-unreachable means the tunnel is fine and the IP is refused, so replacing it only helps if the new address is cleaner."
+            curl -sS --max-time 20 -H 'content-type: application/json' \
+              -d "$(printf '{"content":%s}' "$(printf '%s' "$text" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')")" \
+              "$DISCORD_WEBHOOK" >/dev/null && echo "warned on Discord"
+          else
+            echo "DISCORD_WEBHOOK not set; no notification sent"
+          fi

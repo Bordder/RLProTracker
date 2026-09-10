@@ -16,10 +16,16 @@ name: Proxy health
 
 on:
   schedule:
-    # Every 6 hours. A proxy dying is not an emergency - the collector routes
-    # around it - so this only has to be faster than a person noticing, and
-    # GitHub drops most scheduled runs on public repos anyway.
-    - cron: "17 */6 * * *"
+    # Hourly. Ten requests an hour against proxies the collector already drives
+    # at ~230 an hour each is 0.4% more load, so frequency is not what strains
+    # them. What does is BURSTS: six full probes 25 minutes apart on 2026-09-10
+    # took the working count from 7 to 3 as the provider throttled. An hour
+    # apart is a different shape entirely.
+    #
+    # GitHub drops most scheduled runs on public repos anyway - liveness.yml
+    # measured a */15 schedule producing 2 runs where 27 were due - so asking
+    # hourly buys a few real firings a day rather than 24.
+    - cron: "17 * * * *"
   workflow_dispatch:
 
 permissions:
