@@ -64,3 +64,8 @@ proxy-report*.txt
 # easy to find, and ignored so it can never be committed or deployed. wrangler
 # only uploads web/, so nothing here ships either.
 /local/
+
+# Local memory for `npm run proxy:report`: which address sat at each index last
+# time it ran, so a freshly replaced proxy is not condemned on the old one's
+# figures. Addresses, so never committed.
+/.proxy-seen.json
