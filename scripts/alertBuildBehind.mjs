@@ -19,6 +19,8 @@
 //   env:  REPO, MAIN_SHA, GH_TOKEN, DISCORD_WEBHOOK, RUN_URL, SITE (optional),
 //         BEHIND_MINUTES (default 90)
 
+import { postEmbed } from "./discordPost.mjs";
+
 const REPO = process.env.REPO ?? "Bordder/RLProTracker";
 const SITE = process.env.SITE ?? "https://198x.online";
 const GRACE = Number(process.env.BEHIND_MINUTES ?? 90);
@@ -96,12 +98,4 @@ const embed = {
   timestamp: new Date().toISOString(),
 };
 
-const hook = process.env.DISCORD_WEBHOOK;
-if (!hook) { console.log("DISCORD_WEBHOOK not set; nothing sent"); process.exit(0); }
-const res = await fetch(hook, {
-  method: "POST",
-  headers: { "content-type": "application/json" },
-  body: JSON.stringify({ embeds: [embed] }),
-});
-console.log(`discord responded ${res.status}`);
-if (res.status !== 204) console.log((await res.text()).slice(0, 300));
+await postEmbed(embed);

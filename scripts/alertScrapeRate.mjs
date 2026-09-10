@@ -19,6 +19,8 @@
 // Usage:  node scripts/alertScrapeRate.mjs
 //   env:  REPO, DISCORD_WEBHOOK, RUN_URL, FAIL_PCT (default 50)
 
+import { postEmbed } from "./discordPost.mjs";
+
 const REPO = process.env.REPO ?? "Bordder/RLProTracker";
 const THRESHOLD = Number(process.env.FAIL_PCT ?? 50);
 const URL = `https://raw.githubusercontent.com/${REPO}/data/data/proxy-use.json`;
@@ -66,13 +68,4 @@ const embed = {
   timestamp: d.at ?? new Date().toISOString(),
 };
 
-const hook = process.env.DISCORD_WEBHOOK;
-if (!hook) { console.log("DISCORD_WEBHOOK not set; nothing sent"); process.exit(0); }
-
-const res = await fetch(hook, {
-  method: "POST",
-  headers: { "content-type": "application/json" },
-  body: JSON.stringify({ embeds: [embed] }),
-});
-console.log(`discord responded ${res.status}`);
-if (res.status !== 204) console.log((await res.text()).slice(0, 300));
+await postEmbed(embed);
