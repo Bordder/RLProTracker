@@ -220,7 +220,8 @@
     'Rafha Esports':'MENA','DOS':'MENA','Team Stallions':'MENA',
     'Pioneers':'SSA',
     // Added 10 September 2026, one player rather than a full roster.
-    'Canterbury-Bankstown Bulldogs':'OCE','PWR':'OCE','Take Flyte':'OCE'
+    'Canterbury-Bankstown Bulldogs':'OCE','PWR':'OCE','Take Flyte':'OCE',
+    'Plot Twist':'SAM'
   };
   // Region for players who have no team to inherit one from. Keyed by player id
   // (the slug in roster.json), because a free agent's name is all there is. The
