@@ -40,6 +40,12 @@ export const BAD_RATE = 0.45;
 // often an index gets benched is its own signal, independent of the rate.
 export const DEAD_BENCH = 0.8;
 export const BAD_BENCH = 0.5;
+// ...but a ratio needs a denominator worth dividing by. With one run in the
+// window, a single bench is a 100% bench rate, and the first thing the report
+// did after the history went live was tell me to replace a proxy failing 20%
+// of its requests. MIN_ATTEMPTS guards the failure rate; this guards the
+// bench rate. Five runs is roughly fifteen minutes at the 3-minute cadence.
+export const MIN_RUNS = 5;
 
 const hourKey = (ms) => new Date(Math.floor(ms / HOUR) * HOUR).toISOString();
 
@@ -125,7 +131,8 @@ export function summarise(history) {
       benched += Number(cell[2]) || 0;
     }
     const rate = attempts ? fails / attempts : 0;
-    const benchRate = runs ? benched / runs : 0;
+    // Only trust the bench ratio once there are enough runs behind it.
+    const benchRate = runs >= MIN_RUNS ? benched / runs : 0;
     const state =
       attempts < MIN_ATTEMPTS ? "unproven"
       : rate >= DEAD_RATE || benchRate >= DEAD_BENCH ? "dead"

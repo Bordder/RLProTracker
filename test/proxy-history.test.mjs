@@ -141,3 +141,22 @@ test("occasional benching on an otherwise healthy proxy stays 'ok'", () => {
   }
   assert.equal(rowsBy(summarise(h))[0].state, "ok");
 });
+
+test("one run cannot condemn a proxy on its bench ratio alone", () => {
+  // Live regression, 2026-09-10: with a single run in the window a lone bench
+  // is a 100% bench rate, and the report called a proxy failing 20% of its
+  // requests dead.
+  const h = recordRun(null, run([{ attempts: 15, fails: 3, benched: true }], T0), T0);
+  const r = rowsBy(summarise(h))[0];
+  assert.equal(r.benched, 1);
+  assert.equal(r.state, "ok", "20% failure over one run is not dead");
+});
+
+test("the bench signal switches on once there are enough runs", () => {
+  let h = null;
+  for (let n = 0; n < 6; n++) {
+    const at = T0 + n * 2 * 60e3;
+    h = recordRun(h, run([{ attempts: 15, fails: 3, benched: true }], at), at);
+  }
+  assert.equal(rowsBy(summarise(h))[0].state, "dead");
+});
