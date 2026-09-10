@@ -222,6 +222,11 @@
     // Added 10 September 2026, one player rather than a full roster.
     'Canterbury-Bankstown Bulldogs':'OCE','PWR':'OCE','Take Flyte':'OCE'
   };
+  // Region for players who have no team to inherit one from. Keyed by player id
+  // (the slug in roster.json), because a free agent's name is all there is. The
+  // team map wins wherever there is a team, so this never contradicts the rule
+  // FAQ 6 states: region follows the team's competitive region.
+  var PLAYER_REGION={};
   var REGION_CLASS={EU:'rg-eu',NA:'rg-na',SAM:'rg-sam',MENA:'rg-mena',OCE:'rg-oce',APAC:'rg-apac',SSA:'rg-ssa'};
 
   // ---- Team marks -------------------------------------------------------
@@ -389,7 +394,7 @@
       var nextPlayers=ids.map(function(id){
         var p=steamById[id]||trById[id]||{};
         var t=trById[id]||{};
-        return { id:id, name:p.name, team:p.team, region:REGION[p.team]||null,
+        return { id:id, name:p.name, team:p.team, region:REGION[p.team]||PLAYER_REGION[id]||null,
           // Not 'unknown', which means Steam answered oddly. This player has
           // simply not been through the hourly Steam job yet.
           status:steamById[id]?steamById[id].status:'pending',
