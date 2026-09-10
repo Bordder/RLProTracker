@@ -45,10 +45,20 @@ test("teamHours reports zero hours for a team where nobody publishes", () => {
   assert.deepEqual(t.windows, { d1: 0, d7: 0, d14: 0 });
 });
 
-test("teamHours treats a player with no team as Unknown rather than dropping them", () => {
+test("teamHours leaves free agents out of the team totals entirely", () => {
+  // Superseded 10 September 2026. These players used to be bucketed as a team
+  // called "Unknown", which put a team that does not exist on the board with an
+  // average MMR and a place in Most Active Team. A player with no team is a
+  // free agent: they still appear in the players table, they are simply not
+  // part of any team's figures.
   const teams = teamHours([player({ team: null }), player({ team: undefined })]);
-  assert.deepEqual(teams.map((t) => t.team), ["Unknown"]);
-  assert.equal(teams[0].players, 2);
+  assert.deepEqual(teams.map((t) => t.team), []);
+});
+
+test("teamHours keeps real teams while dropping free agents alongside them", () => {
+  const teams = teamHours([player({ team: "real" }), player({ team: null })]);
+  assert.deepEqual(teams.map((t) => t.team), ["real"]);
+  assert.equal(teams[0].players, 1);
 });
 
 test("teamHours orders teams by 14-day hours, most active first", () => {
@@ -65,6 +75,15 @@ const tracked = (over = {}) => ({
   seasonGames: { total: 500 },
   games: { total: { d1: { games: 5, partial: false }, d7: { games: 50, partial: false }, d14: { games: 90, partial: false } } },
   ...over,
+});
+
+test("teamTracker leaves free agents out of the team ranking", () => {
+  // Free agents reach the players table but must not invent an org. Before
+  // 10 September 2026 a teamless player was bucketed as "Unknown", which then
+  // competed in Most Active Team against real rosters.
+  const teams = teamTracker([tracked({ team: null }), tracked({ team: "real" })]);
+  assert.deepEqual(teams.map((t) => t.team), ["real"]);
+  assert.equal(teams[0].players, 1, "the free agent is not counted in the team's size");
 });
 
 test("teamTracker averages MMR over the players who have one", () => {

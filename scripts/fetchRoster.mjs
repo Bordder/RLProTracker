@@ -75,7 +75,7 @@ async function loadOverrides() {
 }
 
 async function main() {
-  const { teams, season } = JSON.parse(await readFile(join(ROOT, "data", "teams.json"), "utf8"));
+  const { teams, freeAgents = [], season } = JSON.parse(await readFile(join(ROOT, "data", "teams.json"), "utf8"));
   const resolved = await loadResolved();
   const overrides = await loadOverrides();
 
@@ -105,6 +105,33 @@ async function main() {
         liquipedia: title, status: cached ? "cached" : "pending",
       });
     }
+  }
+
+  // Players with no team. The board already renders "Free agent" wherever a
+  // team would go, so this only has to produce a player with team: null. The id
+  // is slugged from the name alone, since there is no team to qualify it - so
+  // free-agent names must be unique among themselves, which a duplicate check
+  // below enforces rather than leaving two players to overwrite each other.
+  for (const fa of freeAgents) {
+    const title = typeof fa === "string" ? fa : fa.name;
+    const id = slug(title);
+    if (players.some((p) => p.id === id)) throw new Error(`duplicate free-agent id: ${id}`);
+    const epic = overrides.epic[id];
+    if (epic) {
+      players.push({ id, name: title, team: null, stage: null, steamId64: null, epic, vanity: null, liquipedia: title, status: "epic" });
+      continue;
+    }
+    const override = overrides.steam[id] ?? (typeof fa === "object" ? fa.steamId64 : null);
+    if (override) {
+      players.push({ id, name: title, team: null, stage: null, steamId64: override, vanity: null, liquipedia: title, status: "override" });
+      continue;
+    }
+    const cached = resolved.get(id);
+    players.push({
+      id, name: title, team: null, stage: null,
+      steamId64: cached?.steamId64 ?? null, vanity: cached?.vanity ?? null,
+      liquipedia: title, status: cached ? "cached" : "pending",
+    });
   }
 
   const todo = players.filter((p) => p.status === "pending");

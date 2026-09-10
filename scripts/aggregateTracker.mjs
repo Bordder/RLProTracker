@@ -18,7 +18,11 @@ const avg = (arr) => (arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / a
 export function teamTracker(players) {
   const byTeam = new Map();
   for (const p of players) {
-    const t = p.team ?? "Unknown";
+    // A player with no team is a free agent, not a member of a team called
+    // "Unknown". Bucketing them would put a fake org in the teams tab, give it
+    // an average MMR, and let it place in Most Active Team.
+    const t = p.team;
+    if (!t) continue;
     if (!byTeam.has(t)) byTeam.set(t, []);
     byTeam.get(t).push(p);
   }

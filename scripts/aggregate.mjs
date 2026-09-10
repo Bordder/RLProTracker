@@ -19,7 +19,11 @@ const sum = (arr) => arr.reduce((a, b) => a + (b ?? 0), 0);
 export function teamHours(players) {
   const byTeam = new Map();
   for (const p of players) {
-    const team = p.team ?? "Unknown";
+    // Free agents have no team, so they belong to no team total. Same reasoning
+    // as teamTracker in aggregateTracker.mjs: an "Unknown" bucket would show up
+    // as an org on the board.
+    const team = p.team;
+    if (!team) continue;
     if (!byTeam.has(team)) byTeam.set(team, []);
     byTeam.get(team).push(p);
   }
