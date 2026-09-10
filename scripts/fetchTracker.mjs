@@ -21,6 +21,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import { appendRows, countReadings } from "./trackerHistory.mjs";
 import { parseProxies as parseProxyList, unauthenticatedIndices } from "./proxies.mjs";
+import { recordRun } from "./proxyHistory.mjs";
 import { chromium } from "playwright-extra";
 import stealth from "puppeteer-extra-plugin-stealth";
 
@@ -530,6 +531,19 @@ async function main() {
       benched: [...health.benched].sort((a, b) => a - b),
       use: proxyUse.map((u, i) => ({ i, ...(u || { attempts: 0, retries: 0, fails: 0 }), benched: health.isBenched(i) })),
     }, null, 2) + "\n"
+  );
+
+  // Fold this run into the rolling 24-hour record.
+  //
+  // proxy-use.json is one run and is overwritten by the next, which is too
+  // small a sample to judge an address on: three attempts per proxy means one
+  // bad patch reads as total failure. The history is what the alert reads
+  // before it tells anyone to buy a replacement.
+  const usePath = join(ROOT, "data", "proxy-use.json");
+  const histPath = join(ROOT, "data", "proxy-history.json");
+  await writeFile(
+    histPath,
+    JSON.stringify(recordRun(await readJson(histPath, null), await readJson(usePath, null)), null, 2) + "\n"
   );
 
   // Per-proxy summary. Even shares are the expectation; a lopsided column here
