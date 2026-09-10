@@ -401,6 +401,22 @@ function selectDue(players, prio, state, now) {
     if ((st.fails ?? 0) >= 3) interval *= 6; // back off chronically failing profiles
     // Active session -> refresh fast (set/cleared in main() from the game-count delta)
     if (st.hot) interval = Math.min(interval, (prio.hotIntervalMinutes ?? 20) * 60e3);
+    // Steam says this player is NOT in Rocket League, so they cannot be gaining
+    // MMR or games: scraping them now can only re-read numbers we already have.
+    // Stretch their interval rather than skipping them, so nothing is ever
+    // dropped, only deferred - and matchesPlayed is cumulative, so a later
+    // scrape still captures every game. What softens is only the 24h window
+    // boundary and how quickly the Playing pill lights up.
+    //
+    // Why this matters beyond tidiness: tracker.gg rate-limits per IP, and on
+    // 2026-09-10 the fleet crossed that line and sat at 89% failure with 14 of
+    // 15 proxies refused. Fewer requests per IP is the fix that does not expire,
+    // unlike replacing addresses.
+    //
+    // ONLY on an explicit "out". A private or hidden-details profile reports
+    // "unknown" and is left at full cadence, because for them presence proves
+    // nothing - which is about half the roster.
+    else if (st.presence === "out") interval *= prio.idleMultiplier ?? 1;
     const last = st.last ? Date.parse(st.last) : 0;
     const slots = Math.max(1, Math.round(interval / RUN_SPACING_MS));
     const mySlot = (ranks.get(p.id) ?? 0) % slots;
