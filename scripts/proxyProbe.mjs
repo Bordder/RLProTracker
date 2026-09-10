@@ -49,6 +49,7 @@ const VERDICT = {
   ok: "ok",
   tunnel: "tunnel-dead",        // could not open a connection at all
   blocked: "cloudflare-blocked", // tunnel fine, tracker.gg refused the IP
+  apiblocked: "api-unreachable",  // tunnel fine, site loads, api.tracker.gg will not answer
   slow: "timeout",
   other: "failed",
 };
@@ -82,6 +83,7 @@ const rows = [];
 for (const [i, proxy] of proxies.entries()) {
   let ctx;
   let verdict = VERDICT.other;
+  let warmed = false;
   let ms = null;
   const t0 = Date.now();
   try {
@@ -91,6 +93,12 @@ for (const [i, proxy] of proxies.entries()) {
       ["image", "media", "font", "stylesheet"].includes(r.request().resourceType()) ? r.abort() : r.continue()
     );
     await page.goto(WARM_URL, { waitUntil: "domcontentloaded", timeout: 30000 });
+    // Past this point the tunnel is proven: the site's own origin answered
+    // through it. Anything that fails now is about the API host, not the proxy
+    // being dead, and saying "tunnel-dead" here sends someone off to replace
+    // working hardware. Measured 2026-09-10: five residential proxies loaded
+    // robots.txt fine and every one of them threw on the API call.
+    warmed = true;
     const status = await page.evaluate(async (u) => {
       try {
         const res = await fetch(u, { credentials: "include", headers: { accept: "application/json" } });
@@ -106,10 +114,10 @@ for (const [i, proxy] of proxies.entries()) {
       else if (status === 403 || status === 429) verdict = VERDICT.blocked;
       else verdict = VERDICT.other;
     } else {
-      verdict = classify(status);
+      verdict = warmed ? VERDICT.apiblocked : classify(status);
     }
   } catch (e) {
-    verdict = classify(e?.message);
+    verdict = warmed ? VERDICT.apiblocked : classify(e?.message);
   } finally {
     ms = Date.now() - t0;
     await ctx?.close().catch(() => {});

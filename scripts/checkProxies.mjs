@@ -1,3 +1,11 @@
+// OUT OF DATE IN ONE IMPORTANT WAY, 2026-09-10. This tests a PROFILE PAGE, and
+// the collector stopped loading pages when it moved to calling api.tracker.gg
+// directly. A proxy can pass here and still be useless: five residential
+// proxies reported "OK (data present)" from this script while every one of them
+// threw "Failed to fetch" on the API call the collector actually makes. Use
+// scripts/proxyProbe.mjs for a verdict about collection; this one is still
+// useful for exit IPs and for telling a dead tunnel from a blocked one.
+//
 // DO NOT WIRE THIS INTO A WORKFLOW.
 //
 // It prints proxy hostnames and their exit IPs. The repo is public, so Actions
