@@ -72,7 +72,7 @@ const embed = {
         "Replace it at the provider, then edit the line **in place** in `local/proxy-check/proxies.txt`, run `make-secret.bat`, and update the `PROXY_LIST` secret. Deleting a line renumbers every index below it, and `data/proxy-use.json` reports by index.",
     },
   ],
-  footer: { text: `${process.env.REPO ?? ""} - measured from GitHub's network, which is the one the collector uses` },
+  footer: { text: `${process.env.REPO ?? ""}` },
   timestamp: probe.at ?? new Date().toISOString(),
 };
 
