@@ -2,21 +2,41 @@
 //
 // GitHub's cron drops most high-frequency scheduled runs on public repos (a */5
 // schedule produced zero runs in 26 minutes), so the workflow_dispatch API is
-// the reliable route. This Worker ticks every 5 minutes and dispatches:
+// the reliable route. Two triggers:
 //
-//   presence.yml - the */5 schedule. One batched Steam call; cheap, and gaps in
-//                  it undercount playtime rather than corrupt it.
-//   steam.yml    - hourly. Playtime totals, and the privacy classification that
-//                  decides whether a row shows hours or says why it cannot.
-//   tracker.yml  - the */3 schedule. Since the scraper reads the stats API
-//                  instead of loading profile pages, a full 60-player run costs
-//                  ~2 MB, so 3-minute polling is ~28 GB/month against a 250 GB
-//                  allowance. The limit here is run duration, not bandwidth.
+//   */2  dispatches BOTH presence.yml and tracker.yml.
 //
-// Both crons fire together every 15 minutes; each dispatch is independent, so
-// that needs no special handling.
+//        presence.yml - one batched Steam call, ~15s a run. Gaps undercount
+//                       playtime rather than corrupt it, because the hours are
+//                       credited from the real gap between polls.
+//        tracker.yml  - the scrape. It takes longer than 2 minutes at the
+//                       current roster, and cancel-in-progress is false, so runs
+//                       QUEUE and the effective cadence is the run duration.
+//                       Bandwidth is not the limit and never was: measured 4.4%
+//                       of the fleet allowance. Run duration and tracker.gg's
+//                       per-IP rate limiting are.
+//
+//   hourly (:07) dispatches steam.yml - playtime totals, and the privacy
+//        classification that decides whether a row shows hours or says why not.
+//
+// Each dispatch is independent, so two workflows firing on one trigger needs no
+// special handling.
 
-const PRESENCE_CRON = "*/5 * * * *";
+// Presence and tracker now share the */2 trigger. Presence used to run every
+// 5 minutes, which was also the delay before a pro who started queueing was
+// noticed. That did not matter much when every player was scraped every run;
+// it matters now, because idle players are deferred (idleMultiplier in
+// data/priorities.json) and presence is what pulls them back to full cadence.
+// Presence latency IS detection latency.
+//
+// Cheap to do: a presence run takes ~15s and costs two batched Steam calls,
+// so 2-minute polling is 1,440 calls a day against a 100,000 limit. The real
+// cost is one more commit per poll on the data branch.
+//
+// The hours figures are unaffected: presenceHours credits the REAL gap between
+// polls, capped, rather than a fixed constant, so the cadence can change
+// without making playtime wrong.
+const PRESENCE_CRON = "*/2 * * * *";
 const TRACKER_CRON = "*/2 * * * *";
 const STEAM_CRON = "7 * * * *";
 
@@ -131,6 +151,8 @@ export default {
 
   async scheduled(event, env, ctx) {
     const jobs = [];
+    // Separate ifs, not else-if: presence and tracker share the */2 cron, so one
+    // trigger must dispatch both. Each dispatch is independent.
     if (event.cron === PRESENCE_CRON) jobs.push(dispatch(env, "presence.yml"));
     if (event.cron === TRACKER_CRON) jobs.push(dispatch(env, "tracker.yml"));
     if (event.cron === STEAM_CRON) jobs.push(dispatch(env, "steam.yml"));

@@ -34,7 +34,10 @@ custom_domain = true
 # headroom - watch the cancelled-run rate as the roster grows, because tracker.yml
 # sets cancel-in-progress and an overlapping dispatch kills the run before it.
 [triggers]
-crons = ["*/5 * * * *", "*/2 * * * *", "7 * * * *"]
+# */2 drives BOTH presence and tracker (the handler dispatches both on it);
+# hourly drives steam. Presence left */5 on 10 September 2026 because idle
+# players are now deferred and presence is what wakes them.
+crons = ["*/2 * * * *", "7 * * * *"]
 
 # GH_TOKEN is a fine-grained PAT (Actions: read and write) and is NOT declared
 # here - add it as a Secret in the dashboard. Secrets survive a deploy; the vars
