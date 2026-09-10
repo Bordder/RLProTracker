@@ -1,0 +1,116 @@
+name: Proxy health
+
+# One request per proxy, and a Discord message naming the dead ones by index.
+#
+# The failure this exists for is silent by construction. On 2026-09-10 six of
+# fifteen proxies were failing 100% of their requests and nothing reported it:
+# a failed scrape is retried on another proxy and matchesPlayed is cumulative,
+# so the board still filled in. The only symptoms were a third of players
+# missing from each run and a 92s scrape, neither of which looks like a proxy
+# problem. The provider's own dashboard showed all fifteen "Working", because it
+# tests its tunnels rather than whether tracker.gg accepts them.
+#
+# Deliberately its own workflow rather than a step in tracker.yml: a probe of
+# every proxy on every 2-minute run would cost more than the failures do, and a
+# health check that makes the thing it watches slower is a bad trade.
+
+on:
+  schedule:
+    # Every 6 hours. A proxy dying is not an emergency - the collector routes
+    # around it - so this only has to be faster than a person noticing, and
+    # GitHub drops most scheduled runs on public repos anyway.
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: proxy-health
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Cache Chromium
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-1.62.1
+
+      # Mirrors tracker.yml: fetch the browser, try to launch it, and only pay
+      # for the apt install when that actually fails.
+      - name: Install Chromium
+        run: |
+          npx playwright install chromium
+          if node -e "require('playwright').chromium.launch().then(b=>b.close())" 2>/dev/null; then
+            echo "browser launches as-is; skipping apt"
+          else
+            echo "launch failed; installing system dependencies"
+            npx playwright install-deps chromium
+          fi
+
+      - name: Probe every proxy
+        id: probe
+        env:
+          PROXY_LIST: ${{ secrets.PROXY_LIST }}
+          PROXY_HOST: ${{ secrets.PROXY_HOST }}
+          PROXY_PORTS: ${{ secrets.PROXY_PORTS }}
+          PROXY_USER: ${{ secrets.PROXY_USER }}
+          PROXY_PASS: ${{ secrets.PROXY_PASS }}
+        run: |
+          set -uo pipefail
+          # --json prints ONE line and nothing else, and that line contains only
+          # integers and fixed verdict strings. No hostname, port or exit IP ever
+          # reaches this log: see the header of scripts/proxyProbe.mjs.
+          node scripts/proxyProbe.mjs --json > /tmp/probe.json 2>/tmp/probe.err || true
+          if [ ! -s /tmp/probe.json ]; then
+            echo "probe produced no output"
+            # stderr may carry a stack trace, which cannot contain a proxy
+            # address: the script never interpolates one into an error.
+            tail -5 /tmp/probe.err || true
+            echo "ok=" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          d=json.load(open("/tmp/probe.json"))
+          failed=d.get("failed",[])
+          print(f"total={d.get('total',0)}")
+          print(f"ok={d.get('ok',0)}")
+          print(f"failed_count={len(failed)}")
+          print("indices=" + ",".join(str(f["i"]) for f in failed))
+          print("detail=" + "; ".join(f"index {f['i']} {f['verdict']}" + (" (no credentials parsed)" if f.get("noAuth") else "") for f in failed))
+          PY
+          cat /tmp/probe.json
+
+      - name: Say so on Discord
+        if: steps.probe.outputs.failed_count != '0' && steps.probe.outputs.failed_count != ''
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          TOTAL: ${{ steps.probe.outputs.total }}
+          OK: ${{ steps.probe.outputs.ok }}
+          COUNT: ${{ steps.probe.outputs.failed_count }}
+          DETAIL: ${{ steps.probe.outputs.detail }}
+        run: |
+          set -uo pipefail
+          if [ -z "${DISCORD_WEBHOOK:-}" ]; then
+            echo "DISCORD_WEBHOOK not set; no notification sent"
+            exit 0
+          fi
+          text="**RL Pro Tracker: ${COUNT} of ${TOTAL} proxies are not usable.** ${OK} working. ${DETAIL}. Indices are positions in PROXY_LIST, the same ones data/proxy-use.json reports. Replace entries in place - deleting one renumbers every index below it. A 'cloudflare-blocked' verdict means the tunnel is fine and the IP is burned, so the provider's dashboard will still show it Working."
+          curl -sS --max-time 20 -H 'content-type: application/json' \
+            -d "$(printf '{"content":%s}' "$(printf '%s' "$text" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')")" \
+            "$DISCORD_WEBHOOK" >/dev/null && echo "warned on Discord"

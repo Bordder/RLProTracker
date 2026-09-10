@@ -23,7 +23,8 @@
     "build:site": "node scripts/buildSite.mjs",
     "update": "node scripts/fetchSteam.mjs && node scripts/computeDeltas.mjs && node scripts/aggregate.mjs && node scripts/recordUptime.mjs steam",
     "test": "node --test",
-    "uptime": "node scripts/recordUptime.mjs tracker"
+    "uptime": "node scripts/recordUptime.mjs tracker",
+    "proxy:probe": "node scripts/proxyProbe.mjs"
   },
   "devDependencies": {
     "playwright": "^1.62.1",
