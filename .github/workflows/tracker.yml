@@ -28,7 +28,21 @@ concurrency:
 jobs:
   tracker:
     runs-on: ubuntu-latest
-    timeout-minutes: 25 # hard cap so a hung browser/proxy can't run for the 6h default
+    # A hung run does not just waste itself: this job has a concurrency group
+    # with cancel-in-progress false, and GitHub keeps only ONE pending run, so
+    # every dispatch while it hangs is queued and then cancelled by the next.
+    # Collection stops entirely for as long as the hang survives, and nothing
+    # alerts, because "cancelled" is not "failed" and proxy-use.json simply
+    # stops updating. That cost 28 minutes on 2026-09-10, bounded only by the
+    # 25 minutes this used to allow.
+    #
+    # So the cap is the outage length. Healthy runs measured that evening: 43s
+    # minimum, 54s median, 63s maximum, after presence gating cut the roster
+    # per run. Eight minutes is ~8x the median and still leaves room for a
+    # slower fleet or a bigger roster, while keeping any hang under the 10
+    # minutes liveness.yml treats as stale - so the watchdog's recovery
+    # dispatch lands on a free queue rather than behind a corpse.
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v7
 
