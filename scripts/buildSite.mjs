@@ -9,6 +9,7 @@
 
 import { readdir, readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -153,4 +154,37 @@ for (const [page, script] of [["index.html", "rlpt.js"], ["status.html", "status
     if (out !== html) { await writeFile(pagePath, out); stamped++; }
   }
   console.log(`fonts.css?v=${hash} -> ${stamped} page(s) restamped`);
+}
+
+
+// ---- build stamp ------------------------------------------------------
+//
+// Which commit the deployed site is actually running. Nothing else records
+// this: deploys are manual `wrangler pages deploy` from a workstation, so CI
+// never learns what went out, and on 2026-09-10 the site served a build a day
+// behind main while every existing alarm stayed green. Those alarms watch the
+// DATA (collector output on the `data` branch, reported through /api/status),
+// and the data was perfectly fresh the whole time. This is the other axis: the
+// CODE visitors are running.
+//
+// Written into web/, which wrangler uploads, and gitignored so a build never
+// dirties the tree or adds a commit. The Liveness workflow reads it and only
+// notifies; it never deploys and never pushes.
+{
+  let commit = null;
+  try {
+    commit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim();
+  } catch {
+    // Building outside a checkout is not a failure - the stamp is a diagnostic,
+    // not a dependency. A null commit simply means the check has nothing to
+    // compare and stays quiet rather than crying wolf.
+  }
+  let dirty = false;
+  try {
+    dirty = execFileSync("git", ["status", "--porcelain"], { cwd: ROOT, encoding: "utf8" }).trim().length > 0;
+  } catch { /* as above */ }
+
+  const stamp = { commit, dirty, builtAt: new Date().toISOString() };
+  await writeFile(join(ROOT, "web", "build.json"), JSON.stringify(stamp, null, 2) + "\n");
+  console.log(`web/build.json -> ${commit ? commit.slice(0, 9) : "(no git)"}${dirty ? " (dirty tree)" : ""}`);
 }

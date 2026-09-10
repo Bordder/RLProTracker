@@ -38,3 +38,7 @@ data/proxy-use.json
 # into scripts/ and web/ deliberately, in their own commit, when the page is
 # wanted live.
 rlcs-bracket/
+
+# Written by build:site so the deployed build can be compared against main.
+# Generated per deploy, never committed.
+web/build.json

@@ -147,3 +147,79 @@ jobs:
             text="**RL Pro Tracker: the dispatch token expires in ${days} days** (${expires}). When it lapses every collector stops. Issue a new fine-grained PAT with Actions and Issues write, then update RUN_KEY's sibling GH_TOKEN on both the Worker and the Pages project."
             curl -sS --max-time 20 -H 'content-type: application/json'               -d "$(printf '{"content":%s}' "$(printf '%s' "$text" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')")"               "$DISCORD_WEBHOOK" >/dev/null && echo "warned on Discord"
           fi
+
+      - name: Warn when the deployed build is behind main
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          MAIN_SHA: ${{ github.sha }}
+        run: |
+          set -uo pipefail
+          # The other axis of staleness. Every other check here watches the
+          # DATA - collector output on the `data` branch, read through
+          # /api/status. This watches the CODE the site is actually serving.
+          #
+          # On 2026-09-10 main carried a day of shipped work that visitors never
+          # saw: it was pushed, but only `wrangler pages deploy` moves the page
+          # and nobody had run it. Data was fresh throughout, so every existing
+          # alarm stayed green and the gap surfaced only because someone went
+          # looking for a feature they knew they had shipped.
+          #
+          # This NEVER deploys and NEVER pushes. Deploys stay manual on purpose,
+          # so a release can be checked before it is public; the only thing
+          # missing was that a forgotten deploy said nothing. It adds no commit
+          # to any branch.
+          BEHIND_MINUTES=90   # grace, so a deploy in progress is not a warning
+
+          stamp=$(curl -sS --max-time 20 "https://198x.online/build.json" || echo '{}')
+          deployed=$(printf '%s' "$stamp" | sed -n 's/.*"commit": *"\([0-9a-f]*\)".*/\1/p')
+
+          if [ -z "$deployed" ]; then
+            # Predates the stamp, or the deploy did not include it. Nothing to
+            # compare, so say so and stay quiet rather than guessing.
+            echo "no build stamp on the live site; skipping"
+            exit 0
+          fi
+          if [ "$deployed" = "$MAIN_SHA" ]; then
+            echo "deployed build is main (${MAIN_SHA})"
+            exit 0
+          fi
+
+          # How far behind, and since when. `compare` reports ahead_by from the
+          # deployed commit to main, which is 0 when the deploy is AHEAD of main
+          # (a deploy from an unpushed commit) - that is not staleness, so it is
+          # not warned about.
+          cmp=$(curl -sS --max-time 25 -H "authorization: Bearer ${GH_TOKEN}" \
+                 -H "accept: application/vnd.github+json" \
+                 "https://api.github.com/repos/${REPO}/compare/${deployed}...${MAIN_SHA}" || echo '{}')
+          ahead=$(printf '%s' "$cmp" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("ahead_by",0))' 2>/dev/null || echo 0)
+
+          if [ "${ahead:-0}" -lt 1 ]; then
+            echo "deployed ${deployed} is not behind main; nothing to say"
+            exit 0
+          fi
+
+          # Age of the oldest undeployed commit, so a warning means "this has
+          # been sitting" rather than "you pushed 40 seconds ago".
+          age=$(printf '%s' "$cmp" | python3 -c '
+import json,sys,datetime
+d=json.load(sys.stdin)
+cs=d.get("commits") or []
+if not cs: print(0); raise SystemExit
+t=cs[0]["commit"]["committer"]["date"]
+dt=datetime.datetime.fromisoformat(t.replace("Z","+00:00"))
+print(int((datetime.datetime.now(datetime.timezone.utc)-dt).total_seconds()//60))
+' 2>/dev/null || echo 0)
+
+          echo "deployed ${deployed} is ${ahead} commit(s) behind main; oldest undeployed is ${age} min old"
+          [ "${age:-0}" -lt "$BEHIND_MINUTES" ] && { echo "within the ${BEHIND_MINUTES} min grace"; exit 0; }
+
+          if [ -n "${DISCORD_WEBHOOK:-}" ]; then
+            text="**RL Pro Tracker: the live site is ${ahead} commit(s) behind main.** The oldest undeployed commit is ${age} minutes old. Data is unaffected - this is the code visitors are running. Deploy with: npm run build:site && npx wrangler pages deploy web --project-name=rlprotracker --branch=main"
+            curl -sS --max-time 20 -H 'content-type: application/json' \
+              -d "$(printf '{"content":%s}' "$(printf '%s' "$text" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')")" \
+              "$DISCORD_WEBHOOK" >/dev/null && echo "warned on Discord"
+          else
+            echo "DISCORD_WEBHOOK not set; no notification sent"
+          fi
