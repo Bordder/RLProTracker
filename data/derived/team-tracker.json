@@ -1,6 +1,6 @@
 {
-  "computedAt": "2026-09-10T18:58:18.632Z",
-  "snapshotCount": 1035,
+  "computedAt": "2026-09-10T18:59:16.918Z",
+  "snapshotCount": 1032,
   "teams": [
     {
       "team": "Karmine Corp",
@@ -19,6 +19,22 @@
       }
     },
     {
+      "team": "Plot Twist",
+      "players": 1,
+      "ranked": 1,
+      "avgMmr": {
+        "ones": 1543,
+        "twos": 2692,
+        "threes": 1142
+      },
+      "seasonGames": 1626,
+      "games": {
+        "d1": null,
+        "d7": null,
+        "d14": null
+      }
+    },
+    {
       "team": "Team Vitality",
       "players": 3,
       "ranked": 3,
@@ -31,22 +47,6 @@
       "games": {
         "d1": 120,
         "d7": 380,
-        "d14": null
-      }
-    },
-    {
-      "team": "Plot Twist",
-      "players": 1,
-      "ranked": 1,
-      "avgMmr": {
-        "ones": 1543,
-        "twos": 2682,
-        "threes": 1142
-      },
-      "seasonGames": 1625,
-      "games": {
-        "d1": null,
-        "d7": null,
         "d14": null
       }
     },
@@ -392,12 +392,12 @@
       "ranked": 1,
       "avgMmr": {
         "ones": 1535,
-        "twos": 2362,
+        "twos": 2353,
         "threes": 1840
       },
-      "seasonGames": 2091,
+      "seasonGames": 2092,
       "games": {
-        "d1": 30,
+        "d1": 31,
         "d7": null,
         "d14": null
       }
