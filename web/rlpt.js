@@ -201,7 +201,13 @@
   // Region by team's RLCS competitive region (may differ from a player's nationality).
   var REGION={
     'Karmine Corp':'EU','Gentle Mates':'EU','Team Vitality':'EU','Ninjas in Pyjamas':'EU','Man City Esports':'EU',
-    'NRG':'NA','Shopify Rebellion':'NA','Spacestation Gaming':'NA','Wildcard':'NA','TSM':'NA','FUT Esports':'NA','Virtus.pro':'NA',
+    'NRG':'NA','Shopify Rebellion':'NA','Spacestation Gaming':'NA','FUT Esports':'NA','Virtus.pro':'NA',
+    // Two American orgs whose Rocket League rosters compete elsewhere. This is the
+    // same nationality-versus-region split Mate y Tapa has below, and both were
+    // wrong here until 10 September 2026. Liquipedia's own infobox is the check:
+    // TSM reads location=United States with region=apac, Wildcard fields an
+    // Australian roster in the OCE opens.
+    'Wildcard':'OCE','TSM':'APAC',
     'MIBR':'SAM','FURIA':'SAM','Bigodes':'SAM',
     'Twisted Minds':'MENA','Team Falcons':'MENA','R8 Esports':'MENA',
     // Mate y Tapa won the EU LCQ and entered Worlds as the EU seed: the roster is
