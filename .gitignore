@@ -42,3 +42,14 @@ rlcs-bracket/
 # Written by build:site so the deployed build can be compared against main.
 # Generated per deploy, never committed.
 web/build.json
+
+# Proxy endpoints and credentials, for running scripts/proxyProbe.mjs or
+# scripts/checkProxies.mjs locally. NEVER commit these: this repo is public, and
+# the list is the whole fleet. The collector reads them from the PROXY_LIST
+# secret in Actions, never from a file.
+proxies.txt
+proxies*.txt
+proxy-list*.txt
+*.proxies
+proxies.json
+proxy-report*.txt
