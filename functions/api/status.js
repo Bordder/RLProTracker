@@ -18,8 +18,24 @@
 // minutes behind the collectors.
 // The `data` branch, not main: collector output moved there so main keeps a
 // history of code changes only.
-const API_URL = "https://api.github.com/repos/Bordder/RLProTracker/contents/data/derived/tracker.json?ref=data";
-const RAW_URL = "https://raw.githubusercontent.com/Bordder/RLProTracker/data/data/derived/tracker.json";
+// Read the freshness-only file, not the whole board.
+//
+// This endpoint returns about 40 bytes. It used to get them out of tracker.json,
+// which is 180 KB: every upstream read pulled and parsed the entire board to
+// keep one timestamp. The edge cache below collapses that to one read every 20
+// seconds, but those reads spend the same GH_TOKEN budget the collectors
+// dispatch through, so a probe meant to be cheap was competing with collection.
+// computeTrackerDeltas now writes derived/status.json holding just computedAt,
+// from the same value at the same instant.
+//
+// tracker.json stays as the fallback, and not only for the deploy in which
+// status.json does not exist yet: the two are published in one commit by the
+// same job, so anything that leaves status.json missing later means the tracker
+// pipeline itself has changed, and answering from the board is better than
+// answering 502.
+const FILES = ["status.json", "tracker.json"];
+const apiUrl = (f) => `https://api.github.com/repos/Bordder/RLProTracker/contents/data/derived/${f}?ref=data`;
+const rawUrl = (f) => `https://raw.githubusercontent.com/Bordder/RLProTracker/data/data/derived/${f}`;
 
 async function fetchTracker(env) {
   const headers = {
@@ -28,9 +44,14 @@ async function fetchTracker(env) {
     "X-GitHub-Api-Version": "2022-11-28",
   };
   if (env && env.GH_TOKEN) headers.Authorization = `Bearer ${env.GH_TOKEN.trim()}`;
-  const res = await fetch(API_URL, { headers, cf: { cacheTtl: 20 } });
-  if (res.ok) return res;
-  return fetch(RAW_URL, { cf: { cacheTtl: 30 }, headers: { "User-Agent": "rlprotracker-site" } });
+  let last = null;
+  for (const f of FILES) {
+    const res = await fetch(apiUrl(f), { headers, cf: { cacheTtl: 20 } });
+    if (res.ok) return res;
+    last = await fetch(rawUrl(f), { cf: { cacheTtl: 30 }, headers: { "User-Agent": "rlprotracker-site" } });
+    if (last.ok) return last;
+  }
+  return last;
 }
 
 // How long one upstream read is shared by every tab polling this colo.
@@ -70,7 +91,7 @@ export async function onRequestGet(context) {
 
   try {
     const res = await fetchTracker(context && context.env);
-    if (!res.ok) return withCors(Response.json({ error: "upstream" }, { status: 502 }));
+    if (!res || !res.ok) return withCors(Response.json({ error: "upstream" }, { status: 502 }));
     const { computedAt } = await res.json();
     const body = { computedAt: computedAt ?? null };
     const headers = { "cache-control": `public, max-age=20, s-maxage=${HOT_TTL}` };

@@ -306,6 +306,20 @@ async function main() {
     join(ROOT, "data", "derived", "tracker.json"),
     JSON.stringify({ computedAt: new Date(now).toISOString(), snapshotCount: snaps.length, players }, null, 2)
   );
+  // A freshness-only companion to tracker.json.
+  //
+  // /api/status answers open tabs with a single timestamp, and it used to get it
+  // by reading all of tracker.json - 180 KB parsed and thrown away to return
+  // about 40 bytes. Its edge cache collapses that to one upstream read every 20
+  // seconds, but each of those reads still spends GH_TOKEN budget shared with
+  // the workflow_dispatch calls that drive the collectors, so polling traffic
+  // was measured against the thing that keeps collection running. Writing the
+  // timestamp on its own makes the probe's upstream read the same size as its
+  // response. Same value, same instant, computed once.
+  await writeFile(
+    join(ROOT, "data", "derived", "status.json"),
+    JSON.stringify({ computedAt: new Date(now).toISOString() })
+  );
   const withMmr = players.filter((p) => p.mmr.twos != null).length;
   console.log(`tracker.json: ${players.length} players, ${withMmr} with 2v2 MMR, ${snaps.length} snapshots`);
 
