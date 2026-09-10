@@ -200,6 +200,21 @@ jobs:
             exit 0
           fi
 
+          # Only commits that change what is SERVED need a deploy. Collector
+          # config, scripts, workflows and tests reach production by being
+          # pushed, so counting them would make this cry wolf on the majority
+          # of commits and train everyone to ignore it.
+          shipped=$(printf '%s' "$cmp" | python3 -c '
+import json,sys
+d=json.load(sys.stdin)
+pre=("web/","functions/")
+print(sum(1 for f in (d.get("files") or []) if f.get("filename","").startswith(pre)))
+' 2>/dev/null || echo 0)
+          if [ "${shipped:-0}" -lt 1 ]; then
+            echo "the ${ahead} undeployed commit(s) touch nothing under web/ or functions/; no deploy needed"
+            exit 0
+          fi
+
           # Age of the oldest undeployed commit, so a warning means "this has
           # been sitting" rather than "you pushed 40 seconds ago".
           age=$(printf '%s' "$cmp" | python3 -c '
@@ -216,7 +231,7 @@ print(int((datetime.datetime.now(datetime.timezone.utc)-dt).total_seconds()//60)
           [ "${age:-0}" -lt "$BEHIND_MINUTES" ] && { echo "within the ${BEHIND_MINUTES} min grace"; exit 0; }
 
           if [ -n "${DISCORD_WEBHOOK:-}" ]; then
-            text="**RL Pro Tracker: the live site is ${ahead} commit(s) behind main.** The oldest undeployed commit is ${age} minutes old. Data is unaffected - this is the code visitors are running. Deploy with: npm run build:site && npx wrangler pages deploy web --project-name=rlprotracker --branch=main"
+            text="**RL Pro Tracker: the live site is ${ahead} commit(s) behind main, ${shipped} changed file(s) under web/ or functions/.** The oldest undeployed commit is ${age} minutes old. Data is unaffected - this is the code visitors are running. Deploy with: npm run build:site && npx wrangler pages deploy web --project-name=rlprotracker --branch=main"
             curl -sS --max-time 20 -H 'content-type: application/json' \
               -d "$(printf '{"content":%s}' "$(printf '%s' "$text" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')")" \
               "$DISCORD_WEBHOOK" >/dev/null && echo "warned on Discord"
