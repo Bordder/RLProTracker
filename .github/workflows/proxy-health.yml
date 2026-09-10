@@ -80,103 +80,11 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           set -uo pipefail
-
-          # Mask every proxy endpoint BEFORE anything can print one. add-mask
-          # makes the runner redact these strings anywhere they appear, so the
-          # message can name addresses to Discord while a public Actions log
-          # still cannot. GitHub masks a secret only as a whole value, and an
-          # individual host:port is a substring of PROXY_LIST, so it would not
-          # be covered without this.
-          python3 - <<'MASK'
-          import os,re
-          for raw in re.split(r"[
-,]+", os.environ.get("PROXY_LIST","")):
-              raw=raw.strip()
-              if not raw: continue
-              m=re.match(r"^https?://(?:[^:@]+:[^@]+@)?([^:/]+):(\d+)", raw) or re.match(r"^([^:]+):(\d+)", raw)
-              if m: print(f"::add-mask::{m.group(1)}:{m.group(2)}"); print(f"::add-mask::{m.group(1)}")
-          MASK
-
-          # --json prints one line: integers and fixed verdict strings only.
-          node scripts/proxyProbe.mjs --json > /tmp/probe.json 2>/tmp/probe.err || true
-          if [ ! -s /tmp/probe.json ]; then
-            echo "probe produced no output"
-            tail -5 /tmp/probe.err || true
-            exit 0
-          fi
-          python3 -c "
-import json
-d=json.load(open('/tmp/probe.json'))
-print(f\"{d.get('ok',0)}/{d.get('total',0)} usable, failing: {[f['i'] for f in d.get('failed',[])]}\")"
-
-          # Build and post the embed in this same step, so an address is never
-          # written to a step output or passed between steps.
-          python3 - <<'POST' > /tmp/payload.json
-          import json,os,re
-          d=json.load(open("/tmp/probe.json"))
-          failed=d.get("failed") or []
-          if not failed: raise SystemExit(0)
-
-          # index -> host:port, from the same secret the probe parsed
-          addr={}
-          i=0
-          for raw in re.split(r"[
-,]+", os.environ.get("PROXY_LIST","")):
-              raw=raw.strip()
-              if not raw: continue
-              m=re.match(r"^https?://(?:[^:@]+:[^@]+@)?([^:/]+):(\d+)", raw) or re.match(r"^([^:]+):(\d+)", raw)
-              addr[i]=f"{m.group(1)}:{m.group(2)}" if m else "(unparsed)"
-              i+=1
-
-          total=d.get("total",0); ok=d.get("ok",0)
-          pct=(ok/total*100) if total else 0
-          colour = 0xE74C3C if pct < 50 else (0xE67E22 if pct < 80 else 0xF1C40F)
-
-          MEANING={
-            "tunnel-dead":"could not connect at all - the provider's problem, or a stale address",
-            "api-unreachable":"tunnel fine, site loads, but api.tracker.gg refuses the IP. Reputation, not death - a replacement only helps if the new address is cleaner",
-            "cloudflare-blocked":"the API answered 403 or 429",
-            "timeout":"too slow to answer",
-            "failed":"unclassified failure",
-          }
-
-          lines=[]
-          for f in failed:
-              a=addr.get(f["i"],"(unknown)")
-              extra=" **credentials did not parse**" if f.get("noAuth") else ""
-              lines.append(f"• \`{a}\`  -  {f['verdict']}{extra}")
-
-          seen=[]
-          for f in failed:
-              if f["verdict"] not in seen: seen.append(f["verdict"])
-          notes="
-".join(f"**{v}** - {MEANING.get(v,'')}" for v in seen)
-
-          embed={
-            "title": f"Proxy health: {ok} of {total} usable",
-            "url": os.environ.get("RUN_URL"),
-            "color": colour,
-            "description": f"{len(failed)} proxy(s) are not usable for collection.",
-            "fields": [
-              {"name": f"Replace these ({len(failed)})", "value": "
-".join(lines)[:1024], "inline": False},
-              {"name": "What the verdicts mean", "value": notes[:1024], "inline": False},
-              {"name": "Before you replace", "value": "Edit the line IN PLACE in `local/proxy-check/proxies.txt`, then run `make-secret.bat` and update the `PROXY_LIST` secret. Deleting a line renumbers every index below it.", "inline": False},
-            ],
-            "footer": {"text": f"{os.environ.get('REPO','')} - checked from GitHub's network, which is what the collector uses"},
-            "timestamp": d.get("at"),
-          }
-          print(json.dumps({"embeds":[embed]}))
-          POST
-
-          if [ ! -s /tmp/payload.json ]; then
-            echo "all proxies usable; nothing to report"
-            exit 0
-          fi
-          if [ -z "${DISCORD_WEBHOOK:-}" ]; then
-            echo "DISCORD_WEBHOOK not set; no notification sent"
-            exit 0
-          fi
-          code=$(curl -sS -o /tmp/dc.out -w '%{http_code}' --max-time 20             -H 'content-type: application/json' --data @/tmp/payload.json "$DISCORD_WEBHOOK")
-          echo "discord responded $code"
-          [ "$code" = "204" ] || { echo "payload rejected:"; head -c 300 /tmp/dc.out; }
+          # Mask every endpoint BEFORE anything runs, so an address cannot reach
+          # this log even by accident. GitHub masks a secret only as a whole
+          # value, and one host:port is a substring of PROXY_LIST.
+          node scripts/maskProxies.mjs
+          # --json prints one line of integers and fixed verdict strings.
+          node scripts/proxyProbe.mjs --json > probe.json 2> probe.err || true
+          [ -s probe.json ] || { echo "probe produced no output"; tail -5 probe.err || true; exit 0; }
+          node scripts/alertProxies.mjs probe.json

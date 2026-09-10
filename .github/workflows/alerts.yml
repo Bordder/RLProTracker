@@ -1,0 +1,61 @@
+name: Alerts
+
+# The two checks that need the repo checked out, kept out of liveness.yml.
+#
+# liveness.yml is deliberately pure curl: it runs every 5 minutes, dispatches
+# collectors when data goes stale, and adding a checkout plus a Node install to
+# it would slow the watchdog for no benefit. These two do not need 5-minute
+# resolution.
+#
+#   the deployed build is behind main - the CODE visitors run, as opposed to the
+#       data. Deploys are manual on purpose; this only removes the silence.
+#   the collector's scrape success rate - whether collection is COMPLETE, as
+#       opposed to whether it is ARRIVING. On 2026-09-10 the fleet sat at 72-80%
+#       failure for most of a day and every freshness alarm stayed green,
+#       because failed players retry next run and matchesPlayed is cumulative.
+#
+# Both read data that already exists and post to Discord. Neither deploys,
+# pushes, or touches a proxy.
+
+on:
+  schedule:
+    # Every 15 minutes. GitHub drops most scheduled runs on public repos, so
+    # this asks often and accepts a handful of real firings an hour. Neither
+    # alert is urgent to the minute: one is about a forgotten deploy, the other
+    # about a degradation that unfolds over hours.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: alerts
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Warn when the deployed build is behind main
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          MAIN_SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/alertBuildBehind.mjs
+
+      - name: Warn when the collector's scrape success rate drops
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/alertScrapeRate.mjs
