@@ -218,7 +218,9 @@
     'Geekay Esports':'EU','Team BSK':'EU','Novo Esports':'EU','FN':'EU','GHT':'EU',
     'Gen.G Mobil1 Racing':'NA','Dignitas':'NA','M80':'NA','Lil Step Bros':'NA','S.O.S.':'NA',
     'Rafha Esports':'MENA','DOS':'MENA','Team Stallions':'MENA',
-    'Pioneers':'SSA'
+    'Pioneers':'SSA',
+    // Added 10 September 2026, one player rather than a full roster.
+    'Canterbury-Bankstown Bulldogs':'OCE'
   };
   var REGION_CLASS={EU:'rg-eu',NA:'rg-na',SAM:'rg-sam',MENA:'rg-mena',OCE:'rg-oce',APAC:'rg-apac',SSA:'rg-ssa'};
 
@@ -244,7 +246,8 @@
     'gentle-mates':'M8', 'team-vitality':'VIT', 'ninjas-in-pyjamas':'NIP',
     'dignitas':'DIG', 'm80':'M80', 'fut-esports':'FUT', 'geekay-esports':'GK',
     'ght':'GHT', 'r8-esports':'R8', 'wildcard':'WC', 'tsm':'TSM',
-    'team-falcons':'FAL'
+    'team-falcons':'FAL',
+    'canterbury-bankstown-bulldogs':'CBB'
   };
   var LOGO_INSET={'virtuspro':6};
   var TEAM_LOGO={'geng-mobil1-racing':'png','karmine-corp':'png','lil-step-bros':'png','mibr':'png','nrg':'png','shopify-rebellion':'png','spacestation-gaming':'png','team-bsk':'png','tsm':'png','wildcard':'svg'};
