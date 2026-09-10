@@ -19,6 +19,11 @@ web/_headers
 worker/.dev.vars
 worker/.wrangler/
 
+# wrangler's own scratch at the repo root. `wrangler pages deploy` bundles
+# functions/ into a single worker here and leaves it behind, ~1700 generated
+# lines under a randomly suffixed name, so a new one appears after every deploy.
+/.wrangler/
+
 # Collector output lives on the `data` branch, not here. main keeps only the
 # hand-edited inputs (roster.json, priorities.json, overrides.json) so its
 # history is code. To get a local copy for `npm run build:site`:
