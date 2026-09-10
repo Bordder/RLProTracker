@@ -241,7 +241,7 @@
     'team-falcons':'FAL'
   };
   var LOGO_INSET={'virtuspro':6};
-  var TEAM_LOGO={'geng-mobil1-racing':'png','karmine-corp':'png','lil-step-bros':'png','mibr':'png','nrg':'png','shopify-rebellion':'png','spacestation-gaming':'png','team-bsk':'png','tsm':'png'};
+  var TEAM_LOGO={'geng-mobil1-racing':'png','karmine-corp':'png','lil-step-bros':'png','mibr':'png','nrg':'png','shopify-rebellion':'png','spacestation-gaming':'png','team-bsk':'png','tsm':'png','wildcard':'svg'};
   var LOGO_DIR='img/teams/';
 
   var teamSlug=function(name){
