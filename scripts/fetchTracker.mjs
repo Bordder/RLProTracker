@@ -236,6 +236,18 @@ export function isProxyFault(err) {
   const m = String(err?.message ?? err ?? "");
   if (/^api-(403|407|408|429|500|502|503|504)$/.test(m)) return true;
   if (/net::|ERR_[A-Z_]+|ECONN|ETIMEDOUT|EAI_AGAIN|socket hang up|tunnel/i.test(m)) return true;
+  // "TypeError: Failed to fetch" is what a dead tunnel looks like from INSIDE
+  // the page: fetch() rejects without a net:: code, because the browser never
+  // got far enough to have one. It is by far the most common failure here and
+  // it was not matched, so a proxy failing every single request kept a clean
+  // streak and was never benched. Measured 2026-09-10: 8 of 15 proxies failing
+  // 100% of attempts, benched: [] - every player they drew paid a failed
+  // attempt and a 1.5s wait, all run, every run.
+  //
+  // Safe to treat as the proxy's fault: the request never reached tracker.gg,
+  // so it says nothing about the profile. If the API itself were down every
+  // proxy would trip at once, and MIN_LIVE keeps two in rotation regardless.
+  if (/Failed to fetch/i.test(m)) return true;
   if (/timeout|timed out|aborted/i.test(m) && !/Target closed|browser has been closed/i.test(m)) return true;
   return false;
 }

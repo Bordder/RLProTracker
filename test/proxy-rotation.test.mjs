@@ -72,6 +72,28 @@ test("isProxyFault blames the tunnel for refused connections and 403s", () => {
   }
 });
 
+test("isProxyFault blames the tunnel for an in-page fetch rejection", () => {
+  // Regression, 10 September 2026. A dead tunnel surfaces from inside the page
+  // as a bare "TypeError: Failed to fetch" with no net:: code, because the
+  // browser never got far enough to have one. It was not matched, so a proxy
+  // failing 100% of its requests kept resetting its streak and was never
+  // benched: measured 8 of 15 proxies at total failure with benched empty.
+  for (const m of [
+    "page.evaluate: TypeError: Failed to fetch",
+    "TypeError: Failed to fetch",
+    "Failed to fetch",
+  ]) assert.equal(isProxyFault(new Error(m)), true, m);
+});
+
+test("a proxy failing every in-page fetch is benched", () => {
+  const h = proxyHealth(5, { benchAfter: 3, minLive: 2 });
+  const dead = new Error("page.evaluate: TypeError: Failed to fetch");
+  assert.equal(h.fail(0, dead), false, "one failure is not enough");
+  assert.equal(h.fail(0, dead), false, "two is not enough");
+  assert.equal(h.fail(0, dead), true, "the third benches it");
+  assert.equal(h.isBenched(0), true);
+});
+
 test("isProxyFault blames the profile for a bad id or a bad body", () => {
   for (const m of ["api-404", "api-400", "api-bad-json", "no-playlists", "no-data"]) {
     assert.equal(isProxyFault(new Error(m)), false, m);
