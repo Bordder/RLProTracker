@@ -26,15 +26,23 @@
   // rather than on every page load. Ninety days of it is far larger than the
   // board itself and most visitors never go there, so it should not be on the
   // critical path for anyone.
-  var mmrHist={}, mmrBase=0, mmrState='idle';
+  //
+  // Callers that arrive mid-flight are queued rather than dropped. The earlier
+  // version returned on 'loading' and discarded that caller's callback, so
+  // opening a second row before the fetch landed left its chart permanently
+  // blank until the row was toggled again: the load completed, the first row
+  // drew, and the second row's redraw had been thrown away.
+  var mmrHist={}, mmrBase=0, mmrState='idle', mmrWaiting=[];
   var loadMmrHistory=function(then){
     if(mmrState==='done'){ then(); return; }
+    mmrWaiting.push(then);
     if(mmrState==='loading')return;
     mmrState='loading';
     getJson('mmr-history.json').then(function(j){
       if(j&&j.players){ mmrHist=j.players; mmrBase=j.base||0; }
       mmrState='done';
-      then();
+      var pending=mmrWaiting; mmrWaiting=[];
+      pending.forEach(function(fn){ fn(); });
     });
   };
   var seriesFor=function(id,key){
