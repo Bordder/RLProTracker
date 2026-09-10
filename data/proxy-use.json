@@ -1,5 +1,5 @@
 {
-  "at": "2026-09-10T19:13:13.874Z",
+  "at": "2026-09-10T19:15:14.774Z",
   "proxyCount": 15,
   "players": 104,
   "benched": [
@@ -12,24 +12,24 @@
     6,
     7,
     8,
-    9,
     10,
-    13,
-    14
+    11,
+    12,
+    13
   ],
   "use": [
     {
       "i": 0,
-      "attempts": 4,
-      "retries": 2,
-      "fails": 4,
+      "attempts": 3,
+      "retries": 0,
+      "fails": 3,
       "benched": true
     },
     {
       "i": 1,
-      "attempts": 6,
-      "retries": 4,
-      "fails": 6,
+      "attempts": 4,
+      "retries": 2,
+      "fails": 4,
       "benched": true
     },
     {
@@ -69,59 +69,59 @@
     },
     {
       "i": 7,
-      "attempts": 5,
-      "retries": 4,
+      "attempts": 25,
+      "retries": 7,
       "fails": 5,
       "benched": true
     },
     {
       "i": 8,
-      "attempts": 5,
-      "retries": 4,
-      "fails": 5,
+      "attempts": 25,
+      "retries": 5,
+      "fails": 4,
       "benched": true
     },
     {
       "i": 9,
-      "attempts": 20,
-      "retries": 10,
-      "fails": 5,
-      "benched": true
+      "attempts": 26,
+      "retries": 4,
+      "fails": 4,
+      "benched": false
     },
     {
       "i": 10,
+      "attempts": 3,
+      "retries": 1,
+      "fails": 3,
+      "benched": true
+    },
+    {
+      "i": 11,
+      "attempts": 3,
+      "retries": 2,
+      "fails": 3,
+      "benched": true
+    },
+    {
+      "i": 12,
+      "attempts": 4,
+      "retries": 3,
+      "fails": 4,
+      "benched": true
+    },
+    {
+      "i": 13,
       "attempts": 23,
       "retries": 5,
       "fails": 3,
       "benched": true
     },
     {
-      "i": 11,
-      "attempts": 58,
-      "retries": 5,
-      "fails": 38,
-      "benched": false
-    },
-    {
-      "i": 12,
-      "attempts": 43,
-      "retries": 36,
-      "fails": 23,
-      "benched": false
-    },
-    {
-      "i": 13,
-      "attempts": 3,
-      "retries": 0,
-      "fails": 3,
-      "benched": true
-    },
-    {
       "i": 14,
-      "attempts": 4,
-      "retries": 2,
-      "fails": 4,
-      "benched": true
+      "attempts": 18,
+      "retries": 6,
+      "fails": 0,
+      "benched": false
     }
   ]
 }
