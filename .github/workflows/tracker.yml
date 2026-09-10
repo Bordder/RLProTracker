@@ -58,7 +58,11 @@ jobs:
 
       - name: Take the previous run's data from the data branch
         run: |
-          for p in data/tracker-history.json data/tracker-state.json data/derived/tracker.json data/derived/team-tracker.json data/derived/uptime.json data/proxy-use.json; do
+          # Anything the collector ACCUMULATES has to be listed here as well as
+          # in the publish step, or it silently starts from nothing every run.
+          # proxy-history.json was published but not restored, so its rolling
+          # 24-hour window only ever held the run that had just written it.
+          for p in data/tracker-history.json data/tracker-state.json data/derived/tracker.json data/derived/team-tracker.json data/derived/uptime.json data/proxy-use.json data/proxy-history.json; do
             if [ -e ".databranch/$p" ]; then
               mkdir -p "$(dirname "$p")"
               cp -r ".databranch/$p" "$p"
