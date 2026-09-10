@@ -33,6 +33,15 @@ const WARM_URL = `${ORIGIN}/robots.txt`;
 // and a 404 here would still prove the tunnel and Cloudflare are fine.
 const API = "https://api.tracker.gg/api/v2/rocket-league/standard/profile/steam/76561198960239428";
 const JSON_OUT = process.argv.includes("--json");
+// Local-only: print each endpoint next to its verdict, so a person can see
+// which address to replace without cross-referencing an index. Refused in CI
+// for the same reason checkProxies.mjs is: this repo is public, so an Actions
+// log is public, and the list is the whole fleet.
+const SHOW_ADDRESSES = process.argv.includes("--show-addresses");
+if (SHOW_ADDRESSES && process.env.CI && process.env.ALLOW_CI_PROXY_DUMP !== "1") {
+  console.error("--show-addresses prints proxy endpoints, and this repo's Actions logs are public. Run it locally.");
+  process.exit(1);
+}
 
 // Every verdict is one of these fixed strings. Nothing derived from the proxy
 // itself is ever emitted, so no address can leak through an error message.
@@ -106,7 +115,11 @@ for (const [i, proxy] of proxies.entries()) {
     await ctx?.close().catch(() => {});
   }
   rows.push({ i, verdict, ms, noAuth: noAuth.includes(i) });
-  if (!JSON_OUT) console.log(`  index ${String(i).padStart(2)}  ${verdict.padEnd(19)} ${ms} ms${noAuth.includes(i) ? "  (no credentials parsed)" : ""}`);
+  if (!JSON_OUT) {
+    const where = SHOW_ADDRESSES ? `  ${proxy.server.replace(/^https?:\/\//, "").padEnd(22)}` : "";
+    const mark = verdict === VERDICT.ok ? "  OK  " : " DEAD ";
+    console.log(`  index ${String(i).padStart(2)} ${mark}${where} ${verdict.padEnd(19)} ${ms} ms${noAuth.includes(i) ? "  (no credentials parsed)" : ""}`);
+  }
 }
 
 await browser.close();
@@ -126,6 +139,10 @@ if (JSON_OUT) {
   console.log(`\n${summary.ok}/${summary.total} proxies usable on tracker.gg`);
   if (failed.length) {
     console.log(`failing indices: ${failed.map((r) => r.i).join(", ")}`);
+    if (SHOW_ADDRESSES) {
+      console.log("replace these:");
+      for (const r of failed) console.log(`  ${proxies[r.i].server.replace(/^https?:\/\//, "")}   ${r.verdict}`);
+    }
     console.log("Indices are positions in PROXY_LIST, the same ones data/proxy-use.json reports.");
     console.log("Replace entries in place: deleting one renumbers every index below it.");
   }

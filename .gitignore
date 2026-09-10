@@ -53,3 +53,9 @@ proxy-list*.txt
 *.proxies
 proxies.json
 proxy-report*.txt
+
+# Local-only tooling and its inputs. Anything under local/ is for this machine:
+# proxy lists, ad-hoc scripts, scratch output. It is inside the repo so it is
+# easy to find, and ignored so it can never be committed or deployed. wrangler
+# only uploads web/, so nothing here ships either.
+/local/
