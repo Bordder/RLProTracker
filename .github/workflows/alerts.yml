@@ -19,11 +19,12 @@ name: Alerts
 
 on:
   schedule:
-    # Every 15 minutes. GitHub drops most scheduled runs on public repos, so
-    # this asks often and accepts a handful of real firings an hour. Neither
-    # alert is urgent to the minute: one is about a forgotten deploy, the other
-    # about a degradation that unfolds over hours.
-    - cron: "*/15 * * * *"
+    # Hourly. Neither alert is urgent to the minute - one is about a forgotten
+    # deploy, the other about a degradation that unfolds over hours - and an
+    # alarm that repeats every fifteen minutes for a condition lasting hours
+    # teaches people to mute the channel, which costs the one time it matters.
+    # GitHub drops most scheduled runs on public repos anyway.
+    - cron: "23 * * * *"
   workflow_dispatch:
 
 permissions:
