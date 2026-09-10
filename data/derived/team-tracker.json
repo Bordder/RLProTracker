@@ -1,6 +1,6 @@
 {
-  "computedAt": "2026-09-10T01:52:01.421Z",
-  "snapshotCount": 952,
+  "computedAt": "2026-09-10T01:53:38.295Z",
+  "snapshotCount": 953,
   "teams": [
     {
       "team": "Karmine Corp",
@@ -19,6 +19,22 @@
       }
     },
     {
+      "team": "Twisted Minds",
+      "players": 3,
+      "ranked": 3,
+      "avgMmr": {
+        "ones": 1575,
+        "twos": 2666,
+        "threes": 1633
+      },
+      "seasonGames": 3812,
+      "games": {
+        "d1": 81,
+        "d7": 378,
+        "d14": null
+      }
+    },
+    {
       "team": "Team Vitality",
       "players": 3,
       "ranked": 3,
@@ -31,22 +47,6 @@
       "games": {
         "d1": 104,
         "d7": 351,
-        "d14": null
-      }
-    },
-    {
-      "team": "Twisted Minds",
-      "players": 3,
-      "ranked": 3,
-      "avgMmr": {
-        "ones": 1575,
-        "twos": 2664,
-        "threes": 1633
-      },
-      "seasonGames": 3811,
-      "games": {
-        "d1": 80,
-        "d7": 377,
         "d14": null
       }
     },
@@ -72,13 +72,13 @@
       "ranked": 3,
       "avgMmr": {
         "ones": 1470,
-        "twos": 2628,
+        "twos": 2636,
         "threes": 1522
       },
-      "seasonGames": 5371,
+      "seasonGames": 5374,
       "games": {
-        "d1": 92,
-        "d7": 582,
+        "d1": 95,
+        "d7": 585,
         "d14": null
       }
     },
@@ -104,13 +104,13 @@
       "ranked": 3,
       "avgMmr": {
         "ones": 1426,
-        "twos": 2613,
+        "twos": 2608,
         "threes": 1812
       },
-      "seasonGames": 4447,
+      "seasonGames": 4449,
       "games": {
-        "d1": 96,
-        "d7": 486,
+        "d1": 98,
+        "d7": 488,
         "d14": null
       }
     },
@@ -195,6 +195,22 @@
       }
     },
     {
+      "team": "NRG",
+      "players": 3,
+      "ranked": 3,
+      "avgMmr": {
+        "ones": 1328,
+        "twos": 2538,
+        "threes": 1729
+      },
+      "seasonGames": 2910,
+      "games": {
+        "d1": 117,
+        "d7": 348,
+        "d14": null
+      }
+    },
+    {
       "team": "Novo Esports",
       "players": 3,
       "ranked": 3,
@@ -207,22 +223,6 @@
       "games": {
         "d1": 60,
         "d7": null,
-        "d14": null
-      }
-    },
-    {
-      "team": "NRG",
-      "players": 3,
-      "ranked": 3,
-      "avgMmr": {
-        "ones": 1328,
-        "twos": 2535,
-        "threes": 1729
-      },
-      "seasonGames": 2909,
-      "games": {
-        "d1": 116,
-        "d7": 347,
         "d14": null
       }
     },
@@ -347,10 +347,10 @@
         "twos": 2382,
         "threes": 1316
       },
-      "seasonGames": 2127,
+      "seasonGames": 2129,
       "games": {
-        "d1": 68,
-        "d7": 438,
+        "d1": 70,
+        "d7": 440,
         "d14": null
       }
     },
