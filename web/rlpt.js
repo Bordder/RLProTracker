@@ -901,6 +901,13 @@
     // apply, rather than the one the table is still in.
     var renderPodium=function(nextKey){
       if(!podEl)return;
+      // The :empty height reservations in the stylesheet hold the first paint's
+      // place so the footer does not leap when data lands. Once players are in
+      // hand an empty podium is a real answer - a search, a phone, a lookup
+      // ordering, a filter matching fewer than three - and the reserved height
+      // is just a hole under the controls. Marking the element drops the
+      // reservation without touching the pre-load behaviour.
+      if(players.length)podEl.classList.add('is-ready');
       if(PHONE.matches){ podEl.innerHTML=''; podiumIds={}; return; }
       var k=nextKey||paintP.sortKey(), acc=pAcc[k];
       // Ranking by name or region is a lookup, not a leaderboard, so no podium.

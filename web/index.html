@@ -148,6 +148,11 @@
      footer below the fold, where it cannot be seen to move. */
   #stats:empty{min-height:122px}
   #podium:empty{min-height:221px}
+  /* Once the roster has landed the podium's absence is deliberate, not a gap
+     waiting to fill, so the reservation above must stop applying. Higher
+     specificity than both that rule and the 820px one below, so one line
+     covers every width. */
+  #podium.is-ready:empty{min-height:0}
   #playersView:empty{min-height:100vh}
   /* The order-by row is present from the start; the region buttons and the
      Playing pill are not, and adding them wraps it onto a second line. */
@@ -1266,6 +1271,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=9b198df8" defer></script>
+<script src="rlpt.js?v=f5b919d0" defer></script>
 </body>
 </html>
