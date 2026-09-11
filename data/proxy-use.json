@@ -1,8 +1,10 @@
 {
-  "at": "2026-09-11T14:36:41.035Z",
+  "at": "2026-09-11T14:38:42.085Z",
   "proxyCount": 10,
   "players": 32,
-  "benched": [],
+  "benched": [
+    3
+  ],
   "use": [
     {
       "i": 0,
@@ -22,19 +24,19 @@
       "i": 2,
       "attempts": 3,
       "retries": 0,
-      "fails": 2,
+      "fails": 1,
       "benched": false
     },
     {
       "i": 3,
-      "attempts": 5,
-      "retries": 2,
+      "attempts": 3,
+      "retries": 1,
       "fails": 3,
-      "benched": false
+      "benched": true
     },
     {
       "i": 4,
-      "attempts": 6,
+      "attempts": 7,
       "retries": 3,
       "fails": 0,
       "benched": false
