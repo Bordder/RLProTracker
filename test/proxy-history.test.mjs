@@ -149,7 +149,8 @@ test("one run cannot condemn a proxy on its bench ratio alone", () => {
   const h = recordRun(null, run([{ attempts: 15, fails: 3, benched: true }], T0), T0);
   const r = rowsBy(summarise(h))[0];
   assert.equal(r.benched, 1);
-  assert.equal(r.state, "ok", "20% failure over one run is not dead");
+  // "unproven" rather than "ok": one run is not evidence of health either.
+  assert.equal(r.state, "unproven", "20% failure over one run is not dead");
 });
 
 test("the bench signal switches on once there are enough runs", () => {
@@ -157,6 +158,30 @@ test("the bench signal switches on once there are enough runs", () => {
   for (let n = 0; n < 6; n++) {
     const at = T0 + n * 2 * 60e3;
     h = recordRun(h, run([{ attempts: 15, fails: 3, benched: true }], at), at);
+  }
+  assert.equal(rowsBy(summarise(h))[0].state, "dead");
+});
+
+test("a few runs cannot condemn a proxy however bad the rate looks", () => {
+  // Live regression, 2026-09-11: three runs into a fresh window the busiest
+  // proxy on the fleet hit "100% of 12" and was put forward for replacement,
+  // twelve minutes after managing 2% of 128 the day before. Attempts pile up
+  // far faster than evidence does.
+  let h = null;
+  for (let n = 0; n < 3; n++) {
+    const at = T0 + n * 2 * 60e3;
+    h = recordRun(h, run([{ attempts: 4, fails: 4 }], at), at);
+  }
+  const r = rowsBy(summarise(h))[0];
+  assert.ok(r.attempts >= 10, "should have cleared the attempts floor");
+  assert.equal(r.state, "unproven", "three runs is not enough to condemn");
+});
+
+test("the same proxy is condemned once enough runs agree", () => {
+  let h = null;
+  for (let n = 0; n < 5; n++) {
+    const at = T0 + n * 2 * 60e3;
+    h = recordRun(h, run([{ attempts: 4, fails: 4 }], at), at);
   }
   assert.equal(rowsBy(summarise(h))[0].state, "dead");
 });
