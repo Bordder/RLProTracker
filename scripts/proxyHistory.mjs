@@ -126,6 +126,39 @@ export function recordRun(history, run, nowMs) {
 }
 
 /**
+ * Judge one proxy from its hourly entries.
+ *
+ * Separated out so a caller can apply exactly the same rules to PART of the
+ * window. A replaced address inherits the index of the one it replaced, and
+ * with it that proxy's hours; re-judging from the swap onward gives the new
+ * address its own record instead of suppressing the row entirely.
+ */
+export function judgeHours(hourly) {
+  let attempts = 0, fails = 0, benched = 0, badHours = 0, ratedHours = 0, runs = 0, blockedNow = false;
+  for (const h of hourly) {
+    attempts += h.attempts;
+    fails += h.fails;
+    benched += h.benched ?? 0;
+    runs += h.runs ?? 0;
+    if (h.attempts >= MIN_HOUR_ATTEMPTS) {
+      ratedHours += 1;
+      const bad = h.fails / h.attempts >= DEAD_RATE;
+      if (bad) badHours += 1;
+      blockedNow = bad;
+    }
+  }
+  const rate = attempts ? fails / attempts : 0;
+  const benchRate = runs ? benched / runs : 0;
+  const state =
+    attempts < MIN_ATTEMPTS || runs < MIN_RUNS ? "unproven"
+    : badHours >= DEAD_HOURS ? "dead"
+    : blockedNow ? "blocked"
+    : rate >= BAD_RATE || benchRate >= BAD_BENCH ? "bad"
+    : "ok";
+  return { attempts, fails, benched, runs, rate, benchRate, badHours, ratedHours, blockedNow, state, hourly };
+}
+
+/**
  * Totals per proxy index across the whole window, worst first.
  *
  * `state` is the judgement the alert acts on:
@@ -153,14 +186,14 @@ export function summarise(history) {
     const hourly = [];
     for (const h of hours) {
       const cell = h.use[i];
-      if (!cell) { hourly.push({ h: h.h, attempts: 0, fails: 0, rate: null }); continue; }
+      if (!cell) { hourly.push({ h: h.h, runs: Number(h.runs) || 0, attempts: 0, fails: 0, benched: 0, rate: null }); continue; }
       const a = Number(cell[0]) || 0, f = Number(cell[1]) || 0;
       attempts += a;
       fails += f;
       benched += Number(cell[2]) || 0;
       // Per-hour verdicts, so a block that lifts is not mistaken for death.
       // hours is chronological, so the last one judged is the current state.
-      hourly.push({ h: h.h, attempts: a, fails: f, rate: a ? f / a : null });
+      hourly.push({ h: h.h, runs: Number(h.runs) || 0, attempts: a, fails: f, benched: Number(cell[2]) || 0, rate: a ? f / a : null });
       if (a >= MIN_HOUR_ATTEMPTS) {
         ratedHours += 1;
         const bad = f / a >= DEAD_RATE;

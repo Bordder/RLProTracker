@@ -129,49 +129,52 @@ const watch = [...new Set(failed.map((f) => f.i))]
   .filter((i) => !["dead", "blocked"].includes(sustained.get(i)?.state))
   .sort((a, b) => a - b);
 
-const advice = !history
-  ? "No 24-hour history available, so this is one probe request per proxy and nothing more. Check `data/proxy-history.json` before replacing anything."
-  : [
-      worthReplacing.length
-        ? `**Replace ${worthReplacing.length}:** ${worthReplacing.map(addr).join(", ")} - refused across ${DEAD_HOURS}+ separate hours, so not a passing block.`
-        : "**Replace nothing.** No address has been refused across enough separate hours to be finished.",
-      blockedNow.length
-        ? `**Blocked right now, leave alone (${blockedNow.length}):** ${blockedNow.map((r) => addr(r.i)).join(", ")} - tracker.gg refuses an address for about an hour and then releases it. Measured 11 September: one proxy failed 22 of 22 requests in an hour and was clean the next.`
-        : "",
-      watch.length
-        ? `**Watch ${watch.length}:** ${watch.map(addr).join(", ")} - the probe failed them, 24h of real traffic has not condemned them.`
-        : "",
-      "Replace **in place** in `proxies.txt` - never reorder or delete, since the index is how every report identifies a proxy. Then:",
-      "```\n(Get-Content proxies.txt) -join ',' | gh secret set PROXY_LIST --repo Bordder/RLProTracker\n```",
-    ].filter(Boolean).join("\n");
+// One compact block instead of five prose fields.
+//
+// The old message ran to five fields of explanation and was read once and
+// then skimmed forever after. What a person actually needs on their phone is:
+// how many are fine, which ones are not, and whether to do anything tonight.
+// Everything else is in the local report.
+const STATE_WORD = { dead: "replace", blocked: "blocked", bad: "poor", unproven: "new", ok: "ok" };
+
+const row = (i, s, verdict) => {
+  const shape = s ? shapeOf(s) : "";
+  const pct = s && s.state !== "unproven" ? `${String(Math.round(s.rate * 100)).padStart(3)}%` : "  -";
+  const word = s ? STATE_WORD[s.state] : verdict ?? "?";
+  return `${(endpoints[i] ?? `index ${i}`).padEnd(21)} ${shape.padEnd(12)} ${pct}  ${word}`;
+};
+
+// Everything the probe failed, plus anything the history condemns that the
+// probe happened to catch on a good request.
+const notable = [...new Set([...failed.map((f) => f.i), ...alsoDying.map((r) => r.i)])]
+  .map((i) => ({ i, s: sustained.get(i), verdict: failed.find((f) => f.i === i)?.verdict }))
+  .sort((a, b) => (b.s?.rate ?? 0) - (a.s?.rate ?? 0));
+
+const action = !history
+  ? "No 24h history, so this is one probe request each. Check the local report before replacing anything."
+  : worthReplacing.length
+    ? `Replace ${worthReplacing.map(addr).join(", ")} - refused ${DEAD_HOURS}+ separate hours, so not a passing block.`
+    : blockedNow.length
+      ? "Nothing to do. Blocks lift on their own, usually within the hour."
+      : "Nothing to do.";
 
 const embed = {
-  title: `Proxy health: ${ok} of ${total} passed the probe${worthReplacing.length ? `, ${worthReplacing.length} to replace` : ""}`,
+  title: `Proxies: ${total - failed.length}/${total} ok${worthReplacing.length ? ` - ${worthReplacing.length} to replace` : blockedNow.length ? ` - ${blockedNow.length} blocked` : ""}`,
   url: process.env.RUN_URL || undefined,
-  color: colour,
-  description:
-    failed.length === total && total > 0
-      ? "**Every proxy is failing.** Collection is running on nothing."
-      : `${failed.length} of ${total} failed the probe.${history ? ` Sustained figures are from ${history.runs} collector runs over ${history.hours}h.` : ""}`,
+  color: worthReplacing.length ? 0xe74c3c : blockedNow.length ? 0xe67e22 : 0xf1c40f,
+  description: `**${action}**`,
   fields: [
-    { name: `Failed the probe (${failed.length})`, value: (lines.join("\n") || "none").slice(0, 1024) },
-    ...(alsoDying.length
-      ? [{
-          name: `Passed the probe, failing in production (${alsoDying.length})`,
-          value: alsoDying
-            .map((r) => `• ${addr(r.i)}  \`${shapeOf(r)}\`  **${rateOf(r)} in 24h**, bad in ${r.badHours} separate hours`)
-            .join("\n")
-            .slice(0, 1024),
-        }]
-      : []),
-    { name: "What that means", value: notes.slice(0, 1024) },
     {
-      name: "Reading the shape",
-      value:
-        "One character per hour, oldest first. `.` under 15%  `-` under 45%  `+` under 80%  `#` refused  `_` too little traffic to judge.\n" +
-        "`..#.` is a block that already lifted. `###` is an address that is finished. `----` never worked properly and probably arrived burnt.",
+      name: "Needs a look",
+      value: ("```\n" + (notable.map((n) => row(n.i, n.s, n.verdict)).join("\n") || "nothing") + "\n```").slice(0, 1024),
     },
-    { name: "Replace which", value: advice.slice(0, 1024) },
+    {
+      name: "​",
+      value: [
+        "`.` <15%  `-` <45%  `+` <80%  `#` refused  `_` thin - one char per hour, oldest first",
+        history ? `_${history.runs} runs over ${history.hours}h. \`#.\` lifted, \`###\` finished, \`----\` arrived burnt._` : "",
+      ].filter(Boolean).join("\n").slice(0, 1024),
+    },
   ],
   footer: { text: `${process.env.REPO ?? ""}` },
   timestamp: probe.at ?? new Date().toISOString(),

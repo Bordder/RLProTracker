@@ -5,7 +5,7 @@
 // does not grow without bound.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { recordRun, summarise, HOUR, WINDOW_MS, MIN_ATTEMPTS } from "../scripts/proxyHistory.mjs";
+import { recordRun, summarise, judgeHours, HOUR, WINDOW_MS, MIN_ATTEMPTS } from "../scripts/proxyHistory.mjs";
 
 const T0 = Date.parse("2026-09-10T12:00:00.000Z");
 const run = (use, at) => ({ at: new Date(at).toISOString(), proxyCount: use.length, use: use.map((u, i) => ({ i, ...u })) });
@@ -265,4 +265,24 @@ test("hours with no traffic for a proxy appear as gaps, not zeros", () => {
   for (let n = 0; n < 6; n++) h = recordRun(h, run([{ attempts: 10, fails: 0 }], later + n * 60e3), later + n * 60e3);
   const r = rowsBy(summarise(h))[1];
   assert.equal(r.hourly[1].rate, null, "an untouched hour is not a 0% hour");
+});
+
+test("judging a subset of hours gives the same answer as judging them whole", () => {
+  // The property that lets a replaced proxy be judged from its swap onward.
+  const h = build([[60, 60], [60, 60], [60, 60], [60, 0], [60, 0], [60, 0]]);
+  const row = rowsBy(summarise(h))[0];
+  assert.equal(row.state, "dead", "all six hours together: three refused hours");
+  const afterSwap = judgeHours(row.hourly.slice(3));
+  assert.equal(afterSwap.state, "ok", "the last three hours alone are clean");
+  assert.equal(afterSwap.badHours, 0);
+  assert.equal(afterSwap.attempts, row.attempts - 180);
+});
+
+test("a swapped index judged from the swap does not inherit the old proxy's death", () => {
+  // Exactly the live case: index 4 and 9 on 11 September. The hours before the
+  // swap belong to an address that is no longer there.
+  const h = build([[30, 30], [30, 30], [30, 30], [60, 0]]);
+  const row = rowsBy(summarise(h))[0];
+  assert.equal(row.state, "dead");
+  assert.equal(judgeHours(row.hourly.slice(3)).state, "ok");
 });
