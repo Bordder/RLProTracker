@@ -58,9 +58,11 @@ test("too few attempts is 'unproven', not 'dead'", () => {
 });
 
 test("sustained failure across runs is 'dead'", () => {
+  // Spread over hours on purpose: one hour of total failure is a temporary
+  // block, and only a failure that persists across hours is death.
   let h = null;
   for (let n = 0; n < 15; n++) {
-    const at = T0 + n * 2 * 60e3;
+    const at = T0 + n * 20 * 60e3;
     h = recordRun(h, run([{ attempts: 3, fails: 3, benched: true }, { attempts: 8, fails: 1 }], at), at);
   }
   const r = rowsBy(summarise(h));
@@ -81,7 +83,7 @@ test("the fleet's ordinary background failure rate is not called bad", () => {
 test("worst proxies sort first", () => {
   let h = null;
   for (let n = 0; n < 10; n++) {
-    const at = T0 + n * 2 * 60e3;
+    const at = T0 + n * 20 * 60e3;
     h = recordRun(h, run([{ attempts: 5, fails: 0 }, { attempts: 5, fails: 5 }, { attempts: 5, fails: 3 }], at), at);
   }
   const s = summarise(h);
@@ -127,8 +129,8 @@ test("a proxy benched in most runs is not 'ok', however good its rate looks", ()
 test("a proxy benched in nearly every run is 'dead'", () => {
   let h = null;
   for (let n = 0; n < 15; n++) {
-    const at = T0 + n * 2 * 60e3;
-    h = recordRun(h, run([{ attempts: 7, fails: 3, benched: n < 14 }], at), at);
+    const at = T0 + n * 20 * 60e3;
+    h = recordRun(h, run([{ attempts: 7, fails: 6, benched: n < 14 }], at), at);
   }
   assert.equal(rowsBy(summarise(h))[0].state, "dead");
 });
@@ -156,8 +158,8 @@ test("one run cannot condemn a proxy on its bench ratio alone", () => {
 test("the bench signal switches on once there are enough runs", () => {
   let h = null;
   for (let n = 0; n < 6; n++) {
-    const at = T0 + n * 2 * 60e3;
-    h = recordRun(h, run([{ attempts: 15, fails: 3, benched: true }], at), at);
+    const at = T0 + n * 40 * 60e3;
+    h = recordRun(h, run([{ attempts: 15, fails: 13, benched: true }], at), at);
   }
   assert.equal(rowsBy(summarise(h))[0].state, "dead");
 });
@@ -180,8 +182,62 @@ test("a few runs cannot condemn a proxy however bad the rate looks", () => {
 test("the same proxy is condemned once enough runs agree", () => {
   let h = null;
   for (let n = 0; n < 5; n++) {
-    const at = T0 + n * 2 * 60e3;
-    h = recordRun(h, run([{ attempts: 4, fails: 4 }], at), at);
+    const at = T0 + n * 40 * 60e3;
+    h = recordRun(h, run([{ attempts: 6, fails: 6 }], at), at);
   }
   assert.equal(rowsBy(summarise(h))[0].state, "dead");
+});
+
+// tracker.gg blocks an address for an hour or so and then releases it. These
+// pin the distinction that decides whether a replacement gets spent.
+const hourOf = (n) => T0 + n * HOUR;
+function build(pattern) {
+  // pattern: one [attempts, fails] per hour, 6 runs per hour
+  let h = null;
+  pattern.forEach(([a, f], hr) => {
+    for (let n = 0; n < 6; n++) {
+      const at = hourOf(hr) + n * 2 * 60e3;
+      h = recordRun(h, run([{ attempts: Math.round(a / 6), fails: Math.round(f / 6) }], at), at);
+    }
+  });
+  return h;
+}
+
+test("one totally blocked hour between clean hours is 'blocked', not 'dead'", () => {
+  // Index 0, 2026-09-10: 0/68, 4/80, 22/22, then 0/5 the next hour.
+  const r = rowsBy(summarise(build([[68, 0], [80, 4], [22, 22], [30, 0]])))[0];
+  assert.equal(r.state, "ok", `recovered proxy should not be condemned, got ${r.state}`);
+});
+
+test("a proxy blocked in the current hour reads as blocked, not dead", () => {
+  // Two clean hours then a total refusal, which is what a fresh block looks
+  // like at the moment it starts.
+  const r = rowsBy(summarise(build([[68, 0], [80, 4], [40, 40]])))[0];
+  assert.equal(r.state, "blocked");
+  assert.ok(r.badHours < 3, "one bad hour is not sustained");
+  assert.equal(r.blockedNow, true);
+});
+
+test("failure across three separate hours is dead", () => {
+  // Index 9: 18/18, 24/24, 15/24 across three consecutive hours.
+  const r = rowsBy(summarise(build([[18, 18], [24, 24], [24, 15], [24, 22]])))[0];
+  assert.equal(r.state, "dead");
+  assert.ok(r.badHours >= 3);
+});
+
+test("an hour too thin to judge does not count toward death", () => {
+  // One run per hour, 2 attempts in it: below MIN_HOUR_ATTEMPTS, so those
+  // hours cannot vote however badly they went.
+  let h = null;
+  for (let hr = 0; hr < 4; hr++) {
+    const at = T0 + hr * HOUR;
+    h = recordRun(h, run([{ attempts: 2, fails: 2 }], at), at);
+  }
+  for (let n = 0; n < 6; n++) {
+    const at = T0 + 4 * HOUR + n * 2 * 60e3;
+    h = recordRun(h, run([{ attempts: 10, fails: 0 }], at), at);
+  }
+  const r = rowsBy(summarise(h))[0];
+  assert.equal(r.badHours, 0, "thin hours must not count");
+  assert.notEqual(r.state, "dead");
 });

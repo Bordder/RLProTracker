@@ -53,6 +53,23 @@ export const BAD_BENCH = 0.5;
 // elapsed time. Five runs is roughly fifteen minutes at the 3-minute cadence.
 export const MIN_RUNS = 5;
 
+// A proxy must fail across SEPARATE HOURS before it is called dead.
+//
+// tracker.gg blocks an address temporarily and then releases it. Measured
+// 2026-09-10/11: index 0 failed 22 of 22 requests for a whole hour and was
+// clean the next; index 5 went 58% then 0%. A genuinely dead address looks
+// different - index 9 ran 18/18, 24/24, 15/24 across three consecutive hours
+// before it was replaced.
+//
+// Judging on the aggregate alone cannot tell those apart, and getting it wrong
+// spends a replacement from a finite quota on an address that would have
+// recovered by itself within the hour. So "dead" additionally requires the
+// failure to show up in this many distinct hourly buckets.
+export const DEAD_HOURS = 3;
+// An hour only counts toward that if it carries enough attempts to mean
+// something, on the same principle as MIN_ATTEMPTS.
+export const MIN_HOUR_ATTEMPTS = 5;
+
 const hourKey = (ms) => new Date(Math.floor(ms / HOUR) * HOUR).toISOString();
 
 /**
@@ -128,25 +145,50 @@ export function summarise(history) {
 
   const out = [];
   for (let i = 0; i < width; i++) {
-    let attempts = 0, fails = 0, benched = 0;
+    let attempts = 0, fails = 0, benched = 0, badHours = 0, ratedHours = 0, blockedNow = false;
     for (const h of hours) {
       const cell = h.use[i];
       if (!cell) continue;
-      attempts += Number(cell[0]) || 0;
-      fails += Number(cell[1]) || 0;
+      const a = Number(cell[0]) || 0, f = Number(cell[1]) || 0;
+      attempts += a;
+      fails += f;
       benched += Number(cell[2]) || 0;
+      // Per-hour verdicts, so a block that lifts is not mistaken for death.
+      // hours is chronological, so the last one judged is the current state.
+      if (a >= MIN_HOUR_ATTEMPTS) {
+        ratedHours += 1;
+        const bad = f / a >= DEAD_RATE;
+        if (bad) badHours += 1;
+        blockedNow = bad;
+      }
     }
     const rate = attempts ? fails / attempts : 0;
     const benchRate = runs ? benched / runs : 0;
+    // Sustained means bad in DEAD_HOURS separate hours. A single blocked hour,
+    // however total, is "blocked" - real, worth showing, not worth replacing.
+    const sustained = badHours >= DEAD_HOURS;
+    // "blocked" is about NOW, not the window: the most recent hour with enough
+    // traffic to judge was refused. That is the state worth showing and the
+    // state not worth spending a replacement on, because it lifts by itself.
+    // Sustained hours is the ONLY route to "dead". Benching used to be a
+    // second route at two hours, which quietly reinstated the rule this is
+    // meant to enforce - and benching is a consequence of failing, so it adds
+    // no independent evidence about whether the block will lift. Heavy
+    // benching makes a proxy "bad", which is a watch, not a purchase.
+    //
+    // Waiting the extra hour is close to free: a benched proxy is already out
+    // of the rotation, so it costs a little capacity, not correctness. Getting
+    // it wrong costs a replacement from a quota of 50.
     const state =
       attempts < MIN_ATTEMPTS || runs < MIN_RUNS ? "unproven"
-      : rate >= DEAD_RATE || benchRate >= DEAD_BENCH ? "dead"
+      : sustained ? "dead"
+      : blockedNow ? "blocked"
       : rate >= BAD_RATE || benchRate >= BAD_BENCH ? "bad"
       : "ok";
-    out.push({ i, attempts, fails, benched, benchRate, rate, state });
+    out.push({ i, attempts, fails, benched, benchRate, rate, badHours, ratedHours, blockedNow, state });
   }
 
-  const rank = { dead: 0, bad: 1, unproven: 2, ok: 3 };
+  const rank = { dead: 0, blocked: 1, bad: 2, unproven: 3, ok: 4 };
   out.sort((a, b) => rank[a.state] - rank[b.state] || b.rate - a.rate || b.benchRate - a.benchRate || a.i - b.i);
   return { runs, hours: hours.length, proxies: width, rows: out };
 }
