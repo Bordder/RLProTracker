@@ -1169,7 +1169,13 @@
     var restoreOpenTeam=function(){
       if(!openTeam)return;
       var want=openTeam;
-      var tr=tv.querySelector('tr.team-row[data-team="'+want.replace(/"/g,'\\"')+'"]');
+      // CSS.escape rather than a hand-rolled quote escape. The old version
+      // replaced double quotes and left backslashes alone, so a team name
+      // ending in one produced a malformed selector and querySelector threw,
+      // which would have lost the expanded row on every refresh. Team names
+      // come partly from Liquipedia, which anyone can edit, so this is not
+      // purely hypothetical. Not an XSS: the row's own text goes through esc().
+      var tr=tv.querySelector('tr.team-row[data-team="'+CSS.escape(want)+'"]');
       if(!tr){ openTeam=null; return; }
       openTeam=null;      // toggleTeam sets it again
       toggleTeam(tr);
