@@ -76,6 +76,16 @@ const sustained = new Map((history?.rows ?? []).map((r) => [r.i, r]));
 const blockedNow = (history?.rows ?? []).filter((r) => r.state === "blocked");
 const rateOf = (r) => `${Math.round(r.rate * 100)}% of ${r.attempts}`;
 
+// One character per hour, oldest first. The shape is the diagnosis: a block
+// is a spike between clean hours, a dying address is a run of them, and an
+// address that arrived burnt never had a clean hour. An average shows none of
+// that, and reading it as if it did is what sent two healthy proxies to be
+// replaced on 11 September.
+const shapeOf = (r) =>
+  (r.hourly ?? [])
+    .map((h) => (h.attempts < 5 ? "_" : h.rate >= 0.8 ? "#" : h.rate >= 0.45 ? "+" : h.rate >= 0.15 ? "-" : "."))
+    .join("") || "-";
+
 // A proxy the probe happened to catch on a good request can still be visibly
 // dying in the collector's own figures, and that case went unreported: this
 // alert only ever spoke about what the probe failed. Name those too.
@@ -102,7 +112,7 @@ const lines = failed.map((f) => {
     : s.state === "unproven" ? `  -  only ${s.attempts} attempts in 24h, too few to judge`
     : s.state === "blocked" ? `  -  refused in the current hour, bad in ${s.badHours} of ${s.ratedHours} judged ${s.ratedHours === 1 ? "hour" : "hours"} - below the ${DEAD_HOURS} that means finished`
     : `  -  **${rateOf(s)} in 24h**, bad in ${s.badHours} separate ${s.badHours === 1 ? "hour" : "hours"}`;
-  return `• ${addr(f.i)}  -  ${f.verdict}${seen}${noAuth}`;
+  return `• ${addr(f.i)}  \`${s ? shapeOf(s) : "?"}\`  ${f.verdict}${seen}${noAuth}`;
 });
 
 const verdicts = [...new Set(failed.map((f) => f.verdict))];
@@ -149,12 +159,18 @@ const embed = {
       ? [{
           name: `Passed the probe, failing in production (${alsoDying.length})`,
           value: alsoDying
-            .map((r) => `• ${addr(r.i)}  -  **${rateOf(r)} in 24h**${r.benched ? `, benched ${r.benched}x` : ""}`)
+            .map((r) => `• ${addr(r.i)}  \`${shapeOf(r)}\`  **${rateOf(r)} in 24h**, bad in ${r.badHours} separate hours`)
             .join("\n")
             .slice(0, 1024),
         }]
       : []),
     { name: "What that means", value: notes.slice(0, 1024) },
+    {
+      name: "Reading the shape",
+      value:
+        "One character per hour, oldest first. `.` under 15%  `-` under 45%  `+` under 80%  `#` refused  `_` too little traffic to judge.\n" +
+        "`..#.` is a block that already lifted. `###` is an address that is finished. `----` never worked properly and probably arrived burnt.",
+    },
     { name: "Replace which", value: advice.slice(0, 1024) },
   ],
   footer: { text: `${process.env.REPO ?? ""}` },
