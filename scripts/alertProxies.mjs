@@ -104,17 +104,29 @@ const alsoDying = (history?.rows ?? []).filter((r) => r.state === "dead" && !fai
 // real traffic calls dead or blocked, so a proxy the probe happened to catch
 // on a good request still counts if production says otherwise.
 const ALERT_ABOVE = Number(process.env.PROXY_ALERT_THRESHOLD ?? 0.5);
+// A single address failing more than this over 24h is worth naming even when
+// the rest of the fleet is healthy. Asked for on 11 September: "I want to know
+// if a single proxy fails more than 50% of the time and to keep a watch."
+const WATCH_RATE = Number(process.env.PROXY_WATCH_RATE ?? 0.5);
 const unusable = new Set([
   ...failed.map((f) => f.i),
   ...(history?.rows ?? []).filter((r) => r.state === "dead" || r.state === "blocked").map((r) => r.i),
 ]);
 const share = total ? unusable.size / total : 0;
 
-if (!unusable.size) { console.log("all proxies usable; no alert"); process.exit(0); }
-if (share <= ALERT_ABOVE) {
+// Individually poor addresses, proven over 24h rather than over one request.
+// "unproven" is excluded deliberately: a rate needs enough runs and attempts
+// behind it before it means anything, which two near-miss replacements paid
+// for learning.
+const poor = (history?.rows ?? []).filter((r) => r.state !== "unproven" && r.rate > WATCH_RATE);
+const replaceNow = (history?.rows ?? []).filter((r) => r.state === "dead");
+
+if (!unusable.size && !poor.length) { console.log("all proxies usable; no alert"); process.exit(0); }
+if (share <= ALERT_ABOVE && !poor.length && !replaceNow.length) {
   console.log(
     `${unusable.size}/${total} unusable (${Math.round(share * 100)}%), at or below the ` +
-    `${Math.round(ALERT_ABOVE * 100)}% alert threshold; staying quiet. ` +
+    `${Math.round(ALERT_ABOVE * 100)}% fleet threshold, and no single address over ` +
+    `${Math.round(WATCH_RATE * 100)}% across 24h; staying quiet. ` +
     `Indices: ${[...unusable].sort((a, b) => a - b).join(", ")}`
   );
   process.exit(0);
@@ -173,7 +185,7 @@ const row = (i, s, verdict) => {
 
 // Everything the probe failed, plus anything the history condemns that the
 // probe happened to catch on a good request.
-const notable = [...new Set([...failed.map((f) => f.i), ...alsoDying.map((r) => r.i)])]
+const notable = [...new Set([...failed.map((f) => f.i), ...alsoDying.map((r) => r.i), ...poor.map((r) => r.i)])]
   .map((i) => ({ i, s: sustained.get(i), verdict: failed.find((f) => f.i === i)?.verdict }))
   .sort((a, b) => (b.s?.rate ?? 0) - (a.s?.rate ?? 0));
 
@@ -181,6 +193,15 @@ const notable = [...new Set([...failed.map((f) => f.i), ...alsoDying.map((r) => 
 // do" is never the right headline on its own: the reader needs to know whether
 // that is a fleet-wide refusal, which recovers on its own, or addresses that
 // are genuinely finished, which do not.
+// Three different things, and conflating them is what costs replacements.
+//
+//   replace  refused across DEAD_HOURS separate hours - it is finished
+//   blocked  100% right now but clean in earlier hours - it lifts by itself
+//   poor     over WATCH_RATE sustained - worth watching, not worth buying
+//
+// 100% on its own is NOT a replacement signal. Measured 11 September: index 0
+// failed 22 of 22 requests for an hour and was clean the next; indices 1 and 6
+// held 100% for two hours and recovered to about 10%.
 const mostOfFleet = share >= 0.6;
 const action = !history
   ? "No 24h history, so this is one probe request each. Check the local report before replacing anything."
@@ -188,10 +209,16 @@ const action = !history
     ? `Replace ${worthReplacing.map(addr).join(", ")} - refused ${DEAD_HOURS}+ separate hours, so not a passing block.`
     : mostOfFleet
       ? "Most of the fleet is refused at once, which is tracker.gg rather than the addresses going bad. The collector retries across whatever still answers. Replace nothing; if it still looks like this in a few hours, that is the signal."
-      : "Nothing to replace. These are passing blocks and they lift on their own, usually within the hour.";
+      : poor.length
+        ? `Watching ${poor.length}: ${poor.map((r) => `${addr(r.i)} at ${Math.round(r.rate * 100)}%`).join(", ")} over 24h. Failing badly but not finished - replacing only helps once an address is refused across ${DEAD_HOURS}+ separate hours.`
+        : "Nothing to replace. These are passing blocks and they lift on their own, usually within the hour.";
 
 const embed = {
-  title: `Proxies: ${total - unusable.size}/${total} usable - ${Math.round(share * 100)}% of the fleet is down`,
+  title: replaceNow.length
+    ? `Proxies: ${replaceNow.length} to replace, ${total - unusable.size}/${total} usable`
+    : share > ALERT_ABOVE
+      ? `Proxies: ${Math.round(share * 100)}% of the fleet is down`
+      : `Proxies: ${poor.length} failing over ${Math.round(WATCH_RATE * 100)}%`,
   url: process.env.RUN_URL || undefined,
   color: worthReplacing.length ? 0xe74c3c : blockedNow.length ? 0xe67e22 : 0xf1c40f,
   description: `**${action}**`,

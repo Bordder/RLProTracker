@@ -66,6 +66,46 @@ export const MIN_RUNS = 5;
 // recovered by itself within the hour. So "dead" additionally requires the
 // failure to show up in this many distinct hourly buckets.
 export const DEAD_HOURS = 3;
+// ...and those hours must be CONSECUTIVE, ONGOING, and carry ZERO successes.
+//
+// "It needs to be 100% sure it's dead" - asked for on 11 September, after two
+// near-misses. A block and a death look identical in an average, and the
+// measured evidence for how long a block lasts is thin AND biased short: the
+// block-length tool splits a run whenever an hour is too quiet to judge, so a
+// two-hour block that was watched recovering gets reported as one hour.
+//
+// So rather than lean on a number nobody can defend, require a pattern that a
+// temporary block cannot produce:
+//
+//   consecutive   scattered bad hours are a flaky address, not a dead one
+//   ongoing       a run that already ended means the address came back
+//   zero success  one answered request in the run proves it can still answer
+//   volume        enough attempts that silence is not just a quiet period
+//
+// A single successful request resets the run, which is the point: an address
+// that still answers occasionally is degraded, and degraded is a watch rather
+// than a purchase.
+export const MIN_DEAD_ATTEMPTS = 30;
+
+/**
+ * The trailing run of consecutive hours with no successful request at all.
+ *
+ * Hours too thin to judge are skipped rather than counted or treated as a
+ * break - they are absence of evidence in either direction. Any hour with at
+ * least one success ends the run.
+ */
+export function deadRun(hourly) {
+  let hours = 0, attempts = 0, fails = 0;
+  for (let i = hourly.length - 1; i >= 0; i--) {
+    const h = hourly[i];
+    if (h.attempts < MIN_HOUR_ATTEMPTS) continue;
+    if (h.fails < h.attempts) break;
+    hours += 1;
+    attempts += h.attempts;
+    fails += h.fails;
+  }
+  return { hours, attempts, fails };
+}
 // An hour only counts toward that if it carries enough attempts to mean
 // something, on the same principle as MIN_ATTEMPTS.
 export const MIN_HOUR_ATTEMPTS = 5;
@@ -205,7 +245,10 @@ export function summarise(history) {
     const benchRate = runs ? benched / runs : 0;
     // Sustained means bad in DEAD_HOURS separate hours. A single blocked hour,
     // however total, is "blocked" - real, worth showing, not worth replacing.
-    const sustained = badHours >= DEAD_HOURS;
+    // Dead is the strict pattern documented at MIN_DEAD_ATTEMPTS, not merely a
+    // high average: consecutive, ongoing, zero successes, enough attempts.
+    const run = deadRun(hourly);
+    const sustained = run.hours >= DEAD_HOURS && run.attempts >= MIN_DEAD_ATTEMPTS;
     // "blocked" is about NOW, not the window: the most recent hour with enough
     // traffic to judge was refused. That is the state worth showing and the
     // state not worth spending a replacement on, because it lifts by itself.

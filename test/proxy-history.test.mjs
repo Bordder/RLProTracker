@@ -63,7 +63,7 @@ test("sustained failure across runs is 'dead'", () => {
   let h = null;
   for (let n = 0; n < 15; n++) {
     const at = T0 + n * 20 * 60e3;
-    h = recordRun(h, run([{ attempts: 3, fails: 3, benched: true }, { attempts: 8, fails: 1 }], at), at);
+    h = recordRun(h, run([{ attempts: 6, fails: 6, benched: true }, { attempts: 8, fails: 1 }], at), at);
   }
   const r = rowsBy(summarise(h));
   assert.equal(r[0].state, "dead", `45 attempts all failed should be dead, got ${r[0].rate}`);
@@ -132,7 +132,9 @@ test("a proxy benched in nearly every run is 'dead'", () => {
     const at = T0 + n * 20 * 60e3;
     h = recordRun(h, run([{ attempts: 7, fails: 6, benched: n < 14 }], at), at);
   }
-  assert.equal(rowsBy(summarise(h))[0].state, "dead");
+  // Not "dead": it answered 1 request in 7 every hour, so it is degraded
+  // rather than finished, and a replacement would be spent on a live address.
+  assert.notEqual(rowsBy(summarise(h))[0].state, "dead");
 });
 
 test("occasional benching on an otherwise healthy proxy stays 'ok'", () => {
@@ -161,7 +163,8 @@ test("the bench signal switches on once there are enough runs", () => {
     const at = T0 + n * 40 * 60e3;
     h = recordRun(h, run([{ attempts: 15, fails: 13, benched: true }], at), at);
   }
-  assert.equal(rowsBy(summarise(h))[0].state, "dead");
+  // Still answering 2 of 15, so watch it rather than replace it.
+  assert.notEqual(rowsBy(summarise(h))[0].state, "dead");
 });
 
 test("a few runs cannot condemn a proxy however bad the rate looks", () => {
@@ -218,11 +221,40 @@ test("a proxy blocked in the current hour reads as blocked, not dead", () => {
   assert.equal(r.blockedNow, true);
 });
 
-test("failure across three separate hours is dead", () => {
-  // Index 9: 18/18, 24/24, 15/24 across three consecutive hours.
-  const r = rowsBy(summarise(build([[18, 18], [24, 24], [24, 15], [24, 22]])))[0];
+test("three consecutive hours answering nothing at all is dead", () => {
+  const r = rowsBy(summarise(build([[24, 0], [24, 24], [24, 24], [24, 24]])))[0];
   assert.equal(r.state, "dead");
-  assert.ok(r.badHours >= 3);
+});
+
+test("one answered request in the run is enough to spare it", () => {
+  // The only difference from the case above is a single success in the middle
+  // hour, built explicitly because the helper's rounding would swallow it. An
+  // address that can still answer at all is not finished.
+  let h = null;
+  const hour = (hr, perRun, failsPerRun) => {
+    for (let n = 0; n < 6; n++) {
+      const at = T0 + hr * HOUR + n * 2 * 60e3;
+      h = recordRun(h, run([{ attempts: perRun, fails: failsPerRun }], at), at);
+    }
+  };
+  hour(0, 4, 0);
+  hour(1, 4, 4);
+  hour(2, 4, 3);   // one answered request in this hour
+  hour(3, 4, 4);
+  const r = rowsBy(summarise(h))[0];
+  assert.notEqual(r.state, "dead", "it answered once, so it is not finished");
+});
+
+test("a run that has already recovered is not dead, however bad it was", () => {
+  // Index 1 and 6 on 11 September: 100% for two hours, then back to ~10%.
+  // Under the old rule these were put forward for replacement.
+  const r = rowsBy(summarise(build([[24, 24], [24, 24], [24, 24], [24, 2], [24, 1]])))[0];
+  assert.notEqual(r.state, "dead", "it came back; replacing it would waste a replacement");
+});
+
+test("scattered bad hours are not a death", () => {
+  const r = rowsBy(summarise(build([[24, 24], [24, 1], [24, 24], [24, 1], [24, 24]])))[0];
+  assert.notEqual(r.state, "dead");
 });
 
 test("an hour too thin to judge does not count toward death", () => {
@@ -269,20 +301,21 @@ test("hours with no traffic for a proxy appear as gaps, not zeros", () => {
 
 test("judging a subset of hours gives the same answer as judging them whole", () => {
   // The property that lets a replaced proxy be judged from its swap onward.
-  const h = build([[60, 60], [60, 60], [60, 60], [60, 0], [60, 0], [60, 0]]);
+  const h = build([[60, 0], [60, 0], [60, 0], [60, 60], [60, 60], [60, 60]]);
   const row = rowsBy(summarise(h))[0];
-  assert.equal(row.state, "dead", "all six hours together: three refused hours");
-  const afterSwap = judgeHours(row.hourly.slice(3));
-  assert.equal(afterSwap.state, "ok", "the last three hours alone are clean");
-  assert.equal(afterSwap.badHours, 0);
-  assert.equal(afterSwap.attempts, row.attempts - 180);
+  assert.equal(row.state, "dead", "the last three hours answered nothing");
+  const beforeItDied = judgeHours(row.hourly.slice(0, 3));
+  assert.equal(beforeItDied.state, "ok", "the first three hours alone are clean");
+  assert.equal(beforeItDied.badHours, 0);
+  assert.equal(beforeItDied.attempts, row.attempts - 180);
 });
 
 test("a swapped index judged from the swap does not inherit the old proxy's death", () => {
   // Exactly the live case: index 4 and 9 on 11 September. The hours before the
   // swap belong to an address that is no longer there.
-  const h = build([[30, 30], [30, 30], [30, 30], [60, 0]]);
+  const h = build([[60, 0], [30, 30], [30, 30], [30, 30]]);
   const row = rowsBy(summarise(h))[0];
   assert.equal(row.state, "dead");
-  assert.equal(judgeHours(row.hourly.slice(3)).state, "ok");
+  // Judged from the swap, the replacement's own hour is clean.
+  assert.equal(judgeHours(row.hourly.slice(0, 1)).state, "ok");
 });
