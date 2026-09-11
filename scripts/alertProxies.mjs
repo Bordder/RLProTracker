@@ -17,11 +17,11 @@
 import { readFile } from "node:fs/promises";
 import { parseProxies } from "./proxies.mjs";
 import { postEmbed } from "./discordPost.mjs";
-import { summarise, MIN_ATTEMPTS } from "./proxyHistory.mjs";
+import { summarise, MIN_ATTEMPTS, DEAD_HOURS } from "./proxyHistory.mjs";
 
 const MEANING = {
   "tunnel-dead": "could not connect at all - the provider's problem, or a stale address in the secret",
-  "api-unreachable": "the tunnel is fine and the site loads, but the API call threw with no status. Note this is NOT a 403 or 429, which report as cloudflare-blocked: it covers a refused connection and a block served without CORS headers alike, so on its own it cannot tell reputation from rate limiting",
+  "api-unreachable": "the tunnel is fine and the site loads, but the API call threw with no status. NOT a 403 or 429, which report as cloudflare-blocked. Usually a temporary refusal: tracker.gg blocks an address for an hour or so and then releases it, so a probe failure on its own says nothing about whether the proxy is finished",
   "cloudflare-blocked": "the API answered 403 or 429",
   "timeout": "too slow to answer",
   "failed": "unclassified failure",
@@ -41,9 +41,14 @@ const MEANING = {
 // the sustained figures, which is exactly what this alert did before.
 async function loadHistory() {
   const repo = process.env.REPO || "Bordder/RLProTracker";
-  const url = `https://raw.githubusercontent.com/${repo}/data/data/proxy-history.json`;
+  // The API, not raw: raw's CDN caches for five minutes and ignores query
+  // strings, so an hourly alert can easily read a history older than the run
+  // that triggered it.
+  const url = `https://api.github.com/repos/${repo}/contents/data/proxy-history.json?ref=data`;
   try {
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      headers: { Accept: "application/vnd.github.raw", "User-Agent": "rlprotracker-alerts", "X-GitHub-Api-Version": "2022-11-28" },
+    });
     if (!res.ok) { console.log(`proxy-history.json: HTTP ${res.status}; posting without sustained figures`); return null; }
     return summarise(await res.json());
   } catch (e) {
@@ -66,6 +71,9 @@ console.log(`${ok}/${total} usable, failing indices: ${failed.map((f) => f.i).jo
 
 const history = await loadHistory();
 const sustained = new Map((history?.rows ?? []).map((r) => [r.i, r]));
+// Refused right now, but not across enough hours to be finished. These cost
+// nothing to wait out and a replacement to get wrong.
+const blockedNow = (history?.rows ?? []).filter((r) => r.state === "blocked");
 const rateOf = (r) => `${Math.round(r.rate * 100)}% of ${r.attempts}`;
 
 // A proxy the probe happened to catch on a good request can still be visibly
@@ -92,7 +100,8 @@ const lines = failed.map((f) => {
   const seen =
     !s ? ""
     : s.state === "unproven" ? `  -  only ${s.attempts} attempts in 24h, too few to judge`
-    : `  -  **${rateOf(s)} in 24h**${s.benched ? `, benched ${s.benched}x` : ""}`;
+    : s.state === "blocked" ? `  -  refused in the current hour, bad in ${s.badHours} of ${s.ratedHours} judged ${s.ratedHours === 1 ? "hour" : "hours"} - below the ${DEAD_HOURS} that means finished`
+    : `  -  **${rateOf(s)} in 24h**, bad in ${s.badHours} separate ${s.badHours === 1 ? "hour" : "hours"}`;
   return `• ${addr(f.i)}  -  ${f.verdict}${seen}${noAuth}`;
 });
 
@@ -105,16 +114,20 @@ const notes = verdicts.map((v) => `**${v}** - ${MEANING[v] ?? ""}`).join("\n") |
 const worthReplacing = [...new Set([...failed.map((f) => f.i), ...alsoDying.map((r) => r.i)])]
   .filter((i) => sustained.get(i)?.state === "dead")
   .sort((a, b) => a - b);
+// Blocked addresses get their own line, so keep them out of this one.
 const watch = [...new Set(failed.map((f) => f.i))]
-  .filter((i) => sustained.get(i)?.state !== "dead")
+  .filter((i) => !["dead", "blocked"].includes(sustained.get(i)?.state))
   .sort((a, b) => a - b);
 
 const advice = !history
   ? "No 24-hour history available, so this is one probe request per proxy and nothing more. Check `data/proxy-history.json` before replacing anything."
   : [
       worthReplacing.length
-        ? `**Replace ${worthReplacing.length}:** ${worthReplacing.map(addr).join(", ")} - sustained failure across ${history.runs} runs in the last 24h.`
-        : `**Replace nothing yet.** No address has failed enough of the collector's own attempts to justify it (needs ${MIN_ATTEMPTS}+ attempts and 80%+ failure).`,
+        ? `**Replace ${worthReplacing.length}:** ${worthReplacing.map(addr).join(", ")} - refused across ${DEAD_HOURS}+ separate hours, so not a passing block.`
+        : "**Replace nothing.** No address has been refused across enough separate hours to be finished.",
+      blockedNow.length
+        ? `**Blocked right now, leave alone (${blockedNow.length}):** ${blockedNow.map((r) => addr(r.i)).join(", ")} - tracker.gg refuses an address for about an hour and then releases it. Measured 11 September: one proxy failed 22 of 22 requests in an hour and was clean the next.`
+        : "",
       watch.length
         ? `**Watch ${watch.length}:** ${watch.map(addr).join(", ")} - the probe failed them, 24h of real traffic has not condemned them.`
         : "",
@@ -123,7 +136,7 @@ const advice = !history
     ].filter(Boolean).join("\n");
 
 const embed = {
-  title: `Proxy health: ${ok} of ${total} usable${worthReplacing.length ? `, ${worthReplacing.length} to replace` : ""}`,
+  title: `Proxy health: ${ok} of ${total} passed the probe${worthReplacing.length ? `, ${worthReplacing.length} to replace` : ""}`,
   url: process.env.RUN_URL || undefined,
   color: colour,
   description:

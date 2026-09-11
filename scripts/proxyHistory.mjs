@@ -146,15 +146,21 @@ export function summarise(history) {
   const out = [];
   for (let i = 0; i < width; i++) {
     let attempts = 0, fails = 0, benched = 0, badHours = 0, ratedHours = 0, blockedNow = false;
+    // One entry per hour in the window, oldest first, so a caller can show the
+    // SHAPE of the failure rather than an average. This is the thing that
+    // separates "blocked for an hour and recovered" from "failing all day",
+    // and an aggregate can never show it.
+    const hourly = [];
     for (const h of hours) {
       const cell = h.use[i];
-      if (!cell) continue;
+      if (!cell) { hourly.push({ h: h.h, attempts: 0, fails: 0, rate: null }); continue; }
       const a = Number(cell[0]) || 0, f = Number(cell[1]) || 0;
       attempts += a;
       fails += f;
       benched += Number(cell[2]) || 0;
       // Per-hour verdicts, so a block that lifts is not mistaken for death.
       // hours is chronological, so the last one judged is the current state.
+      hourly.push({ h: h.h, attempts: a, fails: f, rate: a ? f / a : null });
       if (a >= MIN_HOUR_ATTEMPTS) {
         ratedHours += 1;
         const bad = f / a >= DEAD_RATE;
@@ -185,7 +191,7 @@ export function summarise(history) {
       : blockedNow ? "blocked"
       : rate >= BAD_RATE || benchRate >= BAD_BENCH ? "bad"
       : "ok";
-    out.push({ i, attempts, fails, benched, benchRate, rate, badHours, ratedHours, blockedNow, state });
+    out.push({ i, attempts, fails, benched, benchRate, rate, badHours, ratedHours, blockedNow, hourly, state });
   }
 
   const rank = { dead: 0, blocked: 1, bad: 2, unproven: 3, ok: 4 };

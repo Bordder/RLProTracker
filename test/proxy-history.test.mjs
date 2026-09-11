@@ -241,3 +241,28 @@ test("an hour too thin to judge does not count toward death", () => {
   assert.equal(r.badHours, 0, "thin hours must not count");
   assert.notEqual(r.state, "dead");
 });
+
+test("the hourly shape distinguishes a block from steady decay", () => {
+  // Same 24h aggregate, completely different stories: one proxy was refused
+  // for a single hour and recovered, the other has failed a third of the time
+  // all along. An average cannot tell these apart; the shape can.
+  const blocked = build([[60, 0], [60, 0], [30, 30], [60, 0]]);
+  const steady = build([[60, 20], [60, 20], [60, 20], [60, 20]]);
+  const b = rowsBy(summarise(blocked))[0];
+  const s = rowsBy(summarise(steady))[0];
+  assert.equal(b.hourly.length, 4);
+  assert.deepEqual(b.hourly.map((x) => (x.rate === null ? null : Math.round(x.rate * 100))), [0, 0, 100, 0]);
+  // 30, not 33: build spreads 20 fails over 6 runs and rounds to 3 each.
+  assert.deepEqual(s.hourly.map((x) => Math.round(x.rate * 100)), [30, 30, 30, 30]);
+  assert.equal(b.badHours, 1);
+  assert.equal(s.badHours, 0);
+});
+
+test("hours with no traffic for a proxy appear as gaps, not zeros", () => {
+  let h = recordRun(null, run([{ attempts: 10, fails: 0 }, { attempts: 10, fails: 0 }], T0), T0);
+  const later = T0 + HOUR;
+  // Second hour: only index 0 is used at all.
+  for (let n = 0; n < 6; n++) h = recordRun(h, run([{ attempts: 10, fails: 0 }], later + n * 60e3), later + n * 60e3);
+  const r = rowsBy(summarise(h))[1];
+  assert.equal(r.hourly[1].rate, null, "an untouched hour is not a 0% hour");
+});
