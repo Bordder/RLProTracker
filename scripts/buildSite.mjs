@@ -119,7 +119,7 @@ for (const [page, script] of [["index.html", "rlpt.js"], ["status.html", "status
   const hash = createHash("sha256").update(source).digest("hex").slice(0, 8);
   const pagePath = join(ROOT, "web", page);
   const html = await readFile(pagePath, "utf8");
-  const pattern = new RegExp(`src="${script.replace(/\./g, "\\.")}(?:\\?v=[0-9a-f]+)?"`);
+  const pattern = new RegExp(`src="${script.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\?v=[0-9a-f]+)?"`);
   const stamped = html.replace(pattern, `src="${script}?v=${hash}"`);
   if (stamped !== html) {
     await writeFile(pagePath, stamped);
