@@ -91,7 +91,34 @@ const shapeOf = (r) =>
 // alert only ever spoke about what the probe failed. Name those too.
 const alsoDying = (history?.rows ?? []).filter((r) => r.state === "dead" && !failed.some((f) => f.i === r.i));
 
-if (!failed.length && !alsoDying.length) { console.log("all proxies usable; no alert"); process.exit(0); }
+// Only speak up when more than half the fleet is unusable.
+//
+// Asked for on 11 September, and the measurements support it. Individual
+// addresses are refused and released constantly: one proxy failed 22 of 22
+// requests for an hour and was clean the next, and the collector simply
+// retries elsewhere, so a handful of failures costs nothing and needs nobody
+// woken. What actually threatens collection is most of the fleet going at
+// once, which is also the only state a person can do anything useful about.
+//
+// "Unusable" is the union of what the probe just failed and what 24 hours of
+// real traffic calls dead or blocked, so a proxy the probe happened to catch
+// on a good request still counts if production says otherwise.
+const ALERT_ABOVE = Number(process.env.PROXY_ALERT_THRESHOLD ?? 0.5);
+const unusable = new Set([
+  ...failed.map((f) => f.i),
+  ...(history?.rows ?? []).filter((r) => r.state === "dead" || r.state === "blocked").map((r) => r.i),
+]);
+const share = total ? unusable.size / total : 0;
+
+if (!unusable.size) { console.log("all proxies usable; no alert"); process.exit(0); }
+if (share <= ALERT_ABOVE) {
+  console.log(
+    `${unusable.size}/${total} unusable (${Math.round(share * 100)}%), at or below the ` +
+    `${Math.round(ALERT_ABOVE * 100)}% alert threshold; staying quiet. ` +
+    `Indices: ${[...unusable].sort((a, b) => a - b).join(", ")}`
+  );
+  process.exit(0);
+}
 
 // index -> host:port, from the same parser the probe and collector use, so the
 // numbering always agrees with data/proxy-use.json.
@@ -150,16 +177,21 @@ const notable = [...new Set([...failed.map((f) => f.i), ...alsoDying.map((r) => 
   .map((i) => ({ i, s: sustained.get(i), verdict: failed.find((f) => f.i === i)?.verdict }))
   .sort((a, b) => (b.s?.rate ?? 0) - (a.s?.rate ?? 0));
 
+// This alert only fires when more than half the fleet is down, so "nothing to
+// do" is never the right headline on its own: the reader needs to know whether
+// that is a fleet-wide refusal, which recovers on its own, or addresses that
+// are genuinely finished, which do not.
+const mostOfFleet = share >= 0.6;
 const action = !history
   ? "No 24h history, so this is one probe request each. Check the local report before replacing anything."
   : worthReplacing.length
     ? `Replace ${worthReplacing.map(addr).join(", ")} - refused ${DEAD_HOURS}+ separate hours, so not a passing block.`
-    : blockedNow.length
-      ? "Nothing to do. Blocks lift on their own, usually within the hour."
-      : "Nothing to do.";
+    : mostOfFleet
+      ? "Most of the fleet is refused at once, which is tracker.gg rather than the addresses going bad. The collector retries across whatever still answers. Replace nothing; if it still looks like this in a few hours, that is the signal."
+      : "Nothing to replace. These are passing blocks and they lift on their own, usually within the hour.";
 
 const embed = {
-  title: `Proxies: ${total - failed.length}/${total} ok${worthReplacing.length ? ` - ${worthReplacing.length} to replace` : blockedNow.length ? ` - ${blockedNow.length} blocked` : ""}`,
+  title: `Proxies: ${total - unusable.size}/${total} usable - ${Math.round(share * 100)}% of the fleet is down`,
   url: process.env.RUN_URL || undefined,
   color: worthReplacing.length ? 0xe74c3c : blockedNow.length ? 0xe67e22 : 0xf1c40f,
   description: `**${action}**`,
