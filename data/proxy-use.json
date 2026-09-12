@@ -1,12 +1,11 @@
 {
-  "at": "2026-09-12T18:36:32.102Z",
+  "at": "2026-09-12T18:38:34.664Z",
   "proxyCount": 10,
-  "players": 55,
+  "players": 53,
   "benched": [
-    2,
-    3,
     4,
-    5
+    5,
+    7
   ],
   "use": [
     {
@@ -25,50 +24,50 @@
     },
     {
       "i": 2,
+      "attempts": 6,
+      "retries": 0,
+      "fails": 1,
+      "benched": false
+    },
+    {
+      "i": 3,
+      "attempts": 6,
+      "retries": 1,
+      "fails": 1,
+      "benched": false
+    },
+    {
+      "i": 4,
       "attempts": 3,
       "retries": 0,
       "fails": 3,
       "benched": true
     },
     {
-      "i": 3,
+      "i": 5,
       "attempts": 4,
       "retries": 2,
       "fails": 4,
       "benched": true
     },
     {
-      "i": 4,
-      "attempts": 3,
-      "retries": 2,
-      "fails": 3,
-      "benched": true
-    },
-    {
-      "i": 5,
-      "attempts": 19,
-      "retries": 6,
-      "fails": 3,
-      "benched": true
-    },
-    {
       "i": 6,
-      "attempts": 12,
-      "retries": 3,
+      "attempts": 16,
+      "retries": 6,
       "fails": 0,
       "benched": false
     },
     {
       "i": 7,
-      "attempts": 5,
+      "attempts": 3,
       "retries": 0,
-      "fails": 0,
-      "benched": false
+      "fails": 3,
+      "benched": true
     },
     {
       "i": 8,
-      "attempts": 5,
-      "retries": 0,
+      "attempts": 10,
+      "retries": 3,
       "fails": 0,
       "benched": false
     },
