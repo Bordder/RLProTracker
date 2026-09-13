@@ -1,6 +1,6 @@
 {
-  "computedAt": "2026-09-13T18:40:57.446Z",
-  "snapshotCount": 1653,
+  "computedAt": "2026-09-13T18:42:34.742Z",
+  "snapshotCount": 1654,
   "teams": [
     {
       "team": "Karmine Corp",
@@ -35,6 +35,22 @@
       }
     },
     {
+      "team": "Team Vitality",
+      "players": 3,
+      "ranked": 3,
+      "avgMmr": {
+        "ones": 1531,
+        "twos": 2680,
+        "threes": 1397
+      },
+      "seasonGames": 4207,
+      "games": {
+        "d1": 58,
+        "d7": 348,
+        "d14": 817
+      }
+    },
+    {
       "team": "Spacestation Gaming",
       "players": 3,
       "ranked": 3,
@@ -48,22 +64,6 @@
         "d1": 66,
         "d7": 606,
         "d14": 1139
-      }
-    },
-    {
-      "team": "Team Vitality",
-      "players": 3,
-      "ranked": 3,
-      "avgMmr": {
-        "ones": 1531,
-        "twos": 2674,
-        "threes": 1397
-      },
-      "seasonGames": 4205,
-      "games": {
-        "d1": 58,
-        "d7": 346,
-        "d14": 815
       }
     },
     {
@@ -493,7 +493,7 @@
       },
       "seasonGames": 959,
       "games": {
-        "d1": 8,
+        "d1": 6,
         "d7": 62,
         "d14": null
       }
