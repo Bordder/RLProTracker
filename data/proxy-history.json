@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-09-13T23:44:24.929Z",
+  "updatedAt": "2026-09-13T23:46:35.192Z",
   "windowHours": 24,
   "proxyCount": 10,
   "note": "Rolling per-proxy attempts/fails/benched, bucketed by hour. Indices match PROXY_LIST and data/proxy-use.json.",
@@ -1294,55 +1294,55 @@
     },
     {
       "h": "2026-09-13T23:00:00.000Z",
-      "runs": 24,
+      "runs": 25,
       "use": [
         [
-          116,
+          121,
           11,
           0
         ],
         [
-          121,
+          125,
           6,
           0
         ],
         [
-          98,
-          45,
+          102,
+          47,
           7
         ],
         [
-          114,
-          67,
+          120,
+          71,
           10
         ],
         [
-          199,
+          207,
           6,
           0
         ],
         [
-          92,
+          96,
           7,
           2
         ],
         [
-          101,
+          105,
           2,
           0
         ],
         [
-          86,
+          90,
           37,
           8
         ],
         [
-          137,
+          141,
           9,
           0
         ],
         [
-          101,
+          105,
           2,
           0
         ]
