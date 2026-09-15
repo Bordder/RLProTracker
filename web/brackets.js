@@ -302,11 +302,16 @@ function groupEl(ml, table) {
 
 // ---- events ---------------------------------------------------------------
 
-const doc = await (await fetch("/data/bracket.json?v=" + Date.now())).json();
+const load = async () =>
+  (await fetch("/data/bracket.json?v=" + Date.now(), { cache: "no-store" })).json();
+
+let doc = await load();
 
 // Newest first. An event with no dates yet sorts to the front rather than
 // vanishing off the end.
-const EVENTS = [...doc.events].sort((a, b) => String(b.starts ?? "9999").localeCompare(String(a.starts ?? "9999")));
+const byNewest = (list) =>
+  [...list].sort((a, b) => String(b.starts ?? "9999").localeCompare(String(a.starts ?? "9999")));
+let EVENTS = byNewest(doc.events);
 
 const startMs = (e) => Date.parse(`${e.starts}T00:00:00Z`);
 const endMs = (e) => Date.parse(`${e.ends}T23:59:59Z`);
@@ -839,3 +844,45 @@ addEventListener("hashchange", () => render(location.hash.slice(1)));
 document.getElementById("yr").textContent = String(new Date().getFullYear());
 
 render(location.hash.slice(1) || defaultEvent().slug);
+
+// ---- keep an open page current --------------------------------------------
+//
+// The clock ticked from the first render, but nothing re-read the data, so a
+// tab left open through the play-in still showed four upcoming matches hours
+// after they had been decided.
+//
+// Poll only while the tab is visible, and only redraw when generatedAt has
+// actually moved - a redraw closes the hover card and resets scroll inside
+// the bracket, so doing it on an unchanged document would be a visible
+// glitch for no reason.
+const REFRESH = 60_000;
+let polling = null;
+
+async function refresh() {
+  try {
+    const next = await load();
+    if (!next?.generatedAt || next.generatedAt === doc.generatedAt) return;
+    doc = next;
+    EVENTS = byNewest(doc.events);
+    render(CURRENT);
+  } catch {
+    // A failed poll is not worth surfacing: the page keeps showing the data
+    // it already has and tries again on the next tick.
+  }
+}
+
+function startPolling() {
+  stopPolling();
+  polling = setInterval(refresh, REFRESH);
+}
+function stopPolling() {
+  if (polling) clearInterval(polling);
+  polling = null;
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) return stopPolling();
+  refresh();          // catch up immediately on coming back
+  startPolling();
+});
+if (!document.hidden) startPolling();
