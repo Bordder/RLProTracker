@@ -13,6 +13,12 @@ name: Alerts
 #       opposed to whether it is ARRIVING. On 2026-09-10 the fleet sat at 72-80%
 #       failure for most of a day and every freshness alarm stayed green,
 #       because failed players retry next run and matchesPlayed is cumulative.
+#   the live data check - what a visitor's browser actually receives, through
+#       the Pages Function and the edge cache. It is the only check that reads
+#       the site from outside, and the only one that reads the data for sense
+#       rather than for age: mmr-history.json answered 502 for a day while the
+#       repo was healthy, and a bracket named the winner of a series still
+#       being played while every timestamp was current.
 #
 # Both read data that already exists and post to Discord. Neither deploys,
 # pushes, or touches a proxy.
@@ -62,3 +68,15 @@ jobs:
           REPO: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: node scripts/alertScrapeRate.mjs
+
+      # Last, and with if: always(), so a failure in either check above still
+      # leaves the site itself checked. This is the one that goes red: the
+      # others describe a degradation, this one says a visitor is being served
+      # something wrong right now.
+      - name: Check what the live site is serving
+        if: always()
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          DISCORD_USER_ID: ${{ secrets.DISCORD_USER_ID }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: node scripts/smokeLive.mjs

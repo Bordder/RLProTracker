@@ -17,7 +17,9 @@
 //                       per-IP rate limiting are.
 //
 //   hourly (:07) dispatches steam.yml - playtime totals, and the privacy
-//        classification that decides whether a row shows hours or says why not.
+//        classification that decides whether a row shows hours or says why not -
+//        and alerts.yml, which includes the check on what the live site is
+//        actually serving.
 //
 // Each dispatch is independent, so two workflows firing on one trigger needs no
 // special handling.
@@ -154,6 +156,7 @@ export default {
       if (!wanted || wanted === "tracker") jobs.push(dispatch(env, "tracker.yml"));
       if (wanted === "steam") jobs.push(dispatch(env, "steam.yml"));
       if (wanted === "brackets") jobs.push(dispatch(env, "brackets.yml"));
+      if (wanted === "alerts") jobs.push(dispatch(env, "alerts.yml"));
       const codes = await Promise.all(jobs);
       return Response.json({ dispatched: codes.length, codes });
     }
@@ -193,6 +196,10 @@ export default {
     if (event.cron === TRACKER_CRON) jobs.push(dispatch(env, "tracker.yml"));
     if (event.cron === TRACKER_CRON) jobs.push(dispatchBracket(env, event));
     if (event.cron === STEAM_CRON) jobs.push(dispatch(env, "steam.yml"));
+    // alerts.yml asks for "23 * * * *" and GitHub gives it a few runs a day,
+    // which is not a watchdog. It rides the hourly tick for the same reason
+    // every collector does.
+    if (event.cron === STEAM_CRON) jobs.push(dispatch(env, "alerts.yml"));
     // A cron we do not recognise means wrangler.toml and this file disagree;
     // fall back to presence so the cheap collector keeps running either way.
     if (!jobs.length) jobs.push(dispatch(env, "presence.yml"));
