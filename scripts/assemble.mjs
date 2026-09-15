@@ -31,13 +31,17 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 /**
  * Alias -> display name. Falls back to the alias, so a team the map has never
  * seen still renders rather than vanishing.
+ *
+ * @returns { name, known, resolvedAt } - `known` is every display name the map
+ *          can produce, so a caller can tell a resolved name from one that
+ *          fell through, and `resolvedAt` is null when there is no map at all.
  */
 export async function loadTeams(slug) {
   try {
     const raw = await readFile(join(FIXTURE_DIR, `teams-${slug}.json`), "utf8");
-    const { alias } = JSON.parse(raw);
+    const { alias, resolvedAt } = JSON.parse(raw);
     const names = [...new Set(Object.values(alias))];
-    return (t) => {
+    const name = (t) => {
       if (!t) return t;
       const exact = alias[t.toLowerCase()];
       if (exact) return exact;
@@ -59,8 +63,9 @@ export async function loadTeams(slug) {
         .sort((a, b) => b.length - a.length)[0];
       return wraps ?? t;
     };
+    return { name, known: new Set(names), resolvedAt: resolvedAt ?? null };
   } catch {
-    return (t) => t;
+    return { name: (t) => t, known: new Set(), resolvedAt: null };
   }
 }
 
@@ -132,8 +137,22 @@ export async function parseEvent(event) {
     const text = await readCached(t.cache);
     stages.push(parsePage(text, { stage: t.stage, source: t.title }));
   }
-  const name = await loadTeams(event.slug);
-  const named = stages.map((s) => renameIn(s, name));
+  const teams = await loadTeams(event.slug);
+  const named = stages.map((s) => renameIn(s, teams.name));
+
+  // Which teams came out of the rename still wearing a Liquipedia short code.
+  //
+  // The map is a snapshot of one render, so it goes out of date the moment the
+  // field changes: the Worlds group draw fills twelve bracket slots that were
+  // TBD when it was taken, and every one of them would read as "kc" or "g2s"
+  // until somebody noticed. Naming them here is what lets the collector fix it
+  // without being asked.
+  const unresolved = [...new Set(
+    named
+      .flatMap((s) => [...s.brackets.flatMap((b) => b.matches), ...s.matchlists.flatMap((l) => l.matches)])
+      .flatMap((m) => m.teams)
+      .filter((t) => t && t !== "TBD" && !teams.known.has(t))
+  )].sort();
 
   // Attach each bracket's real edge list, so the page needs no second fetch
   // and no guesswork about which match feeds which.
@@ -152,7 +171,7 @@ export async function parseEvent(event) {
   }
   if (!merged.name) merged.name = event.slug;
 
-  return { ...merged, stages: named, counts: countStages(named) };
+  return { ...merged, stages: named, counts: countStages(named), unresolved, resolvedAt: teams.resolvedAt };
 }
 
 export const buildDoc = (events, source) => ({

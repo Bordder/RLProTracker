@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { parsePage, parseDate, splitArgs, findTemplates, parseBrackets } from "../scripts/parseBracket.mjs";
 import { pollPlan, perHour, MINUTE, LIVE, IDLE, EVENT_DAY } from "../scripts/bracketSchedule.mjs";
+import { teamsFromRender } from "../scripts/resolveTeams.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 // Wikitext fixtures and the bracket shapes live with the rest of the
@@ -600,4 +601,36 @@ test("a live series holds the fast poll cadence open", () => {
   assert.equal(plan.state, "live");
   assert.equal(plan.everyMs, LIVE);
   assert.equal(perHour(plan), 60);
+});
+
+// ---- team codes -----------------------------------------------------------
+//
+// A bracket writes {{TeamOpponent|flcn}}, and nothing in the wikitext says what
+// flcn is: the expansion happens in Liquipedia's own team database. The
+// rendered page states it outright, which is what makes resolving it safe to
+// do unattended rather than by pairing two lists in document order.
+test("a rendered page states its own team codes", () => {
+  const html =
+    '<div class="brkts-opponent-entry" aria-label="Team Falcons">' +
+    '<div class="team-name-dynamic" data-team-shortname="FLCN" data-team-bracketname="Team Falcons" data-team-name="Team Falcons"></div>' +
+    '<div class="team-name-dynamic" data-team-shortname="VP" data-team-bracketname="Virtus.pro" data-team-name="Virtus.pro"></div>' +
+    '<div class="team-name-dynamic" data-team-shortname="M8" data-team-bracketname="Gentle Mates" data-team-name="Gentle Mates Alpine"></div>' +
+    '<div class="team-name-dynamic" data-team-name=""></div></div>';
+  const { teams, alias } = teamsFromRender(html);
+
+  assert.deepEqual([...teams].sort(), ["Gentle Mates Alpine", "Team Falcons", "Virtus.pro"]);
+  assert.equal(alias.flcn, "Team Falcons");
+  assert.equal(alias.vp, "Virtus.pro");
+  // A team drawn under a shorter name than its own reaches the map by both,
+  // which is the case that makes the bracket and the participant table agree.
+  assert.equal(alias["gentle mates"], "Gentle Mates Alpine");
+  assert.equal(alias["gentle mates alpine"], "Gentle Mates Alpine");
+  assert.equal(Object.keys(alias).length, 7, "an entry with no name is skipped");
+});
+
+test("a page with no rendered teams yields nothing rather than an empty map", () => {
+  // Writing an empty map over a good one would un-resolve every team on the
+  // site, so the caller refuses on an empty result rather than saving it.
+  const { teams } = teamsFromRender("<div>no bracket drawn yet</div>");
+  assert.equal(teams.size, 0);
 });

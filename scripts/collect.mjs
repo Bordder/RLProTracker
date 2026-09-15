@@ -17,6 +17,8 @@
 //     rather than an error - the same choice functions/data/[[path]].js makes.
 
 import { join } from "node:path";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import { loadEvents, eventsDue, allMatches } from "./events.mjs";
 import { pollPlan, MINUTE, IDLE, perHour } from "./bracketSchedule.mjs";
 import {
@@ -28,6 +30,20 @@ const DRY = process.argv.includes("--dry");
 
 const SPACING = 2000;        // Liquipedia's stated limit: 1 request / 2s.
 const MAX_BACKOFF = 8;       // cap: 8x IDLE is ~8 hours, long enough to stop.
+
+// How stale a team map has to be before a cycle is allowed to refresh it.
+//
+// Re-resolving costs one action=parse, which Liquipedia limits to 1 per 30
+// SECONDS against the query API's 1 per 2, so it is rationed rather than run
+// on every cycle. An hour is far longer than the limit needs and still fixes
+// a draw within an hour of it being made, which is the case this exists for:
+// the Worlds group draw fills twelve bracket slots that read as "kc" and
+// "g2s" until the map catches up.
+const RESOLVE_AFTER = 60 * MINUTE;
+const run = promisify(execFile);
+
+/** The first line of whatever an exec failure left behind. */
+const firstLine = (err) => String(err.stderr || err.message).trim().split("\n")[0].trim();
 
 const stamp = () => new Date().toISOString().replace("T", " ").slice(0, 19);
 const log = (msg) => console.log(`${stamp()}  ${msg}`);
@@ -112,6 +128,29 @@ async function cycle(events) {
     built = (await rebuild(events, "liquipedia")) ?? built;
   } else if (!DRY) {
     log("no event inside its window - no requests this cycle");
+  }
+
+  // A followed event whose bracket is showing short codes gets its team map
+  // rebuilt, and the document rebuilt after it. Only followed events, so an
+  // archive page cannot spend the parse budget, and only one per cycle.
+  if (!DRY) {
+    const stale = built.parsed.find((e) =>
+      due.some((d) => d.slug === e.slug) &&
+      e.unresolved?.length &&
+      (!e.resolvedAt || Date.now() - Date.parse(e.resolvedAt) > RESOLVE_AFTER));
+    if (stale) {
+      const title = events.find((e) => e.slug === stale.slug)?.titles[0]?.title;
+      log(`unresolved team names on ${stale.slug}: ${stale.unresolved.join(", ")} - re-resolving`);
+      try {
+        const { stdout } = await run(process.execPath, ["resolveTeams.mjs", title, stale.slug], { cwd: import.meta.dirname });
+        log(`${stale.slug}: ${stdout.trim()}`);
+        built = (await rebuild(events, built.source)) ?? built;
+      } catch (err) {
+        // The names stay as they are and the next cycle tries again. A failed
+        // resolve must never cost the scores that were just fetched.
+        log(`${stale.slug}: resolve failed - ${firstLine(err)}`);
+      }
+    }
   }
 
   // Cadence comes from the matches of the events actually being followed. A
