@@ -262,10 +262,46 @@
     'ght':'GHT', 'r8-esports':'R8', 'wildcard':'WC', 'tsm':'TSM',
     'team-falcons':'FAL',
     'canterbury-bankstown-bulldogs':'CBB',
-    'pwr':'PWR', 'take-flyte':'TF'
+    'pwr':'PWR', 'take-flyte':'TF',
+    // Names whose first two letters read as nothing: an acronym team loses its
+    // dots to the slug rule ("S.O.S." -> "SO"), and a two-word roster name
+    // takes a letter from each word ("Mate y Tapa" -> "MY").
+    'sos':'SOS', 'dos':'DOS', 'mate-y-tapa':'MYT', 'bigodes':'BGD',
+    'novo-esports':'NOVO', 'rafha-esports':'RAF', 'team-stallions':'STA'
   };
   var LOGO_INSET={'virtuspro':6};
-  var TEAM_LOGO={'geng-mobil1-racing':'png','karmine-corp':'png','lil-step-bros':'png','mibr':'png','nrg':'png','shopify-rebellion':'png','spacestation-gaming':'png','team-bsk':'png','tsm':'png','wildcard':'svg'};
+  // Drop a file at img/teams/<slug>.<ext> and list its extension here. Kept in
+  // step with web/crest.mjs, which draws the same marks on the bracket page:
+  // a team that carries a crest in one place and a monogram in the other looks
+  // like two different teams.
+  var TEAM_LOGO={
+    'chiefs-esports-club':'png','complexity-gaming':'png','dignitas':'png',
+    'elevate':'png','five-fears':'png','furia':'png','fut-esports':'png',
+    'g2-stride':'png','gaimin-gladiators':'png','geekay-esports':'png',
+    'geng-mobil1-racing':'png','gentle-mates':'png','karmine-corp':'png',
+    'lil-step-bros':'png','limitless':'png','luminosity-gaming':'png',
+    'man-city-esports':'png','mibr':'png','ninjas-in-pyjamas':'png','nrg':'png',
+    'og':'png','oxygen-esports':'png','pioneers':'png','pwr':'png',
+    'r8-esports':'png','roc-esports':'png','rule-one':'png',
+    'shopify-rebellion':'png','spacestation-gaming':'png','team-bds':'png',
+    'team-bsk':'png','team-falcons':'png','team-secret':'png','team-vitality':'png',
+    'the-ultimates':'png','tsm':'png','twisted-minds':'png','virtuspro':'png',
+    'wildcard':'svg'
+  };
+  // One org, several names. The roster and the bracket disagree on some of
+  // them - the roster says "Man City Esports", Liquipedia says "Manchester
+  // City Esports" - and old events keep the name they were played under. Every
+  // spelling points at one file rather than a copy per spelling.
+  var LOGO_ALIAS={
+    'manchester-city-esports':'man-city-esports',
+    'quiktrip-pioneers-gaming':'pioneers',
+    'furia-esports':'furia',
+    'gentle-mates-alpine':'gentle-mates',
+    'geng':'geng-mobil1-racing',
+    'geng-esports':'geng-mobil1-racing',
+    'helfie-chiefs':'chiefs-esports-club',
+    'virtus-pro':'virtuspro'
+  };
   var LOGO_DIR='img/teams/';
 
   var teamSlug=function(name){
@@ -287,12 +323,12 @@
     var cls='av '+(extraClass||'')+' mk';
     var h=teamHue(name);
     var style='--mk:hsl('+h+' 42% 17%);--mkfg:hsl('+h+' 70% 68%);--mkline:hsl('+h+' 45% 32%)';
-    var slug=teamSlug(name), ext=TEAM_LOGO[slug];
+    var slug=teamSlug(name), file=LOGO_ALIAS[slug]||slug, ext=TEAM_LOGO[file];
     var mono=TEAM_INITIALS[slug]||initials(name);
     // The monogram is always rendered; a logo, when there is one, covers it.
     return '<span class="'+cls+(ext?' logo':'')+(mono.length>3?' mk4':mono.length>2?' mk3':'')+'" style="'+style+'" aria-hidden="true">'+esc(mono)+
-      (ext?'<img src="'+esc(LOGO_DIR+slug+'.'+ext)+'" alt="" loading="lazy" decoding="async"'+
-        (LOGO_INSET[slug]?' style="padding:'+LOGO_INSET[slug]+'px"':'')+'>':'')+'</span>';
+      (ext?'<img src="'+esc(LOGO_DIR+file+'.'+ext)+'" alt="" loading="lazy" decoding="async"'+
+        (LOGO_INSET[file]?' style="padding:'+LOGO_INSET[file]+'px"':'')+'>':'')+'</span>';
   };
   var regionChip=function(r){ return r?'<span class="rg '+(REGION_CLASS[r]||'')+'">'+esc(r)+'</span>':'<span class="dash">&middot;</span>'; };
 

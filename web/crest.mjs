@@ -20,9 +20,9 @@ const TEAM_LOGO = {
   "team-vitality": "png", "furia": "png", "twisted-minds": "png", "team-secret": "png",
   "g2-stride": "png", "gaimin-gladiators": "png", "ninjas-in-pyjamas": "png",
   "geekay-esports": "png", "fut-esports": "png", "r8-esports": "png",
-  "dignitas": "png", "quiktrip-pioneers-gaming": "png", "pwr": "png",
+  "dignitas": "png", "pioneers": "png", "pwr": "png",
   "virtuspro": "png", "five-fears": "png", "oxygen-esports": "png",
-  "team-bds": "png", "manchester-city-esports": "png", "og": "png",
+  "team-bds": "png", "man-city-esports": "png", "og": "png",
   "luminosity-gaming": "png", "the-ultimates": "png", "roc-esports": "png",
   "rule-one": "png", "elevate": "png", "chiefs-esports-club": "png",
   "limitless": "png",
@@ -37,6 +37,12 @@ const LOGO_ALIAS = {
   "geng": "geng-mobil1-racing",
   "geng-esports": "geng-mobil1-racing",
   "helfie-chiefs": "chiefs-esports-club",
+  // Liquipedia's full names against the roster's shorter ones. The files are
+  // named the way the roster spells them, because that is what the board draws
+  // most of.
+  "manchester-city-esports": "man-city-esports",
+  "quiktrip-pioneers-gaming": "pioneers",
+  "virtus-pro": "virtuspro",
 };
 
 // Initials people actually use, where the first two letters are not it.
