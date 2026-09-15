@@ -16,7 +16,7 @@
 import { join } from "node:path";
 import { loadEvents } from "./events.mjs";
 import {
-  CACHE_DIR, OUT_PATH, sleep, parseEvent, buildDoc, writeAtomic, fetchWikitext,
+  CACHE_DIR, OUT_PATH, sleep, parseEvent, buildDoc, writeAtomic, writeBracketDoc, fetchWikitext,
 } from "./assemble.mjs";
 
 const LIVE = process.argv.includes("--live");
@@ -39,7 +39,7 @@ const parsed = [];
 for (const event of events) parsed.push(await parseEvent(event));
 
 const doc = buildDoc(parsed, LIVE ? "liquipedia" : "cache");
-await writeAtomic(OUT_PATH, JSON.stringify(doc, null, 2) + "\n");
+await writeBracketDoc(doc);
 
 for (const e of parsed) {
   console.log(`${e.name}: ${e.counts.matches} matches, ${e.counts.played} played, ${e.counts.upcoming} upcoming`);

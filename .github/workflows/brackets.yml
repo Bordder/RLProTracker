@@ -64,4 +64,4 @@ jobs:
       - name: Publish
         run: >-
           bash scripts/publish-data.sh "[skip ci] data: bracket refresh"
-          data/derived/bracket.json data/bracket/cache
+          data/derived/bracket.json data/derived/event-now.json data/bracket/cache

@@ -335,6 +335,28 @@
     box-shadow:0 0 0 0 rgba(94,200,255,.6);animation:lpulse 2.6s infinite;
   }
   @keyframes lpulse{0%{box-shadow:0 0 0 0 rgba(94,200,255,.5)}70%{box-shadow:0 0 0 9px rgba(94,200,255,0)}100%{box-shadow:0 0 0 0 rgba(94,200,255,0)}}
+
+  /* ---- The LAN that is on ------------------------------------------------ */
+  /* Shaped like the developer note so the two never argue about what a banner
+     looks like here, but green rather than blue: this one is about a
+     tournament happening, not about the site. */
+  .lannote{display:flex;gap:10px;align-items:flex-start;margin:26px 0 0;padding:11px 13px;
+    border:1px solid var(--line2);border-left:3px solid var(--live);border-radius:8px;
+    background:rgba(72,201,138,.05);font-size:12.5px;line-height:1.55;color:var(--slate)}
+  .lannote b{color:var(--bone);font-weight:600}
+  .lannote a{color:var(--live);text-decoration:none;border-bottom:1px solid rgba(72,201,138,.4);white-space:nowrap}
+  .lannote a:hover{border-bottom-color:var(--live)}
+  .lanpip{flex:0 0 auto;width:7px;height:7px;margin-top:6px;border-radius:50%;background:var(--live);
+    box-shadow:0 0 0 0 rgba(72,201,138,.6);animation:lanpulse 2.6s infinite}
+  @keyframes lanpulse{0%{box-shadow:0 0 0 0 rgba(72,201,138,.5)}70%{box-shadow:0 0 0 8px rgba(72,201,138,0)}100%{box-shadow:0 0 0 0 rgba(72,201,138,0)}}
+  @media (prefers-reduced-motion:reduce){ .lanpip{animation:none} }
+
+  /* On the team line under a name, not on the name: it is a fact about the org,
+     and the name already carries the Playing and In game marks. */
+  .lantag{display:inline-block;margin-left:6px;padding:0 4px;border-radius:3px;
+    font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;font-size:8.5px;font-weight:700;
+    color:var(--live);border:1px solid rgba(72,201,138,.35);background:rgba(72,201,138,.08);
+    vertical-align:1px;font-style:normal;cursor:help}
   /* In game: the same mark with the confidence taken out of it. Steam says the
      app is open, which arrives minutes before a ranked result can and means
      less. Muted, hollow, and the dot does not pulse, so a row that is only
@@ -668,6 +690,10 @@
        Its margin lives on .devnote itself and .controls carries its own top
        margin, so deleting the note from the markup leaves no gap behind. */
     .devnote{order:2; margin:14px 0 0}
+    /* Same slot as the note, straight after it: both are time-sensitive framing
+       that nobody on a phone reaches if it sits under the board. */
+    #lanNote{order:2; margin:14px 0 0}
+    #lanNote .lannote{margin:0}
     .controls{order:3}
     .wrow{order:4}
     #dataStatus{order:5}
@@ -1220,6 +1246,11 @@
       </span>
     </div>
 
+    <!-- The tournament being played today, when there is one. Empty and
+         hidden for most of the year; filled by renderLanNote from
+         event-now.json, the bracket collector's small companion file. -->
+    <div id="lanNote" hidden></div>
+
     <div class="stats" id="stats"></div>
   </header>
 
@@ -1305,6 +1336,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=1c60379f" defer></script>
+<script src="rlpt.js?v=dfae136d" defer></script>
 </body>
 </html>

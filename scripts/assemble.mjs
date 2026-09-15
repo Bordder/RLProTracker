@@ -22,6 +22,7 @@ const ROOT = join(HERE, "..");
 export const CACHE_DIR = join(ROOT, "data", "bracket", "cache");
 export const FIXTURE_DIR = join(ROOT, "data", "bracket", "fixtures");
 export const OUT_PATH = join(ROOT, "data", "derived", "bracket.json");
+export const NOW_PATH = join(ROOT, "data", "derived", "event-now.json");
 
 export const UA = "RLProTracker/1.0 (https://198x.online; contact@198x.online)";
 export const ATTRIBUTION = "Bracket data from Liquipedia, CC-BY-SA 3.0";
@@ -172,6 +173,55 @@ export async function parseEvent(event) {
   if (!merged.name) merged.name = event.slug;
 
   return { ...merged, stages: named, counts: countStages(named), unresolved, resolvedAt: teams.resolvedAt };
+}
+
+/**
+ * The LAN being played today, as a few hundred bytes.
+ *
+ * bracket.json is over half a megabyte of nine events back to 2024, which is
+ * the right size for a page about brackets and far too much for the board to
+ * fetch in order to learn one thing: whether a tournament is on, and who is at
+ * it. This is that one thing.
+ *
+ * It answers null for all but a few weeks of the year, and that is the normal
+ * case rather than a failure - between events there is no LAN and the board
+ * has nothing to say about one.
+ *
+ * Team names come from the bracket, so they are Liquipedia's spellings and not
+ * necessarily the roster's. The page reconciles them through the same slug and
+ * alias pair the crests already use, which is why they are published raw here
+ * rather than mapped against a roster this script does not read.
+ */
+export function eventNow(doc, today = new Date().toISOString().slice(0, 10)) {
+  const ev = (doc.events ?? []).find((e) => e.starts && e.ends && e.starts <= today && today <= e.ends);
+  if (!ev) return { generatedAt: doc.generatedAt, event: null, teams: [] };
+
+  const teams = new Set();
+  for (const stage of ev.stages ?? []) {
+    for (const group of [...(stage.brackets ?? []), ...(stage.matchlists ?? [])]) {
+      for (const m of group.matches ?? []) {
+        for (const t of m.teams ?? []) if (t) teams.add(t);
+      }
+    }
+  }
+  return {
+    generatedAt: doc.generatedAt,
+    event: {
+      slug: ev.slug,
+      name: ev.name ?? ev.slug,
+      starts: ev.starts,
+      ends: ev.ends,
+      city: ev.city ?? null,
+      country: ev.country ?? null,
+    },
+    teams: [...teams].sort(),
+  };
+}
+
+/** bracket.json and its small companion, always written together. */
+export async function writeBracketDoc(doc) {
+  await writeAtomic(OUT_PATH, JSON.stringify(doc, null, 2) + "\n");
+  await writeAtomic(NOW_PATH, JSON.stringify(eventNow(doc)) + "\n");
 }
 
 export const buildDoc = (events, source) => ({

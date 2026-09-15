@@ -310,6 +310,51 @@
       .replace(/[^a-z0-9]+/g,'-')
       .replace(/^-+|-+$/g,'');
   };
+  // ---- the tournament being played today ---------------------------------
+  //
+  // The board's question is ranked activity OUTSIDE official tournaments, so a
+  // week when half the roster is at a LAN is the week its numbers need the most
+  // context. Without it a reader sees twenty rosters go quiet at once and has
+  // no way to know why.
+  //
+  // event-now.json is the bracket collector's small companion: a few hundred
+  // bytes naming the event running today and the teams in it, or an explicit
+  // null for the eleven months of the year when there is none. bracket.json
+  // itself is over half a megabyte of nine events and has no business being
+  // fetched by this page.
+  var LAN=null;
+
+  // Liquipedia's spelling of an org and the roster's are not always the same -
+  // "Manchester City Esports" against "Man City Esports" - and the crests hit
+  // that first, so the slug-and-alias pair that solved it there is reused here
+  // rather than a second list to keep in step.
+  var teamKey=function(name){ var sl=teamSlug(name); return LOGO_ALIAS[sl]||sl; };
+
+  // What to call it in three characters of column. Taken from the event's own
+  // name rather than its slug, because the slug is ours and the name is the
+  // tournament's.
+  var lanLabel=function(name){
+    var n=String(name||'');
+    if(/world championship/i.test(n))return 'Worlds';
+    if(/major/i.test(n))return 'Major';
+    return 'LAN';
+  };
+
+  var readLan=function(doc){
+    if(!doc||!doc.event||!doc.teams||!doc.teams.length){ LAN=null; return; }
+    var keys={}; doc.teams.forEach(function(t){ keys[teamKey(t)]=true; });
+    LAN={ slug:doc.event.slug, name:doc.event.name, city:doc.event.city, country:doc.event.country,
+          starts:doc.event.starts, ends:doc.event.ends, label:lanLabel(doc.event.name), keys:keys };
+  };
+  var atLan=function(team){ return !!(LAN&&team&&LAN.keys[teamKey(team)]); };
+
+  // Rides the team line under a player's name rather than the name itself: it
+  // is a fact about the org, and the name already carries up to one live mark.
+  var lanTag=function(team){
+    if(!atLan(team))return '';
+    return '<span class="lantag" title="'+esc(team+' is at '+LAN.name+'.')+'">'+esc(LAN.label)+'</span>';
+  };
+
   // Hues are spread evenly across the roster rather than hashed: with ~20 orgs a
   // hash puts several within a few degrees of each other and they read as the
   // same colour. Assigned over the sorted team list, so it is stable per season.
@@ -343,8 +388,8 @@
     return fetch(DATA_BASE+'/'+f+bust,{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
   };
   var load=window.__RLDATA__
-    ? Promise.resolve([window.__RLDATA__.steam,window.__RLDATA__.teams,window.__RLDATA__.tracker,window.__RLDATA__.teamTracker,window.__RLDATA__.presence])
-    : Promise.all([getJson('steam-hours.json'),getJson('team-hours.json'),getJson('tracker.json'),getJson('team-tracker.json'),getJson('presence-hours.json')]);
+    ? Promise.resolve([window.__RLDATA__.steam,window.__RLDATA__.teams,window.__RLDATA__.tracker,window.__RLDATA__.teamTracker,window.__RLDATA__.presence,window.__RLDATA__.eventNow])
+    : Promise.all([getJson('steam-hours.json'),getJson('team-hours.json'),getJson('tracker.json'),getJson('team-tracker.json'),getJson('presence-hours.json'),getJson('event-now.json')]);
 
   load.then(function(res){
     // ---- rank by 2v2 MMR (players by their twos, teams by avg twos) ----
@@ -448,8 +493,10 @@
     var collectedAt=null, serverAt=null;
 
     function hydrate(res){
-      var steam=res[0], teamH=res[1], tracker=res[2], teamT=res[3], presence=res[4];
+      var steam=res[0], teamH=res[1], tracker=res[2], teamT=res[3], presence=res[4], lan=res[5];
       if(!steam||!teamH)return false;
+      // Before the rows are built: every row asks whether its org is at the LAN.
+      readLan(lan);
 
       var trById={}; (tracker&&tracker.players||[]).forEach(function(p){trById[p.id]=p;});
       // Presence hours are only ever a fallback. Where Steam publishes playtime
@@ -541,6 +588,7 @@
       // Cards read live state, and live state is judged against the collection
       // time, so this has to come after that timestamp is in place.
       renderCards();
+      renderLanNote();
       if(typeof buildRegions==='function'){ buildRegions(); buildPlaying(); }
       return true;
     }
@@ -597,6 +645,36 @@
       return '<span class="gmark" title="Steam says Rocket League is open. That covers menus, freeplay and casual, so it is not proof of a ranked session.">In game</span>';
     };
     var liveMark=function(p){ return isLive(p)?playMark(p):(isInGame(p)?gameMark(p):''); };
+
+    // One line naming the tournament that is on, with the way through to it.
+    // Empty and invisible for most of the year, which is correct: there is
+    // usually no LAN, and a permanent slot saying so would be filler.
+    function renderLanNote(){
+      var box=document.getElementById('lanNote');
+      if(!box)return;
+      if(!LAN){ box.innerHTML=''; box.hidden=true; return; }
+      var here=teams.filter(function(t){return atLan(t.team);}).length;
+      var where=[LAN.city,LAN.country].filter(Boolean).join(', ');
+      // Teams rather than players, and counted off the board rather than off
+      // the bracket. The bracket knows about orgs this site does not track, and
+      // the roster carries partial rosters, so a player count would be a number
+      // nobody could check against the rows underneath it. A team either has a
+      // row here or it does not.
+      var who=here?(nf(here)+' team'+(here===1?'':'s')+' on this board '+(here===1?'is':'are')+' there.'):'';
+      box.hidden=false;
+      box.innerHTML='<div class="lannote"><i class="lanpip" aria-hidden="true"></i><span>'+
+        '<b>'+esc(LAN.name)+'</b> is being played'+(where?' in '+esc(where):'')+
+        ', '+esc(lanWindow(LAN))+'. '+who+
+        ' <a href="/brackets">See the bracket</a></span></div>';
+    }
+
+    // "15-20 September", or one date when a LAN runs a single day.
+    function lanWindow(l){
+      var d=function(iso){ return new Date(iso+'T12:00:00Z').toLocaleDateString([],{day:'numeric',month:'long'}); };
+      if(!l.starts)return '';
+      if(!l.ends||l.ends===l.starts)return d(l.starts);
+      return new Date(l.starts+'T12:00:00Z').getUTCDate()+'–'+d(l.ends);
+    }
 
     var renderStatus=function(){
       var meta=document.querySelector('.kick-meta');
@@ -664,7 +742,10 @@
         full?getJson('team-hours.json'):keep(1),
         getJson('tracker.json'),
         getJson('team-tracker.json'),
-        full?getJson('presence-hours.json'):keep(4)
+        full?getJson('presence-hours.json'):keep(4),
+        // A LAN starts and ends on a date. Nothing about it can change inside
+        // the two minutes the ranked feeds move on, so it rides the slow path.
+        full?getJson('event-now.json'):keep(5)
       ])
         .then(function(next){
           // A failed fetch yields null, which hydrate rejects wholesale. Keep
@@ -792,7 +873,7 @@
       var mmr=p.hasMmr?(mmrCell(p.mmr.ones,'m1')+mmrCell(p.mmr.twos,'m2')+mmrCell(p.mmr.threes,'m3')):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
       return '<tr class="'+(p.hasMmr?'':'isnorank')+(p.__pos<=3?' lead lead'+p.__pos:'')+'" data-player="'+esc(p.name)+'">'+
         '<td class="c-rk">'+rankMark(p.__pos||p.__rank)+'</td>'+
-        '<td class="c-who">'+teamMark(p.team)+'<span class="nm"><b>'+esc(p.name)+liveMark(p)+'</b><i>'+esc(p.team||'Free agent')+'</i></span></td>'+
+        '<td class="c-who">'+teamMark(p.team)+'<span class="nm"><b>'+esc(p.name)+liveMark(p)+'</b><i>'+esc(p.team||'Free agent')+lanTag(p.team)+'</i></span></td>'+
         // The phone layout needs both chips in one container so they can sit
         // flush against the right edge together; as separate grid cells they
         // could be adjacent or right aligned, never both. The duplicate is
@@ -844,7 +925,7 @@
       var a=t.avgMmr||{};
       return '<tr class="team-row '+(t.ranked?'':'isnorank')+'" data-team="'+esc(t.team)+'" tabindex="0" aria-expanded="false">'+
         '<td class="c-rk">'+rankMark(t.__pos||t.__rank)+'</td>'+
-        '<td class="c-who">'+teamMark(t.team,'tm')+'<span class="nm"><b>'+esc(t.team)+'</b></span></td>'+
+        '<td class="c-who">'+teamMark(t.team,'tm')+'<span class="nm"><b>'+esc(t.team)+'</b>'+(atLan(t.team)?'<i>'+lanTag(t.team)+'</i>':'')+'</span></td>'+
         '<td class="c-rg">'+regionChip(t.region)+'</td>'+
         '<td class="c-fill"></td>'+
         mmrCell(a.ones,'m1')+mmrCell(a.twos,'m2')+mmrCell(a.threes,'m3')+

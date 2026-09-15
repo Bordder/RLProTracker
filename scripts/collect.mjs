@@ -22,7 +22,7 @@ import { promisify } from "node:util";
 import { loadEvents, eventsDue, allMatches } from "./events.mjs";
 import { pollPlan, MINUTE, IDLE, perHour } from "./bracketSchedule.mjs";
 import {
-  CACHE_DIR, OUT_PATH, sleep, parseEvent, buildDoc, writeAtomic, fetchWikitext,
+  CACHE_DIR, OUT_PATH, sleep, parseEvent, buildDoc, writeAtomic, writeBracketDoc, fetchWikitext,
 } from "./assemble.mjs";
 
 const ONCE = process.argv.includes("--once");
@@ -106,7 +106,7 @@ async function rebuild(events, source) {
     return null;
   }
   const doc = buildDoc(parsed, source);
-  await writeAtomic(OUT_PATH, JSON.stringify(doc, null, 2) + "\n");
+  await writeBracketDoc(doc);
   return { doc, parsed };
 }
 

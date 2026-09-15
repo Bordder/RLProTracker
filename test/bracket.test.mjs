@@ -676,3 +676,50 @@ test("the real pages name every bracket they carry", () => {
   const named = parseBrackets(fixture("worlds-midseries.wikitext")).map((b) => b.title);
   assert.deepEqual(named, ["Play-In", "Playoffs"]);
 });
+
+// ---- the small companion the board reads -----------------------------------
+
+import { eventNow } from "../scripts/assemble.mjs";
+
+const lanDoc = {
+  generatedAt: "2026-09-16T12:00:00.000Z",
+  events: [
+    { slug: "boston-major-2026", name: "Boston Major", starts: "2026-02-19", ends: "2026-02-22", stages: [] },
+    {
+      slug: "worlds-2026", name: "RLCS 2026 World Championship",
+      starts: "2026-09-15", ends: "2026-09-20", city: "Fort Worth", country: "United States",
+      stages: [{
+        brackets: [{ matches: [{ teams: ["Team Vitality", "NRG"] }, { teams: ["NRG", null] }] }],
+        matchlists: [{ matches: [{ teams: ["Karmine Corp", "Team Vitality"] }] }],
+      }],
+    },
+  ],
+};
+
+test("the event being played today is named, with everyone in it", () => {
+  const now = eventNow(lanDoc, "2026-09-16");
+  assert.equal(now.event.slug, "worlds-2026");
+  assert.equal(now.event.city, "Fort Worth");
+  // Deduplicated, sorted, and a TBD slot is not a team.
+  assert.deepEqual(now.teams, ["Karmine Corp", "NRG", "Team Vitality"]);
+});
+
+test("between events it answers null rather than the nearest one", () => {
+  // Eleven months of the year. The board draws no banner from this, which is
+  // the point: there is no LAN, so there is nothing to say about one.
+  const now = eventNow(lanDoc, "2026-07-01");
+  assert.equal(now.event, null);
+  assert.deepEqual(now.teams, []);
+});
+
+test("the window includes both its end days", () => {
+  assert.equal(eventNow(lanDoc, "2026-09-15").event.slug, "worlds-2026");
+  assert.equal(eventNow(lanDoc, "2026-09-20").event.slug, "worlds-2026");
+  assert.equal(eventNow(lanDoc, "2026-09-21").event, null);
+});
+
+test("it stays small enough for the board to fetch", () => {
+  // bracket.json is over half a megabyte; this exists because that is not a
+  // thing to download in order to learn whether a tournament is on.
+  assert.ok(JSON.stringify(eventNow(lanDoc, "2026-09-16")).length < 2048);
+});
