@@ -35,7 +35,11 @@ for (const [n, t] of event.titles.entries()) {
   // moment is worthless and there is no second chance at it.
   const page = parsePage(await readFile(to, "utf8"));
   console.log(`${to}`);
-  console.log(`  ${page.counts.matches} matches, ${page.counts.played} played, ${page.counts.upcoming} upcoming`);
-  if (page.counts.played === 0) console.log("  WARNING: nothing played yet - this is the same state as the existing fixture");
-  if (page.counts.upcoming === 0) console.log("  WARNING: everything is finished - this is the same state as the regional fixture");
+  const c = page.counts;
+  console.log(`  ${c.matches} matches, ${c.played} played, ${c.live} live, ${c.upcoming} upcoming`);
+  if (c.played === 0) console.log("  WARNING: nothing played yet - this is the same state as the existing fixture");
+  if (c.upcoming === 0) console.log("  WARNING: everything is finished - this is the same state as the regional fixture");
+  // The whole reason to run this during an event: a series with a score and no
+  // finished flag is the state neither other fixture can ever hold.
+  if (c.live === 0) console.log("  WARNING: no series in progress - capture again mid-session if that is what you wanted");
 }

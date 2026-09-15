@@ -1,8 +1,10 @@
 // node --test rlcs-bracket/test.mjs
 //
-// Fixtures are real pages captured 11 September 2026: Worlds with every score
-// still empty, and a finished regional with 160 filled scores. Both ends of
-// the lifecycle, which is the only honest way to test a wikitext parser.
+// Fixtures are real pages: Worlds with every score still empty and a finished
+// regional with 160 filled scores, both captured 11 September 2026, and Worlds
+// again at 18:21 on 15 September with two series being played. The lifecycle
+// has three states and a fixture for each, which is the only honest way to
+// test a wikitext parser - the middle one exists only while a LAN is on.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -18,6 +20,9 @@ const BRACKET = join(HERE, "..", "data", "bracket");
 const fixture = (f) => readFileSync(join(BRACKET, "fixtures", f), "utf8");
 const worlds = parsePage(fixture("worlds-2026.wikitext"));
 const regional = parsePage(fixture("regional-finished.wikitext"));
+// The play-in, 18:21 UTC on 15 September: four series done, Virtus.pro 2-1 up
+// on Mate y Tapa and Bigodes 2-1 up on Five Fears, both still playing.
+const midseries = parsePage(fixture("worlds-midseries.wikitext"));
 
 test("splitArgs breaks on top-level pipes only", () => {
   assert.deepEqual(splitArgs("Match|a=1|b={{X|y=2}}|c=3").length, 4);
@@ -536,4 +541,63 @@ test("a map keeps its name alongside its goals", () => {
   assert.equal(maps[0].name, "Mannfield (Dusk)");
   assert.deepEqual([maps[1].name, maps[1].score1, maps[1].score2], ["Forbidden Temple", 2, 0]);
   assert.equal(maps[2].name, null, "an unplayed slot names nothing rather than guessing");
+});
+
+// ---- the play-in, captured while it was being played ----------------------
+//
+// This fixture is the state that broke the site on 15 September and the one
+// neither other fixture can hold: a page with finished series, series in
+// progress, and series not started, all at once. It was captured at 18:21,
+// three minutes before the wikitext moved on, and it cannot be recaptured
+// once the event is over.
+
+const midMatches = [
+  ...midseries.brackets.flatMap((b) => b.matches),
+  ...midseries.matchlists.flatMap((m) => m.matches),
+];
+const byTeams = (a, b) =>
+  midMatches.find((m) => m.teams[0] === a && m.teams[1] === b);
+
+test("a half-played page counts all three states", () => {
+  assert.deepEqual(midseries.counts, { matches: 47, played: 4, live: 2, upcoming: 41 });
+  // Every match is in exactly one state, which is what makes the counts add up.
+  for (const m of midMatches) {
+    const states = [m.finished, m.live, m.upcoming].filter(Boolean);
+    assert.equal(states.length, 1, `${m.teams.join(" vs ")} is in ${states.length} states`);
+  }
+});
+
+test("a Bo5 at 2-1 has a score and no winner", () => {
+  const m = byTeams("vp", "Mate y Tapa");
+  assert.ok(m, "the upper bracket semifinal is on the page");
+  assert.deepEqual(m.scores, [2, 1]);
+  assert.equal(m.finished, false, "nobody has reached three");
+  assert.equal(m.live, true);
+  assert.equal(m.upcoming, false);
+});
+
+test("a finished series on the same page still reads as finished", () => {
+  const m = byTeams("vp", "bigodes");
+  assert.deepEqual(m.scores, [3, 0]);
+  assert.equal(m.finished, true);
+  assert.equal(m.live, false);
+});
+
+test("only the games actually played carry goals", () => {
+  const m = byTeams("vp", "Mate y Tapa");
+  const played = m.maps.filter((g) => g.score1 !== null || g.score2 !== null);
+  assert.equal(played.length, 3, "three games in, two slots still empty");
+  assert.equal(m.maps.length, 5, "a Bo5 template carries five slots throughout");
+  // The names are on the unplayed slots too: the map order is set before the
+  // series starts, which is what makes a map pool worth showing early.
+  assert.equal(m.maps[4].name, "Champions Field");
+});
+
+test("a live series holds the fast poll cadence open", () => {
+  // Without this, a page with two series being played fell back to the
+  // 10-minute event-day cadence, because a live match is not upcoming.
+  const plan = pollPlan(midMatches, Date.parse("2026-09-15T18:21:00Z"));
+  assert.equal(plan.state, "live");
+  assert.equal(plan.everyMs, LIVE);
+  assert.equal(perHour(plan), 60);
 });
