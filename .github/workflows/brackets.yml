@@ -60,4 +60,6 @@ jobs:
         run: node scripts/collect.mjs --once
 
       - name: Publish
-        run: scripts/publish-data.sh "[skip ci] data: bracket refresh" data/derived/bracket.json data/bracket/cache
+        run: >-
+          scripts/publish-data.sh "[skip ci] data: bracket refresh"
+          data/derived/bracket.json data/bracket/cache
