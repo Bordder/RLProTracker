@@ -838,19 +838,6 @@ document.addEventListener("click", (e) => {
 });
 addEventListener("hashchange", () => render(location.hash.slice(1)));
 
-// The board lives at the site root, which this preview server does not serve
-// - it serves this folder and nothing else, so those links 404 locally and
-// only work once the page is moved into web/. Point them at the deployed site
-// while previewing, so they can actually be clicked and checked.
-const LOCAL = ["localhost", "127.0.0.1"].includes(location.hostname);
-if (LOCAL) {
-  for (const a of document.querySelectorAll("#nav a[data-to], footer .links a")) {
-    a.href = "https://198x.online" + (a.dataset.to ?? a.getAttribute("href"));
-    a.target = "_blank";
-    a.rel = "noopener";
-  }
-}
-
 // The footer's copyright year, the way status.js does it.
 document.getElementById("yr").textContent = String(new Date().getFullYear());
 
