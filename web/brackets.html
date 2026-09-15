@@ -400,13 +400,11 @@
     .result .score{text-align:left}
   }
 
-  /* A running event's progress, and a one-line note for anything else. */
+  /* A one-line note for an event that is not the one on screen. */
   .progress{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:16px 0 0;
             padding:11px 18px;background:var(--deck);border:1px solid var(--rule)}
   .progress .lab{font:700 10.5px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.15em;
                  text-transform:uppercase;color:var(--steel)}
-  .progress .bar{flex:1;min-width:120px;height:5px;background:var(--deck-2);overflow:hidden}
-  .progress .bar span{display:block;height:100%;background:var(--turf)}
   .progress .note{color:var(--steel);font-size:12.5px}
 
   /* ---- Group matches ---------------------------------------------------

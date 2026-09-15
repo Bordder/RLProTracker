@@ -460,8 +460,8 @@ function heroEl(self) {
 }
 
 // The banner for the event actually on screen. A finished LAN gets its
-// result; a running one gets its progress. The hero above already carries
-// the countdown, so this never repeats it.
+// result, a running one its hero card. The hero above already carries the
+// countdown, so this never repeats it.
 function countEl(ev) {
   const st = stateOf(ev);
 
@@ -492,14 +492,7 @@ function countEl(ev) {
 
   // The event on screen IS the one the hero is about: show the hero card
   // here, under its own masthead, rather than the same thing twice.
-  if (heroEvent()?.slug === ev.slug) {
-    const progress = ev.counts.played
-      ? `<section class="progress"><span class="lab">Progress</span>` +
-        `<span class="bar"><span style="width:${Math.round((ev.counts.played / Math.max(1, ev.counts.matches)) * 100)}%"></span></span>` +
-        `<span class="note">${ev.counts.played} of ${ev.counts.matches} matches played</span></section>`
-      : "";
-    return heroEl(true) + progress;
-  }
+  if (heroEvent()?.slug === ev.slug) return heroEl(true);
   const when = ev.starts ? `${shortDay(ev.starts)} &ndash; ${shortDay(ev.ends)}` : "dates to be confirmed";
   return `<section class="progress"><span class="lab">${st === "running" ? "Under way" : "Upcoming"}</span>` +
     `<span class="note">${when}</span></section>`;
@@ -852,37 +845,82 @@ render(location.hash.slice(1) || defaultEvent().slug);
 // after they had been decided.
 //
 // Poll only while the tab is visible, and only redraw when generatedAt has
-// actually moved - a redraw closes the hover card and resets scroll inside
-// the bracket, so doing it on an unchanged document would be a visible
-// glitch for no reason.
-const REFRESH = 60_000;
+// actually moved: a redraw on an unchanged document is work for nothing.
+// How often to re-read the feed.
+//
+// The collector publishes every five minutes and the edge holds one upstream
+// read for 20 seconds, so 30s while a LAN is on means the page is never more
+// than a few seconds behind the published file. Between events nothing can
+// change, so polling that often would be pure noise on someone's data.
+const LIVE_MS = 30_000;
+const IDLE_MS = 5 * 60_000;
 let polling = null;
+let pollMs = 0;
+
+const liveNow = () => {
+  const ev = EVENTS.find((e) => e.slug === CURRENT);
+  const hero = heroEvent();
+  return stateOf(ev ?? {}) === "running" || stateOf(hero ?? {}) === "running";
+};
+
+// Redraw without throwing away what the reader was doing. render() rebuilds
+// every node, so an open series card and a scrolled bracket would both reset
+// on a refresh that only changed one score. Remember the match the card is on
+// and how far each lane is scrolled, then put them back.
+function repaint() {
+  const openMi = card.classList.contains("on") && cardFor ? cardFor.dataset.mi : null;
+  const scrolls = [...document.querySelectorAll(".scrollwrap .scroll")].map((el) => el.scrollLeft);
+  const y = window.scrollY;
+
+  render(CURRENT);
+
+  document.querySelectorAll(".scrollwrap .scroll").forEach((el, i) => {
+    if (scrolls[i]) el.scrollLeft = scrolls[i];
+  });
+  window.scrollTo({ top: y });
+  if (openMi === null) return;
+  const el = document.querySelector(`[data-mi="${CSS.escape(openMi)}"]`);
+  if (el) showCard(el);
+}
 
 async function refresh() {
   try {
     const next = await load();
-    if (!next?.generatedAt || next.generatedAt === doc.generatedAt) return;
-    doc = next;
-    EVENTS = byNewest(doc.events);
-    render(CURRENT);
+    if (!next?.generatedAt) return;
+    if (next.generatedAt !== doc.generatedAt) {
+      doc = next;
+      EVENTS = byNewest(doc.events);
+      repaint();
+    }
   } catch {
     // A failed poll is not worth surfacing: the page keeps showing the data
     // it already has and tries again on the next tick.
   }
+  // Cadence follows the event, and the event state changes on its own as a
+  // LAN starts: re-arm after every poll rather than once at load.
+  startPolling();
 }
 
 function startPolling() {
+  const want = liveNow() ? LIVE_MS : IDLE_MS;
+  if (polling && want === pollMs) return;
   stopPolling();
-  polling = setInterval(refresh, REFRESH);
+  pollMs = want;
+  polling = setInterval(refresh, want);
 }
 function stopPolling() {
   if (polling) clearInterval(polling);
   polling = null;
+  pollMs = 0;
 }
 
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden) return stopPolling();
-  refresh();          // catch up immediately on coming back
-  startPolling();
-});
+// Coming back to the page is the moment a stale score is most obvious, so
+// catch up immediately rather than waiting out the rest of an interval. A tab
+// switch fires visibilitychange, moving to another window fires focus alone,
+// and a laptop waking from sleep fires neither reliably - pageshow does.
+const catchUp = () => { if (!document.hidden) refresh(); };
+document.addEventListener("visibilitychange", () => (document.hidden ? stopPolling() : catchUp()));
+addEventListener("focus", catchUp);
+addEventListener("pageshow", catchUp);
+addEventListener("online", catchUp);
 if (!document.hidden) startPolling();
