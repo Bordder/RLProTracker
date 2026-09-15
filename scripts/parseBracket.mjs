@@ -105,7 +105,10 @@ export function parseDate(raw) {
 
 function parseOpponent(raw) {
   if (!raw) return { team: null, score: null };
-  const t = findTemplates(raw, "TeamOpponent")[0];
+  // 1v1 events name a PLAYER, not a team: the 2026 1v1 Worlds bracket is
+  // {{SoloOpponent|Nwpo|score=}} throughout. Reading only TeamOpponent left
+  // that whole bracket as TBD against TBD while the draw was actually made.
+  const t = findTemplates(raw, "TeamOpponent")[0] ?? findTemplates(raw, "SoloOpponent")[0];
   if (!t) return { team: null, score: null };
   const { positional, named } = templateArgs(t.body);
   const score = (named.score ?? "").trim();

@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { parsePage, parseDate, splitArgs, findTemplates } from "../scripts/parseBracket.mjs";
+import { parsePage, parseDate, splitArgs, findTemplates, parseBrackets } from "../scripts/parseBracket.mjs";
 import { pollPlan, perHour, MINUTE, LIVE, IDLE, EVENT_DAY } from "../scripts/bracketSchedule.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -470,3 +470,20 @@ test("each group table pairs with its own match list", () => {
     assert.ok(list.title.startsWith(table.title), `${list.title} paired with ${table.title}`);
   }
 });
+
+// A 1v1 event names a player where a team event names a team. Both are
+// opponents and both have to parse, or a whole bracket reads as undrawn while
+// the draw has in fact been made.
+test("a solo opponent is an opponent", () => {
+  const wikitext = `{{Bracket|Bracket/4|id=x
+|R1M1={{Match
+    |opponent1={{SoloOpponent|Nwpo|score=4}}
+    |opponent2={{SoloOpponent|kv1|score=2}}
+    |finished=t
+}}
+}}`;
+  const [bracket] = parseBrackets(wikitext);
+  assert.deepEqual(bracket.matches[0].teams, ["Nwpo", "kv1"]);
+  assert.deepEqual(bracket.matches[0].scores, [4, 2]);
+});
+
