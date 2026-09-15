@@ -16,6 +16,12 @@ import { historyToSnaps } from "./trackerHistory.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SNAP_DIR = join(ROOT, "data", "tracker-snapshots");
 const HISTORY_FILE = join(ROOT, "data", "tracker-history.json");
+const STATE_FILE = join(ROOT, "data", "tracker-state.json");
+
+// Fail open: a missing or unreadable state file publishes the board without
+// presence rather than failing the run. Presence is an extra on top of the
+// numbers, and no board is worse than a board with one column short.
+const readJson = async (f) => { try { return JSON.parse(await readFile(f, "utf8")); } catch { return {}; } };
 const HOUR = 3600e3;
 const WINDOWS = { d1: 24 * HOUR, d7: 7 * 24 * HOUR, d14: 14 * 24 * HOUR };
 const PL = { ones: "d1", twos: "d2", threes: "d3" }; // output key -> snapshot key
@@ -163,6 +169,32 @@ export function computeTrackerPlayers(snaps, rosterIds) {
   return { now, players };
 }
 
+// Steam's live answer, attached to the rows about to be published.
+//
+// The board's "Playing" mark is proof: a cumulative match count that moved, so
+// the player finished a ranked game. Proof is slow. A match runs five to seven
+// minutes and the count only moves when it ends, so the earliest the mark can
+// appear is several minutes after somebody sat down to play, and on a bad
+// alignment the run that would have caught it has just gone.
+//
+// presenceHot already asks Steam who has Rocket League open, at the top of
+// every run, for scheduling. That answer arrives while the first match is
+// still being played and it was being thrown away. It is weaker - the app
+// being open covers menus, freeplay, training and casual, so roughly twice as
+// many report in-game as are on the ladder - which is why it is published
+// beside the proof rather than folded into it.
+//
+// Only a check that actually saw the profile is published. "unknown" is a
+// private profile, where absence of presence is not absence of play, and
+// publishing false for it would state something nobody knows.
+export function withPresence(players, state = {}) {
+  return players.map((p) => {
+    const st = state[p.id];
+    if (!st || !st.presence || st.presence === "unknown" || !st.presenceAt) return p;
+    return { ...p, steam: { inGame: st.presence === "in", at: st.presenceAt } };
+  });
+}
+
 // The rating series behind the charts, as its own small feed.
 //
 // It is separate from tracker.json because it is a different shape and a
@@ -297,7 +329,10 @@ async function main() {
     if (ids.length) rosterIds = new Set(ids);
   } catch { rosterIds = null; }
 
-  const { now, players } = computeTrackerPlayers(snaps, rosterIds);
+  const { now, players: computed } = computeTrackerPlayers(snaps, rosterIds);
+  // presenceHot writes this at the top of the same run, so it is the freshest
+  // thing in the pipeline by a whole scrape.
+  const players = withPresence(computed, await readJson(STATE_FILE));
   const dropped = rosterIds ? new Set([].concat(...snaps.map((s) => s.rows.map((r) => r.id)))).size - players.length : 0;
   if (dropped > 0) console.log(`dropped ${dropped} player(s) held in history but no longer on the roster`);
 
@@ -321,7 +356,8 @@ async function main() {
     JSON.stringify({ computedAt: new Date(now).toISOString() })
   );
   const withMmr = players.filter((p) => p.mmr.twos != null).length;
-  console.log(`tracker.json: ${players.length} players, ${withMmr} with 2v2 MMR, ${snaps.length} snapshots`);
+  const inGame = players.filter((p) => p.steam?.inGame).length;
+  console.log(`tracker.json: ${players.length} players, ${withMmr} with 2v2 MMR, ${inGame} in Rocket League, ${snaps.length} snapshots`);
 
   const hist = computeMmrHistory(snaps, rosterIds);
   const histPath = join(ROOT, "data", "derived", "mmr-history.json");

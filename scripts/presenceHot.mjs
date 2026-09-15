@@ -23,8 +23,18 @@ const COOL_AFTER = 2; // consecutive not-in-game checks before a hot pro cools o
 
 // Pure transition: given a player's prior state and this check's presence
 // ("in" | "out" | "unknown"), return the next state. Exported for tests.
-export function nextPresence(prev, presence) {
+//
+// `at` is stamped alongside, because this answer is now published rather than
+// only used for scheduling. A reader seeing "In game" is owed the age of the
+// claim: presence is checked once per tracker run and the board is drawn from
+// a file that can itself be minutes old, so "in game" with no timestamp behind
+// it would keep asserting a player is on long after the collector stopped.
+//
+// A check that cannot see the profile writes no timestamp, so an old "in" is
+// never re-dated by a later run that learned nothing.
+export function nextPresence(prev, presence, at = new Date().toISOString()) {
   const st = { ...prev, presence };
+  if (presence !== "unknown") st.presenceAt = at;
   if (presence === "in") { st.hot = true; st.idle = 0; }
   // only advance the cooldown while the pro is still hot; once cold, leave idle
   // alone so a long-idle pro doesn't churn state every run.
@@ -82,9 +92,10 @@ const redact = (text) => (KEY ? text.split(KEY).join("***") : text);
 
   let inGame = 0;
   const live = [];
+  const at = new Date().toISOString();
   for (const p of withId) {
     const pres = presence.get(p.id) ?? "unknown";
-    state[p.id] = nextPresence(state[p.id] ?? {}, pres);
+    state[p.id] = nextPresence(state[p.id] ?? {}, pres, at);
     if (pres === "in") { inGame++; live.push(p.name); }
   }
 

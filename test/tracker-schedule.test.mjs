@@ -112,3 +112,40 @@ test("a hot player refreshes on the fast interval, not the slow base one", () =>
   assert.equal(coldDue, 0, "an hour has not elapsed, so the cold player is never due");
   assert.ok(hotDue > 0, "the hot player comes due within a cycle");
 });
+
+// ---- who is scraped, and in what order -------------------------------------
+
+// The live interval (data/priorities.json) is deliberately shorter than the
+// run spacing, which gives one slot and makes every player due every run. That
+// is the arrangement these two tests are about, so they use it rather than the
+// hour-long default the slot tests above need.
+const fast = (perRun = 100) => ({ perRun, defaultHours: 0.025, players: {} });
+
+test("in-game players are scraped last, against the same publish", () => {
+  // A run takes longer than the interval between runs and publishes only at
+  // the end, so a reading taken first is already minutes old when it ships.
+  // The players who can be finishing a match are the ones that costs.
+  const players = roster(6);
+  const now = RUN_SPACING_MS * 1000;
+  const state = {};
+  for (const p of players) state[p.id] = { last: iso(now - 2 * HOUR) };
+  state["t-01"].presence = "in";
+  state["t-04"].hot = true;
+
+  const order = selectDue(players, fast(), state, now).map((p) => p.id);
+  assert.equal(order.length, 6);
+  assert.deepEqual(order.slice(-2).sort(), ["t-01", "t-04"]);
+});
+
+test("ordering does not change who is selected when the ceiling binds", () => {
+  // The ceiling is shared out most-overdue-first, and reordering the result
+  // must not quietly let an in-game player take somebody else's place.
+  const players = roster(6);
+  const now = RUN_SPACING_MS * 1000;
+  const state = {};
+  players.forEach((p, i) => { state[p.id] = { last: iso(now - (i + 2) * HOUR) }; });
+  state["t-00"].presence = "in"; // the LEAST overdue of the six
+
+  const picked = selectDue(players, fast(3), state, now).map((p) => p.id);
+  assert.deepEqual(picked.sort(), ["t-03", "t-04", "t-05"]);
+});

@@ -431,7 +431,24 @@ function selectDue(players, prio, state, now) {
   // CI: only players that are due this run. LIMIT (local testing) ignores the due
   // gate and just takes the most-overdue N.
   const pool = process.env.LIMIT ? scored : scored.filter((x) => x.due);
-  return pool.slice(0, perRun).map((x) => x.p);
+  const taken = pool.slice(0, perRun);
+
+  // Most-overdue-first decides WHO is scraped, because it is what makes the
+  // perRun ceiling fair. It is a poor order to scrape them IN.
+  //
+  // A run is about 160 seconds and the whole of it happens before anything is
+  // published, so a player read in the first few seconds is published with a
+  // reading that is already two and a half minutes old, and a game they
+  // finished during the run is not noticed until the next one. That delay
+  // lands on exactly the players it should not: somebody Steam says is in
+  // Rocket League right now is the one whose count is about to move.
+  //
+  // So the selection is kept and only the order changes: everyone else first,
+  // the in-game players last, against the same publish. Nobody is dropped and
+  // nothing is scraped that would not have been - a hot player's reading is
+  // simply as young as the run can make it.
+  const inGame = (x) => x.p && (state[x.p.id]?.presence === "in" || state[x.p.id]?.hot);
+  return [...taken.filter((x) => !inGame(x)), ...taken.filter(inGame)].map((x) => x.p);
 }
 
 async function main() {
@@ -496,10 +513,16 @@ async function main() {
         // Hot flag: for pros whose Steam status is visible, presenceHot owns it -
         // just carry it through. For private/undetectable pros, fall back to the
         // game-count delta so they can still go hot when their games jump.
+        // presenceAt is carried on both branches. These two objects are built
+        // field by field rather than spread from prev, so anything not named
+        // here is dropped - and presenceHot writes presenceAt on a different
+        // step of the same run, so leaving it out silently deleted it for
+        // every player this run actually scraped, which is every player who
+        // could be in a game.
         if (prev.presence && prev.presence !== "unknown") {
-          state[p.id] = { last: takenAt, fails: 0, presence: prev.presence, matches: curMatches, hot: prev.hot ?? false, idle: prev.idle ?? 0 };
+          state[p.id] = { last: takenAt, fails: 0, presence: prev.presence, presenceAt: prev.presenceAt ?? null, matches: curMatches, hot: prev.hot ?? false, idle: prev.idle ?? 0 };
         } else {
-          state[p.id] = { last: takenAt, fails: 0, presence: prev.presence, ...nextActivity(prev, curMatches) };
+          state[p.id] = { last: takenAt, fails: 0, presence: prev.presence, presenceAt: prev.presenceAt ?? null, ...nextActivity(prev, curMatches) };
         }
       }
       else if (row.status === "no-data") state[p.id] = { ...prev, last: prev.last ?? null, fails: (prev.fails ?? 0) + 1 };

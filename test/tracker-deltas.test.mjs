@@ -228,3 +228,39 @@ test("readings older than the window are not carried", () => {
   const wide = computeMmrHistory(snaps);
   assert.deepEqual(wide.players.a.twos.map((p) => p[1]), [1500, 2000, 2050]);
 });
+
+// ---- the faster half of the answer -----------------------------------------
+
+import { withPresence } from "../scripts/computeTrackerDeltas.mjs";
+
+const AT = "2026-09-16T20:00:00.000Z";
+const pRow = (id) => ({ id, name: id, team: "T" });
+
+test("a player Steam can see is published with that answer", () => {
+  const [a, b] = withPresence([pRow("a"), pRow("b")], {
+    a: { presence: "in", presenceAt: AT },
+    b: { presence: "out", presenceAt: AT },
+  });
+  assert.deepEqual(a.steam, { inGame: true, at: AT });
+  assert.deepEqual(b.steam, { inGame: false, at: AT });
+});
+
+test("a private profile is published with no answer at all", () => {
+  // Not `inGame: false`. A profile that hides its status is not a profile that
+  // is idle, and a board cannot say which without claiming what nobody knows.
+  const [p] = withPresence([pRow("a")], { a: { presence: "unknown", hot: true } });
+  assert.equal(p.steam, undefined);
+});
+
+test("a presence with no timestamp behind it is not published", () => {
+  // State written before presenceAt existed, and state a run rebuilt without
+  // carrying it. Either way there is nothing to judge its age by, and an
+  // undated "in game" never expires.
+  const [p] = withPresence([pRow("a")], { a: { presence: "in" } });
+  assert.equal(p.steam, undefined);
+});
+
+test("players with no state survive the pass untouched", () => {
+  assert.deepEqual(withPresence([pRow("a")], {}), [pRow("a")]);
+  assert.deepEqual(withPresence([pRow("a")]), [pRow("a")]);
+});

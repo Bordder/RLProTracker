@@ -362,6 +362,24 @@
       if(Date.now()-collectedAt>LIVE_MS)return false;
       return collectedAt-p.lastPlayedAt<=LIVE_MS;
     };
+    // The earlier, weaker answer: Steam says Rocket League is open.
+    //
+    // isLive is proof and it is slow. A ranked match runs five to seven minutes
+    // and the count it reads only moves when one ends, so nobody can be marked
+    // Playing until several minutes after they sat down. Steam is asked who has
+    // the game open at the top of every collector run and answers while that
+    // first match is still being played.
+    //
+    // It is not the same claim and it does not pretend to be: the app being
+    // open covers menus, freeplay, training and casual, so roughly twice as
+    // many are in game as are on the ladder. Playing wins wherever both hold.
+    //
+    // Judged on its own timestamp rather than the board's. presenceAt stops
+    // advancing the moment collection stops, so a stalled collector lets this
+    // lapse by itself instead of insisting somebody is still on.
+    var isInGame=function(p){
+      return p.inGameAt!=null&&Date.now()-p.inGameAt<=LIVE_MS;
+    };
     var sessionMins=function(p){
       if(!p.session||collectedAt==null)return null;
       return Math.max(1,Math.round((collectedAt-p.session.startedAt)/60000));
@@ -468,6 +486,13 @@
           // rather than only the profiles Steam lets us watch.
           lastPlayedAt:(function(){var v=t.lastPlayedAt?Date.parse(t.lastPlayedAt):NaN;return isNaN(v)?null:v;})(),
           session:t.session?{startedAt:Date.parse(t.session.startedAt),games:t.session.games}:null,
+          // When Steam last said this player had Rocket League open. Null both
+          // for a profile that hides its status and for one Steam could see was
+          // out, because neither is a claim the board makes.
+          inGameAt:(function(){
+            if(!t.steam||!t.steam.inGame||!t.steam.at)return null;
+            var v=Date.parse(t.steam.at); return isNaN(v)?null:v;
+          })(),
           // Hours only ever come from the Steam side; a player the hourly job
           // has not reached yet simply has none, which the cells already know
           // how to say.
@@ -566,6 +591,12 @@
       var hint='Playing ranked right now'+(m!=null?', '+durWords(m)+' into the session':'')+(g!=null?', '+g+(g===1?' game':' games')+' so far':'')+'.';
       return '<span class="pmark" title="'+esc(hint)+'">Playing</span>';
     };
+    // Deliberately quieter than Playing, and says why in its own tooltip: this
+    // is the app being open, which is not the same as being on the ladder.
+    var gameMark=function(p){
+      return '<span class="gmark" title="Steam says Rocket League is open. That covers menus, freeplay and casual, so it is not proof of a ranked session.">In game</span>';
+    };
+    var liveMark=function(p){ return isLive(p)?playMark(p):(isInGame(p)?gameMark(p):''); };
 
     var renderStatus=function(){
       var meta=document.querySelector('.kick-meta');
@@ -761,7 +792,7 @@
       var mmr=p.hasMmr?(mmrCell(p.mmr.ones,'m1')+mmrCell(p.mmr.twos,'m2')+mmrCell(p.mmr.threes,'m3')):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
       return '<tr class="'+(p.hasMmr?'':'isnorank')+(p.__pos<=3?' lead lead'+p.__pos:'')+'" data-player="'+esc(p.name)+'">'+
         '<td class="c-rk">'+rankMark(p.__pos||p.__rank)+'</td>'+
-        '<td class="c-who">'+teamMark(p.team)+'<span class="nm"><b>'+esc(p.name)+(isLive(p)?playMark(p):'')+'</b><i>'+esc(p.team||'Free agent')+'</i></span></td>'+
+        '<td class="c-who">'+teamMark(p.team)+'<span class="nm"><b>'+esc(p.name)+liveMark(p)+'</b><i>'+esc(p.team||'Free agent')+'</i></span></td>'+
         // The phone layout needs both chips in one container so they can sit
         // flush against the right edge together; as separate grid cells they
         // could be adjacent or right aligned, never both. The duplicate is
@@ -1145,6 +1176,9 @@
         facts=facts.filter(function(f){ return f[0]!=='Last played'; });
         facts.unshift(['Playing now',
           [forWhen,played].filter(Boolean).join(':')||'yes']);
+      }
+      else if(isInGame(p)){
+        facts.unshift(['In game','yes; no ranked game in the last 10 minutes']);
       }
       return '<div class="pexp-in">'+
         '<div class="pexp-facts">'+facts.map(function(f){
