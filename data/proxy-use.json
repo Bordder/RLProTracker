@@ -1,21 +1,13 @@
 {
-  "at": "2026-09-15T15:08:43.502Z",
+  "at": "2026-09-15T15:10:16.730Z",
   "proxyCount": 10,
-  "players": 44,
-  "benched": [
-    2,
-    4,
-    5,
-    6,
-    7,
-    8,
-    9
-  ],
+  "players": 45,
+  "benched": [],
   "use": [
     {
       "i": 0,
-      "attempts": 14,
-      "retries": 8,
+      "attempts": 5,
+      "retries": 0,
       "fails": 0,
       "benched": false
     },
@@ -23,64 +15,64 @@
       "i": 1,
       "attempts": 5,
       "retries": 0,
-      "fails": 1,
+      "fails": 2,
       "benched": false
     },
     {
       "i": 2,
-      "attempts": 3,
-      "retries": 1,
-      "fails": 3,
-      "benched": true
+      "attempts": 7,
+      "retries": 2,
+      "fails": 0,
+      "benched": false
     },
     {
       "i": 3,
-      "attempts": 11,
-      "retries": 3,
-      "fails": 3,
+      "attempts": 5,
+      "retries": 0,
+      "fails": 2,
       "benched": false
     },
     {
       "i": 4,
-      "attempts": 3,
+      "attempts": 7,
       "retries": 2,
-      "fails": 3,
-      "benched": true
+      "fails": 2,
+      "benched": false
     },
     {
       "i": 5,
-      "attempts": 4,
-      "retries": 3,
-      "fails": 3,
-      "benched": true
+      "attempts": 6,
+      "retries": 2,
+      "fails": 0,
+      "benched": false
     },
     {
       "i": 6,
       "attempts": 4,
-      "retries": 3,
-      "fails": 4,
-      "benched": true
+      "retries": 0,
+      "fails": 0,
+      "benched": false
     },
     {
       "i": 7,
       "attempts": 4,
-      "retries": 4,
-      "fails": 3,
-      "benched": true
+      "retries": 0,
+      "fails": 0,
+      "benched": false
     },
     {
       "i": 8,
-      "attempts": 18,
-      "retries": 2,
-      "fails": 6,
-      "benched": true
+      "attempts": 4,
+      "retries": 0,
+      "fails": 0,
+      "benched": false
     },
     {
       "i": 9,
-      "attempts": 10,
-      "retries": 6,
-      "fails": 8,
-      "benched": true
+      "attempts": 4,
+      "retries": 0,
+      "fails": 0,
+      "benched": false
     }
   ]
 }
