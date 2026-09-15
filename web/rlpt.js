@@ -640,9 +640,12 @@
       return '<span class="pmark" title="'+esc(hint)+'">Playing</span>';
     };
     // Deliberately quieter than Playing, and says why in its own tooltip: this
-    // is the app being open, which is not the same as being on the ladder.
+    // is the app being open, which is not the same as being on the ladder. It
+    // names the player, because the mark sits in a table of a hundred rows and
+    // a tooltip that starts "Steam says" could be about any of them.
     var gameMark=function(p){
-      return '<span class="gmark" title="Steam says Rocket League is open. That covers menus, freeplay and casual, so it is not proof of a ranked session.">In game</span>';
+      var hint=(p.name||'This player')+' has Rocket League open. Menus, freeplay and casual count too, so it is not proof of a ranked session.';
+      return '<span class="gmark" title="'+esc(hint)+'">In game</span>';
     };
     var liveMark=function(p){ return isLive(p)?playMark(p):(isInGame(p)?gameMark(p):''); };
 
