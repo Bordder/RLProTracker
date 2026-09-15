@@ -1,0 +1,63 @@
+name: Bracket refresh
+
+# Keeps data/derived/bracket.json current during a LAN.
+#
+# The collector decides for itself how hard to work: events.json lists every
+# LAN, and collect.mjs only fetches a page whose event is inside its own
+# window, backing off to almost nothing between tournaments. So this workflow
+# can run on one cadence all year without hammering Liquipedia out of season -
+# a --once run outside an event window fetches nothing at all.
+#
+# Five minutes during play matches how fast a Bo5 moves: a series takes
+# 20 minutes or more, so nothing on the page is ever more than one game stale.
+# GitHub drops scheduled runs on a busy public repo, which is another reason
+# the collector must be safe to run at any interval rather than depending on
+# an exact one.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+concurrency:
+  group: brackets
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # Collector output lives on the data branch, so main's history stays
+      # code only. publish-data.sh writes through this worktree.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: data
+          path: .databranch
+          fetch-depth: 1
+
+      - name: Take the previous run's wikitext cache
+        run: |
+          # The cache is what makes a failed fetch harmless: the collector
+          # keeps serving the last good copy of a page rather than dropping
+          # the event. Without restoring it, every run starts cold and a
+          # Liquipedia hiccup empties a bracket.
+          if [ -d ".databranch/data/bracket/cache" ]; then
+            mkdir -p data/bracket
+            cp -r .databranch/data/bracket/cache data/bracket/cache
+          fi
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+
+      - name: Fetch and rebuild the bracket
+        run: node scripts/collect.mjs --once
+
+      - name: Publish
+        run: scripts/publish-data.sh "[skip ci] data: bracket refresh" data/derived/bracket.json data/bracket/cache
