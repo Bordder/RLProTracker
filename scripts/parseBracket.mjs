@@ -200,6 +200,25 @@ export function sectionOf(label) {
   return "final";
 }
 
+// The wiki heading a bracket sits under, which is what the page calls it.
+//
+// The name used to be guessed from position: the first bracket of several was
+// "Play-In". That is right for the 2025 and 2026 Worlds and wrong for the 2024
+// one, whose first bracket is the Swiss Tiebreaker that decided the 3rd, 4th
+// and 5th seeds - two series, shown to readers as a play-in that season never
+// had. The heading is already on the page and says so.
+//
+// Headings are sometimes written through a template, === {{Stage|Playoffs}} ===,
+// so the wrapper comes off and the label inside is kept.
+export function headingBefore(wikitext, start) {
+  const before = wikitext.slice(0, start);
+  const all = [...before.matchAll(/^(={2,6})\s*(.+?)\s*\1\s*$/gm)];
+  const raw = all[all.length - 1]?.[2];
+  if (!raw) return null;
+  const stage = raw.match(/^\{\{\s*Stage\s*\|\s*([^|}]+?)\s*\}\}$/i);
+  return (stage ? stage[1] : raw).trim() || null;
+}
+
 // Every {{Bracket}} on a page, each match keyed by its R<n>M<n> slot.
 export function parseBrackets(wikitext) {
   return findTemplates(wikitext, "Bracket").map((t) => {
@@ -218,6 +237,7 @@ export function parseBrackets(wikitext) {
     return {
       // id can carry a trailing comment on its own lines; keep the first token.
       id: (named.id ?? "").split(/\s/)[0] || null,
+      title: headingBefore(wikitext, t.start),
       template: positional[0] ?? null,
       rounds: matches.length ? Math.max(...matches.map((m) => m.round)) : 0,
       matches,

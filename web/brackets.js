@@ -40,10 +40,18 @@ function windowOf(st) {
 // Match a section to its line in the Format section. The names line up
 // ("Play-In", "Group Stage", "Playoffs"); a contains-either test covers
 // "Swiss Stage" against a section called "Swiss stage".
+//
+// The last pass is on the first word alone, for the 2025 Worlds, where the
+// three group brackets are headed "Group A", "Group B" and "Group C" and the
+// format lists one line for the whole "Group Stage". Without it those three
+// sections have no window, and a section with no window sorts to the end of
+// the page, below the playoffs they feed.
+const firstWord = (s) => s.split(/[\s-]+/)[0];
 function stageFor(name) {
   const n = String(name).toLowerCase();
   return SCHED.find((x) => x.name.toLowerCase() === n)
     ?? SCHED.find((x) => n.includes(x.name.toLowerCase()) || x.name.toLowerCase().includes(n))
+    ?? SCHED.find((x) => firstWord(x.name.toLowerCase()) === firstWord(n))
     ?? null;
 }
 const matchesOf = (ev) => ev.stages.flatMap((s) =>
@@ -658,10 +666,16 @@ const CITY = {
 };
 const cityOf = (ev) => CITY[ev.city] ?? ev.city ?? null;
 
-// A bracket's name, from what it contains rather than its position in the
-// list. "Bracket 1" told a reader nothing, and the match count beside it was
-// a number nobody needs next to a diagram that shows every match.
+// A bracket's name, from the heading it sits under on Liquipedia, then from
+// what it contains. "Bracket 1" told a reader nothing, and the match count
+// beside it was a number nobody needs next to a diagram that shows every match.
+//
+// Position is the last resort and used to be the first. "The first of several
+// brackets is the play-in" holds for the 2025 and 2026 Worlds and fails for
+// 2024, where the first bracket is the two-series Swiss Tiebreaker that set the
+// 3rd, 4th and 5th seeds - shown for months as a play-in that season never ran.
 function bracketName(b, i, all) {
+  if (b.title) return b.title;
   const labels = b.matches.map((m) => (m.label ?? "").toLowerCase());
   if (labels.some((l) => l.includes("grand final") || l === "final")) return "Playoffs";
   if (all.length > 1 && i === 0) return "Play-In";

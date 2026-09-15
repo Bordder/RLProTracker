@@ -634,3 +634,45 @@ test("a page with no rendered teams yields nothing rather than an empty map", ()
   const { teams } = teamsFromRender("<div>no bracket drawn yet</div>");
   assert.equal(teams.size, 0);
 });
+
+// ---- a bracket is named by the page, not by its position -------------------
+
+import { headingBefore } from "../scripts/parseBracket.mjs";
+
+test("a bracket takes its name from the heading above it", () => {
+  const page = [
+    "===Swiss Tiebreaker===",
+    "{{MatchSection|Swiss Tiebreaker}}",
+    "{{Bracket|Bracket/2-1Q-U-2-2QL|id=aaa",
+    "|R1M1={{Match|opponent1={{TeamOpponent|furia|score=1}}",
+    "  |opponent2={{TeamOpponent|karmine corp|score=3}}|finished=true}}",
+    "}}",
+    "",
+    "==Playoffs==",
+    "{{Bracket|Bracket/8U4L4DSL1D|id=bbb",
+    "|R4M1={{Match|opponent1={{TeamOpponent|g2|score=2}}",
+    "  |opponent2={{TeamOpponent|bds|score=4}}|finished=true}}",
+    "}}",
+  ].join("\n");
+
+  // The 2024 Worlds ran no play-in. Its first bracket is the two-series
+  // tiebreaker that set the 3rd, 4th and 5th seeds, and calling it a play-in
+  // because it came first invented a stage that season never had.
+  assert.deepEqual(parseBrackets(page).map((b) => b.title), ["Swiss Tiebreaker", "Playoffs"]);
+});
+
+test("a heading written through a template keeps only its label", () => {
+  // The 2025 Majors head their sections ==={{Stage|Playoffs}}=== rather than
+  // ===Playoffs===, and the raw heading would print the template source.
+  const page = "==={{Stage|Playoffs}}===\n{{Bracket|Bracket/4U2L2DSL1D|id=ccc\n}}";
+  assert.equal(parseBrackets(page)[0].title, "Playoffs");
+});
+
+test("a bracket with no heading above it has no name of its own", () => {
+  assert.equal(headingBefore("{{Bracket|x|id=d}}", 0), null);
+});
+
+test("the real pages name every bracket they carry", () => {
+  const named = parseBrackets(fixture("worlds-midseries.wikitext")).map((b) => b.title);
+  assert.deepEqual(named, ["Play-In", "Playoffs"]);
+});
