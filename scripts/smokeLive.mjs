@@ -30,11 +30,16 @@ const SITE = process.env.SITE ?? "https://198x.online";
 
 // How old each feed may be before it is worth saying something.
 //
-// The collectors run every 2 minutes and the edge holds a copy for 20 seconds,
-// so healthy data is never more than about 3 minutes old. 20 absorbs several
-// missed runs without crying wolf - this is a backstop for a feed that has
-// stopped, not a pager for one that skipped a beat.
+// The 2-minute collectors leave data about 3 minutes old at worst, so 20
+// absorbs several missed runs without crying wolf - this is a backstop for a
+// feed that has stopped, not a pager for one that skipped a beat.
+//
+// The Steam jobs are hourly, dispatched at :07, so a perfectly healthy
+// steam-hours.json is routinely 50 minutes old and was reported as stale by
+// the first live run of this check. A threshold shorter than a feed's own
+// cadence is not a check, it is a scheduled false alarm.
 const STALE_MINUTES = 20;
+const HOURLY_STALE_MINUTES = 90;
 
 // The bracket is exempt unless a LAN is being played, because between events
 // it is CORRECT for it to be hours or weeks old: the collector deliberately
@@ -45,7 +50,7 @@ const BRACKET_STALE_MINUTES = 20;
 const FEEDS = [
   { file: "tracker.json", rows: "players", min: 50 },
   { file: "team-tracker.json", rows: "teams", min: 10 },
-  { file: "steam-hours.json", rows: "players", min: 20 },
+  { file: "steam-hours.json", rows: "players", min: 20, stale: HOURLY_STALE_MINUTES },
   { file: "presence-hours.json", rows: "players", min: 20 },
   // mmr-history keys its players by id rather than listing them, which is
   // why the count below is of entries and not of array length.
@@ -86,7 +91,7 @@ export function auditFeed(feed, doc, now) {
 
   if (name !== "bracket.json") {
     const old = stamp ? minutesSince(stamp, now) : null;
-    if (old !== null && Number.isFinite(old) && old > STALE_MINUTES) {
+    if (old !== null && Number.isFinite(old) && old > (feed.stale ?? STALE_MINUTES)) {
       problems.push(`${name}: ${age(old)} old`);
     }
     return problems;

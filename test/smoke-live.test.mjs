@@ -96,3 +96,13 @@ test("counts that do not add up are reported", () => {
   const [problem] = auditBracket(doc({}, { counts: { matches: 47, played: 9, live: 0, upcoming: 0 } }), NOW);
   assert.match(problem, /counts say 9 of 47 matches/);
 });
+
+test("an hourly feed is judged on its own cadence", () => {
+  // steam.yml is dispatched at :07, so a healthy steam-hours.json is routinely
+  // 50 minutes old. The first live run of this check called that stale.
+  const hourly = { file: "steam-hours.json", rows: "players", min: 20, stale: 90 };
+  assert.deepEqual(auditFeed(hourly, { computedAt: ago(50), players: players(40) }, NOW), []);
+
+  const [problem] = auditFeed(hourly, { computedAt: ago(200), players: players(40) }, NOW);
+  assert.match(problem, /steam-hours\.json: 3\.3h old/);
+});
