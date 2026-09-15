@@ -487,3 +487,53 @@ test("a solo opponent is an opponent", () => {
   assert.deepEqual(bracket.matches[0].scores, [4, 2]);
 });
 
+
+// A Bo5 at 2-1 is not over. Liquipedia writes the score in as each game is
+// played and only sets finished= when the series ends, so reading "has a
+// score" as "has a winner" put Virtus.pro through the play-in on 15 September
+// while the fourth game was being played.
+test("a series in progress has no winner", () => {
+  const wikitext = `{{Bracket|Bracket/4|id=x
+|R1M1={{Match
+    |opponent1={{TeamOpponent|vp|score=2}}
+    |opponent2={{TeamOpponent|Mate y Tapa|score=1}}
+}}
+|R1M2={{Match
+    |opponent1={{TeamOpponent|Team Falcons|score=3}}
+    |opponent2={{TeamOpponent|FUT Esports|score=1}}
+    |finished=true
+}}
+}}`;
+  const [bracket] = parseBrackets(wikitext);
+  const [live, done] = bracket.matches;
+
+  assert.equal(live.finished, false, "2-1 with no flag is still being played");
+  assert.equal(live.live, true);
+  assert.equal(live.upcoming, false, "it has started, so it is not upcoming either");
+  assert.deepEqual(live.scores, [2, 1], "the running score is still reported");
+
+  assert.equal(done.finished, true);
+  assert.equal(done.live, false);
+  assert.equal(done.upcoming, false);
+});
+
+// The map names are in the wikitext after all: the {{Map}} block carries its
+// own map= field. An earlier pass concluded they lived only in Liquipedia's
+// database and the card drew goal scores with nothing to name them.
+test("a map keeps its name alongside its goals", () => {
+  const wikitext = `{{Bracket|Bracket/4|id=x
+|R1M1={{Match
+    |opponent1={{TeamOpponent|vp|score=1}}
+    |opponent2={{TeamOpponent|Mate y Tapa|score=0}}
+    |map1={{Map|map=Mannfield (Dusk)|score1=0|score2=1}}
+    |map2={{Map|map=Forbidden Temple|score1=2|score2=0}}
+    |map3={{Map|map=|score1=|score2=}}
+    |finished=true
+}}
+}}`;
+  const [bracket] = parseBrackets(wikitext);
+  const maps = bracket.matches[0].maps;
+  assert.equal(maps[0].name, "Mannfield (Dusk)");
+  assert.deepEqual([maps[1].name, maps[1].score1, maps[1].score2], ["Forbidden Temple", 2, 0]);
+  assert.equal(maps[2].name, null, "an unplayed slot names nothing rather than guessing");
+});

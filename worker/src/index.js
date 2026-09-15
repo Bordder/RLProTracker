@@ -40,6 +40,41 @@ const PRESENCE_CRON = "*/2 * * * *";
 const TRACKER_CRON = "*/2 * * * *";
 const STEAM_CRON = "7 * * * *";
 
+// brackets.yml rides the */2 trigger for the same reason everything else does.
+//
+// It shipped on GitHub's own "*/5" cron and produced ZERO scheduled runs in the
+// two hours and twenty minutes it was live during the Worlds play-in, which is
+// how a Bo5 sat on the site at 2-1 while it was being finished. liveness.yml
+// asks for */5 too and managed four runs in fifteen hours on the same day.
+//
+// Cadence follows the event rather than the clock: every 2 minutes on a day a
+// LAN is being played, and twice an hour otherwise, so the collector is asked
+// often enough to matter during a series and costs almost nothing the rest of
+// the year. The collector is safe at any interval - outside an event window a
+// --once run fetches nothing at all - so an extra dispatch is never harmful,
+// only wasteful.
+const BRACKET_FEED = "https://198x.online/data/bracket.json";
+
+async function bracketDay(now) {
+  try {
+    const res = await fetch(BRACKET_FEED, { cf: { cacheTtl: 60 } });
+    if (!res.ok) return false;
+    const doc = await res.json();
+    const day = now.toISOString().slice(0, 10);
+    return (doc.events || []).some((e) => e.starts && e.ends && e.starts <= day && day <= e.ends);
+  } catch {
+    // Never let this decide nothing gets dispatched: on a failed read, fall
+    // back to the slow cadence rather than to silence.
+    return false;
+  }
+}
+
+async function dispatchBracket(env, event) {
+  const now = new Date(event.scheduledTime || Date.now());
+  if (!(await bracketDay(now)) && now.getUTCMinutes() % 30 !== 0) return null;
+  return dispatch(env, "brackets.yml");
+}
+
 async function dispatch(env, workflow) {
   const url = `https://api.github.com/repos/${env.GH_OWNER}/${env.GH_REPO}` +
     `/actions/workflows/${workflow}/dispatches`;
@@ -118,6 +153,7 @@ export default {
       if (!wanted || wanted === "presence") jobs.push(dispatch(env, "presence.yml"));
       if (!wanted || wanted === "tracker") jobs.push(dispatch(env, "tracker.yml"));
       if (wanted === "steam") jobs.push(dispatch(env, "steam.yml"));
+      if (wanted === "brackets") jobs.push(dispatch(env, "brackets.yml"));
       const codes = await Promise.all(jobs);
       return Response.json({ dispatched: codes.length, codes });
     }
@@ -155,6 +191,7 @@ export default {
     // trigger must dispatch both. Each dispatch is independent.
     if (event.cron === PRESENCE_CRON) jobs.push(dispatch(env, "presence.yml"));
     if (event.cron === TRACKER_CRON) jobs.push(dispatch(env, "tracker.yml"));
+    if (event.cron === TRACKER_CRON) jobs.push(dispatchBracket(env, event));
     if (event.cron === STEAM_CRON) jobs.push(dispatch(env, "steam.yml"));
     // A cron we do not recognise means wrangler.toml and this file disagree;
     // fall back to presence so the cheap collector keeps running either way.

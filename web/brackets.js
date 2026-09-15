@@ -14,8 +14,12 @@ const LIVE_FOR = 2 * 3600e3;   // a started match counts as live for this long
 // The R<n>M<n> key, which is how the edge list names a match.
 const slotOf = (m) => `R${m.round}M${m.position}`;
 
-const isLive = (m) => m.startsAt && !m.finished &&
-  Date.now() >= Date.parse(m.startsAt) && Date.now() - Date.parse(m.startsAt) < LIVE_FOR;
+// Live means the wikitext is carrying a score for a series it has not called
+// finished. The clock is the fallback for a match nobody has scored yet: a
+// start time that has passed and is recent enough to still be on.
+const isLive = (m) => Boolean(m.live) ||
+  Boolean(m.startsAt && !m.finished &&
+    Date.now() >= Date.parse(m.startsAt) && Date.now() - Date.parse(m.startsAt) < LIVE_FOR);
 
 // Every match of the event being shown, flat and indexed, so a box can carry
 // a number rather than its whole contents in data attributes.
@@ -191,9 +195,11 @@ function side(team, score, state) {
 }
 
 function matchBox(m, x, y) {
-  const played = !m.upcoming;
+  // A series is only won when Liquipedia says it is finished. A Bo5 at 2-1 has
+  // a score and no winner, so it shows the score with neither side marked.
+  const done = m.finished;
   const [a, b] = m.scores;
-  const st = (s, o) => !played || s === null || o === null ? "" : s > o ? "won" : "lost";
+  const st = (s, o) => !done || s === null || o === null ? "" : s > o ? "won" : "lost";
   const live = isLive(m);
   m._stage = STAGE;
   const teams = m.teams.filter(Boolean).map((t) => esc(t.toLowerCase())).join("|");
@@ -206,7 +212,7 @@ function matchBox(m, x, y) {
   const win = windowOf(STAGE);
   const when = m.startsAt ? timeOf(m.startsAt) : win ? `${win}` : "TBD";
   const cap = live ? `<div class="when on" style="left:${x + 3}px;top:${y + BOX_H + 4}px">live now</div>`
-    : played ? ""
+    : done ? ""
     : `<div class="when${m.startsAt ? "" : " soft"}" style="left:${x + 3}px;top:${y + BOX_H + 4}px">${when}</div>`;
   return `<div class="m ${m.section ?? "final"}${live ? " live" : ""}" data-teams="${teams}" data-mi="${m._i}" tabindex="0" ` +
       `style="left:${x}px;top:${y}px;width:${BOX_W}px">` +
@@ -231,7 +237,9 @@ const bracketEl = (b) => {
   for (const q of L.quals) {
     const x = q.col * COL;
     const [a, b] = q.m.scores;
-    const done = !q.m.upcoming && a !== null && b !== null;
+    // Only a finished series sends anyone through. This slot filled itself
+    // from a live 2-1 before.
+    const done = q.m.finished && a !== null && b !== null;
     const who = done ? (a > b ? q.m.teams[0] : q.m.teams[1]) : null;
     parts.push(`<div class="qual${who ? " in" : ""}" style="left:${x}px;top:${q.y + (BOX_H - 30) / 2}px;width:${BOX_W}px">` +
       (who ? `${crest(who)}<span>${esc(who)}</span>` : `<span class="tbd">TBD</span>`) + `</div>`);
@@ -279,8 +287,9 @@ function groupEl(ml, table) {
   const rows = [];
   for (const m of ml.matches) {
     if (m.label) rows.push(`<div class="gsub">${esc(m.label)}</div>`);
-    const [a, b] = m.scores, played = !m.upcoming;
-    const wa = played && a !== null && b !== null && a > b, wb = played && a !== null && b !== null && b > a;
+    const [a, b] = m.scores, played = m.finished || m.live;
+    const done = m.finished;
+    const wa = done && a !== null && b !== null && a > b, wb = done && a !== null && b !== null && b > a;
     // Crest, name, score, name, crest: the same reading order as a match box
     // in the bracket above, so the two do not have to be learned separately.
     const score = played
@@ -503,7 +512,7 @@ function finalOf(ev) {
   const brackets = ev.stages.flatMap((s) => s.brackets);
   const last = brackets[brackets.length - 1];
   if (!last) return null;
-  const played = last.matches.filter((m) => !m.upcoming && m.scores[0] !== null && m.scores[1] !== null);
+  const played = last.matches.filter((m) => m.finished && m.scores[0] !== null && m.scores[1] !== null);
   return played.sort((a, b) => a.round - b.round || a.position - b.position).pop() ?? null;
 }
 
@@ -540,7 +549,7 @@ const bestOf = (m, st) => {
 function cardHTML(m) {
   const day = dayOf(m.startsAt);
   const [a, b] = m.scores;
-  const played = !m.upcoming && a !== null && b !== null;
+  const played = m.finished && a !== null && b !== null;
   const live = isLive(m);
   const st = m._stage ?? null;
   const win = windowOf(st);
@@ -567,8 +576,20 @@ function cardHTML(m) {
   }
   if (m.blasttv) links.push(`<a class="watch alt" href="https://blast.tv/${esc(m.blasttv)}" target="_blank" rel="noopener">${played ? "Series page" : "Series"}</a>`);
   const note = [m.label, bestOf(m, st)].filter(Boolean).map(esc).join(" &middot; ");
+  // The games, once any of them has been played. The map name comes from the
+  // {{Map}} block's own map= field, so an unnamed game leaves the middle
+  // empty rather than inventing "G3". Goal scores sit on the side of the team
+  // that scored them, matching the two names above.
+  const games = (m.maps ?? []).filter((g) => g.score1 !== null || g.score2 !== null);
+  const mapsEl = games.length
+    ? `<div class="maps">` + games.map((g) =>
+        `<div class="mp"><b class="${g.score1 > g.score2 ? "w" : ""}">${g.score1 ?? "&middot;"}</b>` +
+        `<span>${esc(g.name ?? "")}</span>` +
+        `<b class="${g.score2 > g.score1 ? "w" : ""}">${g.score2 ?? "&middot;"}</b></div>`).join("") + `</div>`
+    : "";
   return `<div class="day">${head}</div>` +
     `<div class="fx">${sd(m.teams[0], a, b)}<span class="mid${played || live ? "" : " pending"}">${mid}</span>${sd(m.teams[1], b, a)}</div>` +
+    mapsEl +
     (note ? `<div class="note">${note}</div>` : "") +
     (links.length ? `<div class="foot">${links.join("")}</div>` : "");
 }

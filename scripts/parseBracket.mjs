@@ -128,16 +128,29 @@ export function parseMatch(body) {
     .sort((x, y) => +x.slice(3) - +y.slice(3))
     .map((k) => {
       const { named: mn } = templateArgs(findTemplates(named[k], "Map")[0]?.body ?? "");
-      return { score1: mn.score1 ? +mn.score1 : null, score2: mn.score2 ? +mn.score2 : null };
+      return {
+        name: (mn.map ?? "").trim() || null,
+        score1: mn.score1 ? +mn.score1 : null,
+        score2: mn.score2 ? +mn.score2 : null,
+      };
     });
-  const played = a.score !== null || b.score !== null;
+  const hasScore = a.score !== null || b.score !== null;
+  // Three states, not two, because a Bo5 sitting at 2-1 is neither.
+  //
+  // Liquipedia fills the score in as each game is played and sets finished=
+  // only when the series ends, so treating any score as a result declared
+  // Virtus.pro the winner of a live 2-1 and qualified them out of the play-in
+  // while the fourth game was being played. Measured across the ten cached
+  // events on 15 September: 396 completed matches, every one of them
+  // flagged, and the only two unflagged were the two being played. So the
+  // flag is what decides a series, and a score without it means in progress.
+  const finished = /^(t|true|1)$/i.test(named.finished ?? "");
   return {
     teams: [a.team, b.team],
     scores: [a.score, b.score],
-    // finished= is "t"/"true" when set. Trust the scores over the flag: a
-    // filled score with no flag is still a played match.
-    finished: /^(t|true|1)$/i.test(named.finished ?? "") || played,
-    upcoming: !played,
+    finished,
+    live: hasScore && !finished,
+    upcoming: !hasScore,
     startsAt: parseDate(named.date),
     maps: maps.length ? maps : null,
     blasttv: named.blasttv || null,
@@ -376,7 +389,8 @@ export function parsePage(wikitext, meta = {}) {
     tables,
     counts: {
       matches: all.length,
-      played: all.filter((m) => !m.upcoming).length,
+      played: all.filter((m) => m.finished).length,
+      live: all.filter((m) => m.live).length,
       upcoming: all.filter((m) => m.upcoming).length,
     },
   };

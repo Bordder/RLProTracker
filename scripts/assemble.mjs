@@ -86,9 +86,10 @@ export const countStages = (stages) =>
     (a, s) => ({
       matches: a.matches + s.counts.matches,
       played: a.played + s.counts.played,
+      live: a.live + (s.counts.live ?? 0),
       upcoming: a.upcoming + s.counts.upcoming,
     }),
-    { matches: 0, played: 0, upcoming: 0 }
+    { matches: 0, played: 0, live: 0, upcoming: 0 }
   );
 
 /**

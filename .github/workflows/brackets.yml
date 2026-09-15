@@ -8,11 +8,13 @@ name: Bracket refresh
 # can run on one cadence all year without hammering Liquipedia out of season -
 # a --once run outside an event window fetches nothing at all.
 #
-# Five minutes during play matches how fast a Bo5 moves: a series takes
-# 20 minutes or more, so nothing on the page is ever more than one game stale.
-# GitHub drops scheduled runs on a busy public repo, which is another reason
-# the collector must be safe to run at any interval rather than depending on
-# an exact one.
+# This schedule is the SAFETY NET, not the trigger. Measured 15 September:
+# zero scheduled runs fired in the 2h20m after this workflow shipped, and
+# liveness.yml, which asks for the same */5, managed four runs in fifteen
+# hours. GitHub drops scheduled runs on a busy public repo and this one takes
+# about 1,400 collector commits a day. The Cloudflare Worker dispatches this
+# workflow instead - every 2 minutes on a day a LAN is being played - and the
+# cron below only covers the Worker being down.
 
 on:
   schedule:
