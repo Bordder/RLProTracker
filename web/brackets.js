@@ -581,21 +581,9 @@ let cardTimer = null;
 // Leaving the box does not close the card straight away, and entering the
 // card cancels the close. Without this the buttons are unreachable: the
 // pointer has to cross the gap between the box and the card, and the card
-// vanished the moment it left the box.
-card.addEventListener("mouseenter", () => clearTimeout(cardTimer));
-card.addEventListener("mouseleave", () => hideCard());
-function closeSoon() {
-  clearTimeout(cardTimer);
-  cardTimer = setTimeout(() => {
-    // Ask where the pointer actually is rather than trusting that the card's
-    // own mouseenter arrived. Moving from the box to a button crosses a
-    // boundary the browser does not always report in order, and getting it
-    // wrong means the buttons cannot be clicked at all - which is the whole
-    // reason the card has a delay.
-    if (card.matches(":hover")) { closeSoon(); return; }
-    hideCard();
-  }, 240);
-}
+// vanished the moment it left the box. Clicking removed that problem, so
+// closing is immediate.
+const closeSoon = () => hideCard();
 
 function showCard(el) {
   clearTimeout(cardTimer);
@@ -771,17 +759,23 @@ function wire() {
   // so Tab from a match box goes to the NEXT match box and never into the
   // card. Enter or Space moves focus into it, Escape comes back out. Same
   // pattern either way round: the card opens, you act, you leave.
+  // Click, not hover. A card that opened on hover appeared while the pointer
+  // was only crossing a match on its way somewhere else, and it covered the
+  // bracket underneath. Clicking says "I want this one"; clicking the same
+  // match again, or anywhere off the card, puts it away.
   for (const el of document.querySelectorAll("[data-mi]")) {
-    el.addEventListener("mouseenter", () => showCard(el));
-    el.addEventListener("focus", () => showCard(el));
-    el.addEventListener("mouseleave", closeSoon);
-    el.addEventListener("blur", (e) => { if (!card.contains(e.relatedTarget)) closeSoon(); });
+    el.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (cardFor === el && card.classList.contains("on")) return hideCard();
+      showCard(el);
+    });
     el.addEventListener("keydown", (e) => {
       if (e.key !== "Enter" && e.key !== " ") return;
+      e.preventDefault();
+      if (cardFor === el && card.classList.contains("on")) return hideCard();
       showCard(el);
       const first = card.querySelector("a[href]");
       if (!first) return;
-      e.preventDefault();
       returnTo = el;
       first.focus();
     });
@@ -832,9 +826,12 @@ document.getElementById("hero").addEventListener("click", (e) => {
   const b = e.target.closest(".go");
   if (b) { held = null; render(b.dataset.slug); }
 });
-// Anywhere else clears a held trace, so it never gets stuck on.
+// Anywhere else clears a held trace, so it never gets stuck on, and closes
+// the series card - the card is opened by a click now, so it has to be
+// closeable by one too.
 document.addEventListener("click", (e) => {
   if (!e.target.closest(".side[data-team]") && held) { held = null; trace(null); }
+  if (!e.target.closest("[data-mi]") && !e.target.closest(".card")) hideCard();
 });
 addEventListener("hashchange", () => render(location.hash.slice(1)));
 
