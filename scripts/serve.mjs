@@ -10,7 +10,15 @@ import { dirname, join, normalize, extname } from "node:path";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const WEB = join(ROOT, "web");
 const PORT = process.env.PORT || 5173;
-const TYPES = { ".html": "text/html", ".js": "text/javascript", ".json": "application/json", ".css": "text/css", ".svg": "image/svg+xml" };
+// .mjs matters: the bracket page imports ES modules, and a module served as
+// application/octet-stream is refused outright under strict MIME checking.
+// The images are here for the team crests.
+const TYPES = {
+  ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript",
+  ".json": "application/json", ".css": "text/css", ".svg": "image/svg+xml",
+  ".png": "image/png", ".woff2": "font/woff2", ".webmanifest": "application/manifest+json",
+  ".xml": "application/xml", ".txt": "text/plain",
+};
 
 // Copy latest derived data into web/ before serving.
 //

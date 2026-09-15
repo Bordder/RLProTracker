@@ -1,0 +1,288 @@
+{
+  "Bracket/8-2Q-U-4L2D-2Q": {
+    "template": "Bracket/8-2Q-U-4L2D-2Q",
+    "fetchedAt": "2026-09-14T23:40:43.886Z",
+    "edges": {
+      "R1M1": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R1M2": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R1M3": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R1M4": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R2M1": {
+        "upper": "R1M1",
+        "lower": "R1M2",
+        "qualifies": true
+      },
+      "R2M2": {
+        "upper": "R1M3",
+        "lower": "R1M4",
+        "qualifies": true
+      },
+      "R1M5": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R1M6": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R2M3": {
+        "upper": null,
+        "lower": "R1M5",
+        "qualifies": true
+      },
+      "R2M4": {
+        "upper": null,
+        "lower": "R1M6",
+        "qualifies": true
+      }
+    },
+    "order": [
+      "R1M1",
+      "R1M2",
+      "R1M3",
+      "R1M4",
+      "R2M1",
+      "R2M2",
+      "R1M5",
+      "R1M6",
+      "R2M3",
+      "R2M4"
+    ]
+  },
+  "Bracket/2-2-U-8L4DS": {
+    "template": "Bracket/2-2-U-8L4DS",
+    "fetchedAt": "2026-09-14T23:40:45.941Z",
+    "edges": {
+      "R3M1": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R3M2": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R1M1": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R1M2": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R1M3": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R1M4": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R2M1": {
+        "upper": "R1M1",
+        "lower": "R1M2",
+        "qualifies": false
+      },
+      "R2M2": {
+        "upper": "R1M3",
+        "lower": "R1M4",
+        "qualifies": false
+      },
+      "R3M3": {
+        "upper": null,
+        "lower": "R2M1",
+        "qualifies": false
+      },
+      "R3M4": {
+        "upper": null,
+        "lower": "R2M2",
+        "qualifies": false
+      },
+      "R4M1": {
+        "upper": null,
+        "lower": "R3M3",
+        "qualifies": false
+      },
+      "R4M2": {
+        "upper": null,
+        "lower": "R3M4",
+        "qualifies": false
+      },
+      "R5M1": {
+        "upper": "R4M1",
+        "lower": "R4M2",
+        "qualifies": false
+      }
+    },
+    "order": [
+      "R3M1",
+      "R3M2",
+      "R1M1",
+      "R1M2",
+      "R1M3",
+      "R1M4",
+      "R2M1",
+      "R2M2",
+      "R3M3",
+      "R3M4",
+      "R4M1",
+      "R4M2",
+      "R5M1"
+    ]
+  },
+  "Bracket/2-2-U-4L4DS": {
+    "template": "Bracket/2-2-U-4L4DS",
+    "fetchedAt": "2026-09-14T23:40:47.983Z",
+    "edges": {
+      "R2M1": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R2M2": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R1M1": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R1M2": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R2M3": {
+        "upper": null,
+        "lower": "R1M1",
+        "qualifies": false
+      },
+      "R2M4": {
+        "upper": null,
+        "lower": "R1M2",
+        "qualifies": false
+      },
+      "R3M1": {
+        "upper": null,
+        "lower": "R2M3",
+        "qualifies": false
+      },
+      "R3M2": {
+        "upper": null,
+        "lower": "R2M4",
+        "qualifies": false
+      },
+      "R4M1": {
+        "upper": "R3M1",
+        "lower": "R3M2",
+        "qualifies": false
+      }
+    },
+    "order": [
+      "R2M1",
+      "R2M2",
+      "R1M1",
+      "R1M2",
+      "R2M3",
+      "R2M4",
+      "R3M1",
+      "R3M2",
+      "R4M1"
+    ]
+  },
+  "Bracket/2-1Q-U-2-2QL": {
+    "template": "Bracket/2-1Q-U-2-2QL",
+    "fetchedAt": "2026-09-14T23:40:50.042Z",
+    "edges": {
+      "R1M1": {
+        "upper": null,
+        "lower": null,
+        "qualifies": true
+      },
+      "R1M2": {
+        "upper": null,
+        "lower": null,
+        "qualifies": true
+      }
+    },
+    "order": [
+      "R1M1",
+      "R1M2"
+    ]
+  },
+  "Bracket/8": {
+    "template": "Bracket/8",
+    "fetchedAt": "2026-09-14T23:40:52.097Z",
+    "edges": {
+      "R1M1": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R1M2": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R1M3": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R1M4": {
+        "upper": null,
+        "lower": null,
+        "qualifies": false
+      },
+      "R2M1": {
+        "upper": "R1M1",
+        "lower": "R1M2",
+        "qualifies": false
+      },
+      "R2M2": {
+        "upper": "R1M3",
+        "lower": "R1M4",
+        "qualifies": false
+      },
+      "R3M1": {
+        "upper": "R2M1",
+        "lower": "R2M2",
+        "qualifies": false
+      }
+    },
+    "order": [
+      "R1M1",
+      "R1M2",
+      "R1M3",
+      "R1M4",
+      "R2M1",
+      "R2M2",
+      "R3M1"
+    ]
+  }
+}

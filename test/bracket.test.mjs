@@ -1,0 +1,472 @@
+// node --test rlcs-bracket/test.mjs
+//
+// Fixtures are real pages captured 11 September 2026: Worlds with every score
+// still empty, and a finished regional with 160 filled scores. Both ends of
+// the lifecycle, which is the only honest way to test a wikitext parser.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+import { parsePage, parseDate, splitArgs, findTemplates } from "../scripts/parseBracket.mjs";
+import { pollPlan, perHour, MINUTE, LIVE, IDLE, EVENT_DAY } from "../scripts/bracketSchedule.mjs";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
+// Wikitext fixtures and the bracket shapes live with the rest of the
+// project's data, not beside the test.
+const BRACKET = join(HERE, "..", "data", "bracket");
+const fixture = (f) => readFileSync(join(BRACKET, "fixtures", f), "utf8");
+const worlds = parsePage(fixture("worlds-2026.wikitext"));
+const regional = parsePage(fixture("regional-finished.wikitext"));
+
+test("splitArgs breaks on top-level pipes only", () => {
+  assert.deepEqual(splitArgs("Match|a=1|b={{X|y=2}}|c=3").length, 4);
+  // The date value contains {{Abbr/CET}}, whose pipe-free body still nests.
+  assert.deepEqual(splitArgs("Match|date=Nov 15 {{Abbr/CET}}|f=t").length, 3);
+});
+
+test("template matching is case-insensitive, as MediaWiki is", () => {
+  // The Worlds page writes {{matchlist}} in lower case and every other page
+  // writes {{Matchlist}}. Matching case-sensitively dropped the entire group
+  // stage while the page still looked plausible.
+  assert.equal(findTemplates("{{matchlist|id=a}}", "Matchlist").length, 1);
+  assert.equal(findTemplates("{{Matchlist|id=a}}", "matchlist").length, 1);
+});
+
+test("a search for Match does not match Matchlist", () => {
+  assert.equal(findTemplates("{{Matchlist|id=a}}", "Match").length, 0);
+});
+
+test("every match on the Worlds page is found", () => {
+  // 47 is the count of {{Match blocks in the raw wikitext: 23 in two brackets
+  // plus 24 across four group lists. A parser that finds fewer is dropping a
+  // stage silently.
+  assert.equal(worlds.counts.matches, 47);
+  assert.equal(worlds.brackets.length, 2);
+  assert.equal(worlds.matchlists.length, 4);
+});
+
+test("an empty score is upcoming, never nil-nil", () => {
+  // The whole Worlds page is in this state until the event starts. Rendering
+  // it as 0-0 would show a completed tournament nobody won.
+  assert.equal(worlds.counts.played, 0);
+  assert.equal(worlds.counts.upcoming, 47);
+  for (const m of worlds.brackets[0].matches) {
+    assert.deepEqual(m.scores, [null, null]);
+    assert.equal(m.upcoming, true);
+  }
+});
+
+test("a finished bracket reads its real scores", () => {
+  assert.equal(regional.counts.matches, 80);
+  assert.ok(regional.counts.played >= 79, `expected nearly all played, got ${regional.counts.played}`);
+  const first = regional.brackets[0].matches[0];
+  assert.deepEqual(first.teams, ["m8", "whatever."]);
+  assert.deepEqual(first.scores, [3, 0]);
+  assert.equal(first.finished, true);
+});
+
+test("round and position come from the R<n>M<n> key", () => {
+  for (const b of [...worlds.brackets, ...regional.brackets]) {
+    for (const m of b.matches) {
+      assert.ok(Number.isInteger(m.round) && m.round >= 1);
+      assert.ok(Number.isInteger(m.position) && m.position >= 1);
+    }
+  }
+});
+
+test("undrawn group slots stay null rather than inventing a team", () => {
+  // Worlds groups are not drawn yet: {{TeamOpponent||score=}}.
+  assert.deepEqual(worlds.matchlists[0].matches[0].teams, [null, null]);
+});
+
+test("dates convert to a real instant in UTC", () => {
+  assert.equal(parseDate("November 15, 2025 - 18:45 {{Abbr/CET}}"), "2025-11-15T17:45:00.000Z");
+  assert.equal(parseDate("September 15, 2026 - 11:00 {{Abbr/CDT}}"), "2026-09-15T16:00:00.000Z");
+});
+
+test("an unparseable or unknown-zone date is null, not a guess", () => {
+  // A wrong kickoff time is worse than none: the page can say TBD.
+  assert.equal(parseDate(""), null);
+  assert.equal(parseDate("sometime tuesday"), null);
+  assert.equal(parseDate("November 15, 2025 - 18:45 {{Abbr/XYZ}}"), null);
+});
+
+// ---- polling cadence ------------------------------------------------------
+
+const at = (iso) => Date.parse(iso);
+const m = (iso, upcoming = true) => ({ startsAt: iso, upcoming });
+
+test("a match under way polls every minute", () => {
+  const plan = pollPlan([m("2026-09-15T16:00:00Z")], at("2026-09-15T16:20:00Z"));
+  assert.equal(plan.state, "live");
+  assert.equal(plan.everyMs, LIVE);
+});
+
+test("polling stays slow when no match is running", () => {
+  // Three days before the event: nothing should be hammering Liquipedia.
+  const plan = pollPlan([m("2026-09-15T16:00:00Z")], at("2026-09-12T09:00:00Z"));
+  assert.equal(plan.state, "idle");
+  assert.equal(plan.everyMs, IDLE);
+});
+
+test("the fast cadence starts shortly before the first match", () => {
+  const plan = pollPlan([m("2026-09-15T16:00:00Z")], at("2026-09-15T15:55:00Z"));
+  assert.equal(plan.state, "warmup");
+  assert.equal(plan.everyMs, LIVE);
+});
+
+test("later the same day is a middling cadence, not a fast one", () => {
+  const plan = pollPlan([m("2026-09-15T22:00:00Z")], at("2026-09-15T09:00:00Z"));
+  assert.equal(plan.state, "event-day");
+  assert.equal(plan.everyMs, EVENT_DAY);
+});
+
+test("a long-finished match does not hold the fast cadence open forever", () => {
+  // Without this the collector polls every minute indefinitely whenever a page
+  // stops being updated mid-event.
+  const plan = pollPlan([m("2026-09-15T16:00:00Z")], at("2026-09-15T23:00:00Z"));
+  assert.notEqual(plan.state, "live");
+});
+
+test("a fully played page goes quiet", () => {
+  const plan = pollPlan([m("2026-09-15T16:00:00Z", false)], at("2026-09-15T16:10:00Z"));
+  assert.equal(plan.state, "done");
+  assert.equal(plan.everyMs, IDLE);
+});
+
+test("the fastest cadence stays far inside Liquipedia's limit", () => {
+  // They allow 1 request per 2 seconds, which is 1,800 an hour. Being an order
+  // of magnitude under that is the point.
+  const live = pollPlan([m("2026-09-15T16:00:00Z")], at("2026-09-15T16:05:00Z"));
+  assert.equal(perHour(live), 60);
+  assert.ok(perHour(live) <= 1800 / 10);
+});
+
+test("the real Worlds page schedules sensibly before the event", () => {
+  const all = worlds.stages ? [] : [...worlds.brackets.flatMap((b) => b.matches), ...worlds.matchlists.flatMap((l) => l.matches)];
+  const plan = pollPlan(all, at("2026-09-11T12:00:00Z"));
+  assert.equal(plan.state, "idle", "four days out should not be polling fast");
+  const during = pollPlan(all, at("2026-09-15T16:30:00Z"));
+  assert.equal(during.state, "live", "mid-session should be live");
+});
+
+test("round labels come from the wikitext comments", () => {
+  // Liquipedia writes "<!-- Upper Bracket Quarterfinals -->" above each group
+  // of slots. Those labels are the structure: without them R1 of the Play-In
+  // is one nonsensical column of six matches rather than two blocks.
+  const labels = [...new Set(worlds.brackets[0].matches.map((m) => m.label))];
+  assert.ok(labels.includes("Upper Bracket Quarterfinals"), labels.join(" / "));
+  assert.ok(labels.includes("Lower Bracket Quarterfinals"), labels.join(" / "));
+});
+
+test("upper and lower are separated, which is what makes round 1 make sense", () => {
+  const r1 = worlds.brackets[0].matches.filter((m) => m.round === 1);
+  assert.equal(r1.length, 6, "six matches share R1");
+  assert.equal(r1.filter((m) => m.section === "upper").length, 4);
+  assert.equal(r1.filter((m) => m.section === "lower").length, 2);
+});
+
+test("separating the sections makes the pairing clean", () => {
+  // 4 upper quarterfinals into 2 upper semifinals is a clean binary step, so
+  // connectors can be drawn. Mixed with the lower bracket it is 6 into 4,
+  // which is not, and no connector was drawn at all.
+  const b = worlds.brackets[0];
+  const upper = (r) => b.matches.filter((m) => m.section === "upper" && m.round === r).length;
+  assert.equal(upper(1), 4);
+  assert.equal(upper(2), 2);
+});
+
+test("group matches carry their round heading", () => {
+  const labels = worlds.matchlists[0].matches.map((m) => m.label).filter(Boolean);
+  assert.deepEqual(labels, ["Round 1", "Round 2", "Round 3"]);
+});
+
+test("round labels ignore comments nested inside a match", () => {
+  // Liquipedia writes the map name as a comment inside each {{Map}}, so a flat
+  // scan for comments labelled two rounds of the Boston Major "Champions
+  // Field". Only top-level comments are round labels.
+  const major = parsePage(fixture("boston-major.wikitext"));
+  const labels = new Set(major.brackets[0].matches.map((m) => m.label));
+  assert.ok(!labels.has("Champions Field"), [...labels].join(" / "));
+  assert.ok(labels.has("Grand Final"), [...labels].join(" / "));
+});
+
+test("a real finished Major parses end to end", () => {
+  const major = parsePage(fixture("boston-major.wikitext"));
+  assert.equal(major.counts.matches, 33);
+  assert.equal(major.counts.upcoming, 0, "every match of a finished event is played");
+  const gf = major.brackets[0].matches.find((m) => m.label === "Grand Final");
+  assert.ok(gf, "the grand final should be found");
+  assert.ok(gf.scores.every((s) => s !== null), "the grand final has a result");
+});
+
+// ---- event windows --------------------------------------------------------
+
+import { inWindow, eventsDue, allMatches, loadEvents, PAD } from "../scripts/events.mjs";
+
+const worldsEvent = { slug: "worlds-2026", starts: "2026-09-15", ends: "2026-09-20" };
+
+test("an event is followed inside its dates", () => {
+  assert.equal(inWindow(worldsEvent, at("2026-09-15T16:00:00Z")), true);
+  assert.equal(inWindow(worldsEvent, at("2026-09-18T03:00:00Z")), true);
+});
+
+test("the last day is included in full", () => {
+  // `ends` is a date, not an instant. Treating it as midnight would stop
+  // following the event on the morning of the grand final.
+  assert.equal(inWindow(worldsEvent, at("2026-09-20T23:00:00Z")), true);
+});
+
+test("the window is padded a day either side for timezones", () => {
+  // Fort Worth is UTC-5: the "15 September" first match is the 15th UTC, but
+  // late sessions run past midnight UTC into the next day.
+  assert.equal(inWindow(worldsEvent, at("2026-09-14T22:00:00Z")), true);
+  assert.equal(inWindow(worldsEvent, at("2026-09-21T12:00:00Z")), true);
+});
+
+test("an event long past or far off costs no requests", () => {
+  assert.equal(inWindow(worldsEvent, at("2026-09-10T12:00:00Z")), false);
+  assert.equal(inWindow(worldsEvent, at("2026-09-25T12:00:00Z")), false);
+  assert.equal(PAD, 86400e3);
+});
+
+test("only the running event is due, not the whole list", () => {
+  const events = [
+    { slug: "boston", starts: "2026-02-19", ends: "2026-02-22" },
+    worldsEvent,
+  ];
+  const due = eventsDue(events, at("2026-09-16T18:00:00Z"));
+  assert.deepEqual(due.map((e) => e.slug), ["worlds-2026"]);
+});
+
+test("events.json is loadable, and every cache file it names exists", async () => {
+  // The collector reads the cache by filename; a typo here is a crash at the
+  // worst possible moment rather than at startup. Names and dates are NOT
+  // checked, deliberately - they come from each page's own infobox now, so
+  // requiring them here would be requiring the duplication this removed.
+  const { readFileSync } = await import("node:fs");
+  const events = await loadEvents();
+  assert.ok(events.length >= 1);
+  const slugs = new Set();
+  for (const e of events) {
+    assert.ok(e.slug, "an event has no slug");
+    assert.ok(!slugs.has(e.slug), `${e.slug} appears twice`);
+    slugs.add(e.slug);
+    for (const t of e.titles) {
+      assert.ok(t.title && t.cache, `${e.slug} has an incomplete title entry`);
+      // Either the live cache or the frozen fixture must hold it, since
+      // parseEvent falls back from one to the other.
+      const found = ["cache", "fixtures"].some((d) => {
+        try { readFileSync(join(BRACKET, d, t.cache)); return true; } catch { return false; }
+      });
+      assert.ok(found, `${e.slug}: no wikitext on disk for ${t.cache}`);
+    }
+  }
+});
+
+test("every event on the page can name itself", async () => {
+  // A chip with no name is a chip nobody can click on purpose. The name comes
+  // from the infobox, so this is really a check that each cached page HAS one.
+  const { parseEvent } = await import("../scripts/assemble.mjs");
+  for (const e of await loadEvents()) {
+    const parsed = await parseEvent(e);
+    assert.ok(parsed.name && parsed.name !== e.slug, `${e.slug} has no name from its page`);
+    assert.ok(parsed.starts && parsed.ends, `${e.slug} has no dates from its page`);
+  }
+});
+
+test("allMatches flattens brackets and group lists together", () => {
+  // pollPlan sees one list. A group match starting before any bracket match
+  // must still be able to set the cadence.
+  const flat = allMatches([worlds]);
+  assert.equal(flat.length, worlds.counts.matches);
+});
+
+// ---- the infobox: events describe themselves -----------------------------
+
+import { parseInfobox } from "../scripts/parseBracket.mjs";
+
+test("an event's name, place and dates come from its own page", () => {
+  const i = parseInfobox(fixture("worlds-2026.wikitext"));
+  assert.equal(i.name, "RLCS 2026 World Championship");
+  assert.equal(i.city, "Fort Worth");
+  assert.equal(i.venue, "Dickies Arena");
+  assert.equal(i.starts, "2026-09-15");
+  assert.equal(i.ends, "2026-09-20");
+  assert.equal(i.teamCount, 20);
+});
+
+test("a two-letter country is a code, and is shown as one", () => {
+  // Some pages write "us" where others write "United States".
+  assert.equal(parseInfobox(fixture("boston-major.wikitext")).country, "US");
+  assert.equal(parseInfobox(fixture("worlds-2026.wikitext")).country, "United States");
+});
+
+test("wiki markup is stripped out of infobox values", () => {
+  // venue is written "[https://kbhallen.dk/ K.B Hallen Arena]" on one page and
+  // "Copper Box Arena |venuelink=https://..." on another: a link, and a field
+  // that runs into the next one.
+  const major = parseInfobox(fixture("boston-major.wikitext"));
+  assert.equal(major.venue, "Agganis Arena");
+  assert.ok(!/[[\]|=]|https?:/.test(major.venue ?? ""), major.venue);
+});
+
+test("a page with no infobox gives an empty object, not a crash", () => {
+  assert.deepEqual(parseInfobox("{{Match|opponent1={{TeamOpponent|m8}}}}"), {});
+});
+
+test("parsePage carries the infobox alongside the matches", () => {
+  // This is what lets events.json stay four lines per event.
+  assert.equal(worlds.info.name, "RLCS 2026 World Championship");
+  assert.equal(worlds.info.prizePool, "1,200,000");
+});
+
+// ---- bracket shapes: the real edge list ----------------------------------
+
+import { parseShape, slotKey, feedersOf } from "../scripts/shape.mjs";
+
+const SHAPE = `
+{{TemplateMatch|matchid=R01-M001|header=!u4!x}}
+{{TemplateMatch|matchid=R01-M002}}
+{{TemplateMatch|matchid=R02-M001|root=true|toupper=R01-M001|tolower=R01-M002|qualwin=true}}
+{{TemplateMatch|matchid=R01-M005|header=!l4!x}}
+{{TemplateMatch|matchid=R02-M003|root=true|tolower=R01-M005|qualwin=true}}
+`;
+
+test("a commons matchid becomes the key the page already uses", () => {
+  assert.equal(slotKey("R01-M001"), "R1M1");
+  assert.equal(slotKey("R12-M034"), "R12M34");
+  assert.equal(slotKey("nonsense"), null);
+});
+
+test("toupper and tolower are the edge list", () => {
+  const shape = parseShape(SHAPE);
+  assert.deepEqual(shape.edges.R2M1, { upper: "R1M1", lower: "R1M2", qualifies: true });
+  assert.deepEqual(feedersOf(shape, "R2M1"), ["R1M1", "R1M2"]);
+});
+
+test("a match fed by one other is not a match fed by none", () => {
+  // The lower bracket receiving a single match is the case the old halving
+  // heuristic could not express at all, and the case it got wrong silently.
+  const shape = parseShape(SHAPE);
+  assert.deepEqual(feedersOf(shape, "R2M3"), ["R1M5"]);
+});
+
+test("a play-in marks the matches whose winner qualifies", () => {
+  // The whole point of a play-in, and the column Liquipedia draws on the
+  // right of one. Without it the bracket stops after the semifinals and
+  // never says who got through.
+  const play = JSON.parse(readFileSync(join(BRACKET, "shapes.json"), "utf8"))["Bracket/8-2Q-U-4L2D-2Q"];
+  const qual = Object.entries(play.edges).filter(([, e]) => e.qualifies).map(([k]) => k);
+  assert.deepEqual(qual.sort(), ["R2M1", "R2M2", "R2M3", "R2M4"]);
+});
+
+test("a first-round match is present with no feeders", () => {
+  // Present, so the page can tell "no edges here" from "never fetched".
+  const shape = parseShape(SHAPE);
+  assert.deepEqual(shape.edges.R1M1, { upper: null, lower: null, qualifies: false });
+  assert.deepEqual(feedersOf(shape, "R1M1"), []);
+  assert.deepEqual(feedersOf(shape, "R9M9"), []);
+});
+
+test("the real Worlds playoff shape is not a binary tree", () => {
+  // 4, 2, 4, 2, 1 as the lower bracket merges in. This is exactly why the
+  // shape has to be read rather than inferred.
+  const shape = JSON.parse(readFileSync(join(BRACKET, "shapes.json"), "utf8"))["Bracket/2-2-U-8L4DS"];
+  assert.ok(shape, "the Worlds playoff shape should be cached");
+  assert.deepEqual(shape.edges.R2M1, { upper: "R1M1", lower: "R1M2", qualifies: false });
+  assert.deepEqual(shape.edges.R3M3, { upper: null, lower: "R2M1", qualifies: false });
+});
+
+// ---- group standings ------------------------------------------------------
+
+import { records, standings, pairGroups } from "../web/standings.mjs";
+
+const played = (a, b, x, y) => ({ teams: [a, b], scores: [x, y], upcoming: false });
+
+test("a record counts series and games, not matches on the page", () => {
+  const r = records([played("A", "B", 3, 1), played("A", "C", 3, 0), played("B", "C", 2, 3)]);
+  assert.deepEqual(
+    { ...r.get("a") },
+    { team: "A", won: 2, lost: 0, played: 2, gamesFor: 6, gamesAgainst: 1, diff: 5 }
+  );
+});
+
+test("an unplayed match is not a nil-nil draw", () => {
+  const r = records([{ teams: ["A", "B"], scores: [null, null], upcoming: true }]);
+  assert.equal(r.size, 0);
+});
+
+test("a team is the same team whatever an editor capitalised", () => {
+  // Boston Major: the table says "Ninjas In Pyjamas", its own matches say
+  // "Ninjas in Pyjamas". Keyed literally, that team shows 0-0 beside three
+  // matches it played.
+  const r = records([played("Ninjas in Pyjamas", "PWR", 3, 1), played("Ninjas In Pyjamas", "NRG", 1, 3)]);
+  assert.equal(r.size, 3);
+  assert.equal(r.get("ninjas in pyjamas").played, 2);
+});
+
+test("the listed row order is not the finishing order", () => {
+  // The Paris Major Group A lists Team Vitality first and marks Karmine Corp
+  // bg2=up; Karmine Corp went 3-0 and won the group. The wikitext order is
+  // what an editor typed, and Liquipedia sorts by results when it renders.
+  // Trusting it put the group winner second on this page.
+  const table = { title: "Group A", rows: [
+    { rank: 1, team: "Team Vitality", outcome: "stay", meansIfHere: "up" },
+    { rank: 2, team: "Karmine Corp", outcome: "up", meansIfHere: "stay" },
+  ] };
+  const rows = standings(table, [
+    played("Karmine Corp", "Team Vitality", 3, 1),
+    played("Karmine Corp", "Wildcard", 3, 0),
+    played("Team Vitality", "Wildcard", 3, 2),
+  ]);
+  assert.deepEqual(rows.map((r) => r.team), ["Karmine Corp", "Team Vitality"]);
+  assert.equal(rows[0].outcome, "up", "the outcome follows the team");
+  assert.equal(rows[0].meansIfHere, "up", "what a PLACE means follows the place");
+});
+
+test("a tie keeps the listed order rather than reshuffling", () => {
+  const table = { title: "G", rows: [
+    { rank: 1, team: "A", outcome: null, meansIfHere: "up" },
+    { rank: 2, team: "B", outcome: null, meansIfHere: "down" },
+  ] };
+  const rows = standings(table, []);
+  assert.deepEqual(rows.map((r) => r.team), ["A", "B"]);
+});
+
+test("an undrawn group still says what each place will mean", () => {
+  // The Worlds groups are rows of team=tbd with pbg1=up. "First advances" is
+  // the most useful thing a table can say before a ball is hit.
+  const worldsTables = worlds.tables;
+  assert.equal(worldsTables.length, 4);
+  const rows = standings(worldsTables[0], []);
+  assert.equal(rows.length, 4);
+  assert.equal(rows[0].team, null);
+  assert.equal(rows[0].meansIfHere, "up");
+  assert.equal(rows[0].outcome, null, "nothing has happened yet");
+});
+
+test("with no table at all, standings are ordered by result", () => {
+  // Series first: C wins two and tops it. A and B win one each, and A takes
+  // second on game difference (+2 against B's -3), which is the documented
+  // third tiebreaker and the only one derivable from results alone.
+  const rows = standings(null, [
+    played("A", "B", 3, 0),
+    played("C", "A", 3, 2),
+    played("C", "B", 3, 1),
+  ]);
+  assert.deepEqual(rows.map((r) => r.team), ["C", "A", "B"]);
+  assert.deepEqual(rows.map((r) => r.rank), [1, 2, 3]);
+  assert.deepEqual(rows.map((r) => r.diff), [3, 2, -5]);
+});
+
+test("each group table pairs with its own match list", () => {
+  // Titled "Group A" and "Group A Matches".
+  const pairs = pairGroups(worlds.tables, worlds.matchlists);
+  assert.equal(pairs.length, 4);
+  for (const { list, table } of pairs) {
+    assert.ok(table, `${list.title} found no table`);
+    assert.ok(list.title.startsWith(table.title), `${list.title} paired with ${table.title}`);
+  }
+});

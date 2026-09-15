@@ -1,0 +1,117 @@
+{
+  "_comment": [
+    "Every RLCS LAN the page can show. Hand-maintained, the way data/teams.json is,",
+    "but deliberately thin: the display name, city, venue, dates, team count and",
+    "prize pool all come from the Infobox at the top of the Liquipedia page itself",
+    "(parseInfobox in parseBracket.mjs). Copying those here by hand is how a config",
+    "goes stale. All this file has to say is which page to read.",
+    "",
+    "slug:    stable id, used in the URL hash and as the teams-<slug>.json name.",
+    "titles:  the Liquipedia pages that define the brackets. A LAN is one page;",
+    "         a regional Open would be four or five subpages.",
+    "cache:   the on-disk copy under cache/. It doubles as the collector's",
+    "         last-good output: a failed fetch leaves the previous copy and the",
+    "         page keeps rendering yesterday's truth rather than nothing.",
+    "starts / ends:  OPTIONAL override of the infobox dates, only needed for an",
+    "         event whose page has no infobox dates yet. The collector makes",
+    "         requests only inside this window, padded a day either side. How",
+    "         FAST it polls inside it comes from the match times, not from here.",
+    "",
+    "Adding the next LAN: find the page under",
+    "https://liquipedia.net/rocketleague/Rocket_League_Championship_Series/<year>,",
+    "add four lines here, run `node collect.mjs --once`, then",
+    "`node resolveTeams.mjs \"<page title>\" <slug>` for the real team names."
+  ],
+  "events": [
+    {
+      "slug": "worlds-2026",
+      "titles": [
+        {
+          "title": "Rocket League Championship Series/2026",
+          "stage": "main",
+          "cache": "worlds-2026.wikitext"
+        }
+      ]
+    },
+    {
+      "slug": "paris-major-2026",
+      "titles": [
+        {
+          "title": "Rocket League Championship Series/2026/Paris Major",
+          "stage": "main",
+          "cache": "paris-major-2026.wikitext"
+        }
+      ]
+    },
+    {
+      "slug": "boston-major-2026",
+      "titles": [
+        {
+          "title": "Rocket League Championship Series/2026/Boston Major",
+          "stage": "main",
+          "cache": "boston-major.wikitext"
+        }
+      ]
+    },
+    {
+      "slug": "worlds-2025",
+      "titles": [
+        {
+          "title": "Rocket League Championship Series/2025",
+          "stage": "main",
+          "cache": "worlds-2025.wikitext"
+        }
+      ]
+    },
+    {
+      "slug": "raleigh-major-2025",
+      "titles": [
+        {
+          "title": "Rocket League Championship Series/2025/Raleigh Major",
+          "stage": "main",
+          "cache": "raleigh-major-2025.wikitext"
+        }
+      ]
+    },
+    {
+      "slug": "birmingham-major-2025",
+      "titles": [
+        {
+          "title": "Rocket League Championship Series/2025/Birmingham Major",
+          "stage": "main",
+          "cache": "birmingham-major-2025.wikitext"
+        }
+      ]
+    },
+    {
+      "slug": "worlds-2024",
+      "titles": [
+        {
+          "title": "Rocket League Championship Series/2024",
+          "stage": "main",
+          "cache": "worlds-2024.wikitext"
+        }
+      ]
+    },
+    {
+      "slug": "major-2024-london",
+      "titles": [
+        {
+          "title": "Rocket League Championship Series/2024/Major 2",
+          "stage": "main",
+          "cache": "major-2024-london.wikitext"
+        }
+      ]
+    },
+    {
+      "slug": "major-2024-copenhagen",
+      "titles": [
+        {
+          "title": "Rocket League Championship Series/2024/Major 1",
+          "stage": "main",
+          "cache": "major-2024-copenhagen.wikitext"
+        }
+      ]
+    }
+  ]
+}
