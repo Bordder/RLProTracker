@@ -72,3 +72,6 @@ proxy-report*.txt
 # time it ran, so a freshly replaced proxy is not condemned on the old one's
 # figures. Addresses, so never committed.
 /.proxy-seen.json
+
+# The data-branch worktree publish-data.sh writes through.
+.databranch/

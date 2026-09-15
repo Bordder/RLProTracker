@@ -18,7 +18,7 @@
 
 import { join } from "node:path";
 import { loadEvents, eventsDue, allMatches } from "./events.mjs";
-import { pollPlan, MINUTE, IDLE, perHour } from "./schedule.mjs";
+import { pollPlan, MINUTE, IDLE, perHour } from "./bracketSchedule.mjs";
 import {
   CACHE_DIR, OUT_PATH, sleep, parseEvent, buildDoc, writeAtomic, fetchWikitext,
 } from "./assemble.mjs";
