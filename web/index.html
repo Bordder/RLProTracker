@@ -822,10 +822,15 @@
   .note a:hover,.fb .lead a:hover,.dek a:hover{color:var(--accent);text-decoration-color:var(--accent)}
   .foot-links a{color:var(--slate);font-size:12.5px;text-decoration:none;border-bottom:1px solid var(--line2);padding-bottom:1px}
   .foot-links a:hover{color:var(--accent);border-color:var(--accent-line)}
-  .fb{margin-top:24px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px;max-width:520px}
+  .fb{margin-top:24px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
   .fb h3{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:700;color:var(--bone);margin:0 0 4px}
-  .fb .lead{font-size:12px;color:var(--slate);margin:0 0 12px}
+  .fb .lead{font-size:12px;color:var(--slate);margin:0 0 12px;max-width:78ch}
   .fb .row{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 10px}
+  @media (min-width:760px){
+    .fb .wide{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px;align-items:start}
+    .fb .wide .row{margin:0 0 10px}
+    .fb textarea{min-height:104px}
+  }
   /* One line-height across all three, so the select cannot end up a pixel
      taller than the field beside it once its native appearance is removed. */
   .fb input,.fb select,.fb textarea{font-family:var(--body);font-size:13px;color:var(--bone);background:var(--bg2);border:1px solid var(--line2);border-radius:8px;padding:9px 11px;outline:none;transition:border-color .15s;line-height:1.15}
@@ -1250,6 +1255,8 @@
     <form class="fb" id="fbForm" autocomplete="off" novalidate>
       <h3>Send feedback</h3>
       <p class="lead">Feature idea, bug, or general feedback? Send it below. What you write is posted publicly as a <a href="https://github.com/Bordder/RLProTracker/issues" target="_blank" rel="noopener noreferrer">GitHub issue</a>. Email <a href="mailto:contact@198x.online">contact@198x.online</a> for anything you would rather keep private. <b>You will get a reply within 48 hours.</b></p>
+      <div class="wide">
+      <div>
       <div class="row">
         <input class="u" id="fbUser" type="text" placeholder="Username (optional)" maxlength="60" />
         <select id="fbType" aria-label="Type of feedback">
@@ -1259,20 +1266,24 @@
           <option value="Other">Other</option>
         </select>
       </div>
+      </div>
+      <div>
       <textarea id="fbMsg" placeholder="Your message&hellip;" minlength="25" maxlength="500" required></textarea>
       <p class="count" id="fbCount" aria-live="off"></p>
       <input class="hp" id="fbHp" type="text" tabindex="-1" aria-hidden="true" autocomplete="off" placeholder="Leave this empty" />
       <button type="submit" id="fbBtn">Send</button>
       <p class="msg" id="fbResult" role="status" aria-live="polite"></p>
+      </div>
+      </div>
     </form>
 
     <div class="foot-links">
-      <a href="https://github.com/Bordder/RLProTracker" target="_blank" rel="noopener noreferrer">View the source on GitHub</a>
-      <a href="/how-it-works">How it works</a>
-      <a href="/faq">FAQ</a>
       <a href="/status">Status</a>
-      <a href="/privacy">Privacy policy</a>
+      <a href="/faq">FAQ</a>
+      <a href="/how-it-works">How it works</a>
       <a href="/terms">Terms of service</a>
+      <a href="/privacy">Privacy policy</a>
+      <a href="https://github.com/Bordder/RLProTracker" target="_blank" rel="noopener noreferrer">View the source on GitHub</a>
     </div>
 
     <p class="copyright">Built and maintained by <b>Bordder</b>. &copy; <span id="yr"></span>.<br />
