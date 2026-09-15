@@ -3,7 +3,7 @@
 // Shared by build.mjs (one shot, offline) and collect.mjs (the loop), so the
 // two cannot drift into producing different documents from the same input.
 
-import { readFile, writeFile, rename } from "node:fs/promises";
+import { readFile, writeFile, rename, mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { parsePage } from "./parseBracket.mjs";
@@ -170,6 +170,10 @@ export const buildDoc = (events, source) => ({
  * parse error. rename is atomic on the same filesystem.
  */
 export async function writeAtomic(path, text) {
+  // data/derived is collector output, so it is gitignored and simply absent
+  // on a fresh checkout. A CI run died here on its first go: there is no
+  // directory to write the temporary file into until something makes one.
+  await mkdir(dirname(path), { recursive: true });
   const tmp = `${path}.tmp`;
   await writeFile(tmp, text);
   await rename(tmp, path);
