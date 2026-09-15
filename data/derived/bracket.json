@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-15T21:30:34.129Z",
+  "generatedAt": "2026-09-15T21:32:30.664Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -398,10 +398,10 @@
                   ],
                   "scores": [
                     2,
-                    2
+                    3
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": "2026-09-15T20:50:00.000Z",
                   "maps": [
@@ -427,8 +427,8 @@
                     },
                     {
                       "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score1": 1,
+                      "score2": 2
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/182c4511/r8-bigodes"
@@ -2504,16 +2504,16 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 9,
-            "live": 1,
+            "played": 10,
+            "live": 0,
             "upcoming": 37
           }
         }
       ],
       "counts": {
         "matches": 47,
-        "played": 9,
-        "live": 1,
+        "played": 10,
+        "live": 0,
         "upcoming": 37
       }
     },
