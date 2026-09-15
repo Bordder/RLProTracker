@@ -653,19 +653,16 @@
       var box=document.getElementById('lanNote');
       if(!box)return;
       if(!LAN){ box.innerHTML=''; box.hidden=true; return; }
-      var here=teams.filter(function(t){return atLan(t.team);}).length;
       var where=[LAN.city,LAN.country].filter(Boolean).join(', ');
-      // Teams rather than players, and counted off the board rather than off
-      // the bracket. The bracket knows about orgs this site does not track, and
-      // the roster carries partial rosters, so a player count would be a number
-      // nobody could check against the rows underneath it. A team either has a
-      // row here or it does not.
-      var who=here?(nf(here)+' team'+(here===1?'':'s')+' on this board '+(here===1?'is':'are')+' there.'):'';
       box.hidden=false;
+      // No count of who is there. The tag on each row already shows that, one
+      // team at a time and against the row it belongs to, which is a thing a
+      // reader can check; a number in the banner was the same fact stated in a
+      // form nobody could tie to anything.
       box.innerHTML='<div class="lannote"><i class="lanpip" aria-hidden="true"></i><span>'+
         '<b>'+esc(LAN.name)+'</b> is being played'+(where?' in '+esc(where):'')+
-        ', '+esc(lanWindow(LAN))+'. '+who+
-        ' <a href="/brackets">See the bracket</a></span></div>';
+        ', '+esc(lanWindow(LAN))+'. '+
+        '<a href="/brackets">See the bracket</a></span></div>';
     }
 
     // "15-20 September", or one date when a LAN runs a single day.

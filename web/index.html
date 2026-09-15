@@ -105,6 +105,10 @@
   .devnote .dn-t{display:block;color:var(--playing);font-weight:700;font-size:11px;
     letter-spacing:.09em;text-transform:uppercase;margin-bottom:3px}
   .devnote b{color:var(--bone);font-weight:600}
+  /* [hidden] needs saying out loud here: display:flex above beats the UA
+     stylesheet's rule, so the empty note drew its own bordered bar with
+     nothing in it whenever the markup was left hidden. Same fix as .wseg. */
+  .devnote[hidden]{display:none}
   .linkish{background:none;border:0;padding:0;font:inherit;color:var(--bone);font-weight:600;
     text-decoration:underline;text-decoration-color:var(--accent-line);text-underline-offset:2px;cursor:pointer}
   .linkish:hover{color:var(--accent);text-decoration-color:var(--accent)}
@@ -1336,6 +1340,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=dfae136d" defer></script>
+<script src="rlpt.js?v=e1177959" defer></script>
 </body>
 </html>
