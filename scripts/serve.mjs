@@ -1,15 +1,34 @@
 // Local preview server. Serves web/ as the site root (same layout Cloudflare
 // Pages publishes), after copying data/derived into web/ so relative fetches work.
-// No dependencies.  Usage:  node scripts/serve.mjs   (default port 5173)
+// No dependencies.
+//
+//   node scripts/serve.mjs                    the data this checkout has
+//   node scripts/serve.mjs --seed             the committed sample data
+//   node scripts/serve.mjs --seed season-reset  the board as it will look on
+//                                             the first day of a season
+//
+// The seed sets come from scripts/seedFixtures.mjs. --seed makes a fresh
+// checkout render a full board with no collector output and without pulling the
+// data branch, which overwrites the hand-maintained roster; season-reset is the
+// only way to look at the 23 September boundary before it happens.
 
 import { createServer } from "node:http";
-import { readFile, readdir, mkdir, copyFile, rename } from "node:fs/promises";
+import { readFile, readdir, mkdir, copyFile, rename, rm } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join, normalize, extname } from "node:path";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const WEB = join(ROOT, "web");
 const PORT = process.env.PORT || 5173;
+
+// Which set of JSON to serve. The default is whatever this checkout collected;
+// --seed takes the committed sample instead, optionally a named variant.
+const seedArg = process.argv.indexOf("--seed");
+const SEED = seedArg === -1 ? null : (process.argv[seedArg + 1] ?? "").startsWith("-") || !process.argv[seedArg + 1]
+  ? "" : process.argv[seedArg + 1];
+const DATA_SRC = SEED === null
+  ? join(ROOT, "data", "derived")
+  : join(ROOT, "data", "fixtures", SEED);
 // .mjs matters: the bracket page imports ES modules, and a module served as
 // application/octet-stream is refused outright under strict MIME checking.
 // The images are here for the team crests.
@@ -31,10 +50,20 @@ const TYPES = {
 let syncing = null;
 
 async function copyDerived() {
-  const src = join(ROOT, "data", "derived");
+  const src = DATA_SRC;
   const dest = join(WEB, "data", "derived");
   await mkdir(dest, { recursive: true });
   try {
+    // A seed set is smaller than the real one, and a file it does not carry
+    // would otherwise be left behind from an earlier run: the teams tab showed
+    // 35 teams from a stale team-hours.json over a 7-team seed. Serving a seed
+    // means serving ONLY the seed.
+    if (SEED !== null) {
+      const keep = new Set(await readdir(src));
+      for (const f of await readdir(dest)) {
+        if (f.endsWith(".json") && !keep.has(f)) await rm(join(dest, f), { force: true });
+      }
+    }
     for (const f of await readdir(src)) {
       if (!f.endsWith(".json")) continue;
       const tmp = join(dest, `.${f}.tmp`);
@@ -91,4 +120,7 @@ createServer(async (req, res) => {
     res.writeHead(404, { "content-type": "text/plain" });
     res.end("not found");
   }
-}).listen(PORT, () => console.log(`serving web/ on http://localhost:${PORT}`));
+}).listen(PORT, () => console.log(
+  `serving web/ on http://localhost:${PORT}` +
+  (SEED === null ? "" : `  (seed: ${SEED || "current"})`)
+));

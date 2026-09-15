@@ -372,8 +372,15 @@
     var card=function(k,v,s2,hot){return '<div class="card'+(hot?' hot':'')+'"><div class="k">'+k+'</div><div class="v">'+v+'</div><div class="s">'+s2+'</div></div>';};
     function renderCards(){
       var ranked=players.filter(function(p){return p.hasMmr;});
-      var totalGames=players.reduce(function(a,p){return a+(p.seasonGames||0);},0);
-      var top=players.filter(function(p){return p.seasonGames!=null;}).sort(function(a,b){return b.seasonGames-a.seasonGames;})[0];
+      // On the first day of a season nobody has a season total yet, because
+      // matchesPlayed is cumulative WITHIN a season and there is no earlier
+      // reading to diff against. Summing that to 0 prints a measurement
+      // nobody made: the board is not saying the field played no games, it is
+      // saying it does not know yet. Seen on the seeded rollover board
+      // (scripts/seedFixtures.mjs), which is what this branch exists for.
+      var withSeason=players.filter(function(p){return p.seasonGames!=null;});
+      var totalGames=withSeason.reduce(function(a,p){return a+p.seasonGames;},0);
+      var top=withSeason.slice().sort(function(a,b){return b.seasonGames-a.seasonGames;})[0];
       // "60 / 60" is a fraction whose halves are the same number; it only earns
       // the denominator when somebody is missing.
       var rankedFig=ranked.length===players.length
@@ -386,7 +393,8 @@
       // evenly instead of five that never can.
       document.getElementById('stats').innerHTML=
         card('Players Ranked', rankedFig, 'pros with ranked data', false)+
-        card('Total Ranked Games', nf(totalGames), 'across all tracked pros', false)+
+        card('Total Ranked Games', withSeason.length?nf(totalGames):'&middot;',
+             withSeason.length?'across all tracked pros':'season counts start again', false)+
         card('Most Active Pro', top?(nf(top.seasonGames)+' <small>games</small>'):'&middot;', top?('<b>'+esc(top.name)+'</b> &middot; '+esc(top.team||'')):'no data yet', false)+
         // Which roster is on the ladder today, rather than an inventory of how
         // many orgs the board covers. The teams tab is a click away for that.
@@ -402,7 +410,11 @@
     // them tracked is at a disadvantage. Most carry three.
     function topTeamCard(){
       var withGames=teams.filter(function(t){return t.seasonGames!=null;});
-      if(!withGames.length)return '';
+      // An empty string here left three tiles in a row sized for four, which
+      // is what the board looked like on the seeded season-rollover data. The
+      // tile stays and says it has nothing yet, which is a fact rather than a
+      // gap in the layout.
+      if(!withGames.length)return card('Most Active Team','&middot;','season counts start again',false);
       var top=withGames.slice().sort(function(a,b){return b.seasonGames-a.seasonGames;})[0];
       return card('Most Active Team', nf(top.seasonGames)+' <small>games</small>', '<b>'+esc(top.team)+'</b>', false);
     }
