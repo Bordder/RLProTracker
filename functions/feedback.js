@@ -27,6 +27,28 @@ const MIN_MESSAGE = 25;
 const MAX_USER = 60;
 const TYPES = ["Feedback", "Feature request", "Bug", "Other"];
 
+// One submission per address per minute.
+//
+// The WAF rule on this zone counts requests and is the real throttle, but it is
+// tuned for a page load: 100 in 10 seconds, which is generous traffic for a
+// board and a hundred GitHub issues for this endpoint. This is the endpoint's
+// own floor, and it is cheap - a cache entry per submitter, no storage, no
+// binding.
+//
+// caches.default is per-colo and has no atomic increment, so two requests that
+// arrive together can both pass, and a caller who moves between colos gets a
+// fresh allowance. That is fine: this exists to stop a loop, not a botnet, and
+// the WAF is what stands behind it.
+const SUBMIT_COOLDOWN = 60;
+
+const cooldownKey = (request) => {
+  const ip = request.headers.get("cf-connecting-ip") || "";
+  if (!ip) return null;
+  // The key must be a URL on this origin for the cache API to accept it, and
+  // must never collide with a real path. /__fb/ is not routed.
+  return new Request(new URL(`/__fb/${encodeURIComponent(ip)}`, request.url).toString(), { method: "GET" });
+};
+
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), {
     status,
@@ -49,6 +71,14 @@ async function handlePost(context) {
   const type = TYPES.includes(payload.type) ? payload.type : "Feedback";
   if (!message) return json({ error: "empty-message" }, 400);
   if (message.length < MIN_MESSAGE) return json({ error: "too-short", min: MIN_MESSAGE }, 400);
+
+  // Checked after validation so a malformed body cannot burn the allowance,
+  // and before the GitHub call so a flood costs a cache read rather than an
+  // issue.
+  const key = cooldownKey(request);
+  if (key && (await caches.default.match(key))) {
+    return json({ error: "too-many", retryAfter: SUBMIT_COOLDOWN }, 429);
+  }
 
   const title = `${type}${user ? ` from ${user}` : ""}: ${message.split("\n")[0].slice(0, 60)}`;
   const body = [
@@ -75,6 +105,13 @@ async function handlePost(context) {
     // 403 here usually means the token lacks Issues: write.
     console.log(`feedback -> ${res.status}`);
     return json({ error: "upstream" }, 502);
+  }
+  // Only a submission that actually filed something starts the clock, so a
+  // failed upstream does not lock the person out of retrying.
+  if (key) {
+    const mark = new Response("1", { headers: { "cache-control": `public, max-age=${SUBMIT_COOLDOWN}` } });
+    if (typeof context.waitUntil === "function") context.waitUntil(caches.default.put(key, mark));
+    else await caches.default.put(key, mark);
   }
   return json({ ok: true });
 }
