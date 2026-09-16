@@ -1,82 +1,79 @@
 {
-  "at": "2026-09-16T17:21:15.262Z",
+  "at": "2026-09-16T17:23:13.470Z",
   "proxyCount": 10,
-  "players": 54,
+  "players": 55,
   "benched": [
-    0,
-    1,
-    4,
-    7
+    3
   ],
   "use": [
     {
       "i": 0,
       "attempts": 6,
-      "retries": 2,
-      "fails": 5,
-      "benched": true
-    },
-    {
-      "i": 1,
-      "attempts": 14,
-      "retries": 6,
-      "fails": 8,
-      "benched": true
-    },
-    {
-      "i": 2,
-      "attempts": 14,
-      "retries": 8,
-      "fails": 1,
-      "benched": false
-    },
-    {
-      "i": 3,
-      "attempts": 7,
-      "retries": 1,
-      "fails": 1,
-      "benched": false
-    },
-    {
-      "i": 4,
-      "attempts": 6,
-      "retries": 1,
-      "fails": 5,
-      "benched": true
-    },
-    {
-      "i": 5,
-      "attempts": 9,
-      "retries": 4,
-      "fails": 1,
-      "benched": false
-    },
-    {
-      "i": 6,
-      "attempts": 6,
-      "retries": 1,
+      "retries": 0,
       "fails": 0,
       "benched": false
     },
     {
-      "i": 7,
-      "attempts": 3,
+      "i": 1,
+      "attempts": 6,
       "retries": 0,
       "fails": 3,
-      "benched": true
+      "benched": false
     },
     {
-      "i": 8,
-      "attempts": 10,
+      "i": 2,
+      "attempts": 9,
       "retries": 3,
       "fails": 0,
       "benched": false
     },
     {
-      "i": 9,
+      "i": 3,
+      "attempts": 5,
+      "retries": 0,
+      "fails": 4,
+      "benched": true
+    },
+    {
+      "i": 4,
+      "attempts": 11,
+      "retries": 4,
+      "fails": 0,
+      "benched": false
+    },
+    {
+      "i": 5,
+      "attempts": 5,
+      "retries": 0,
+      "fails": 0,
+      "benched": false
+    },
+    {
+      "i": 6,
+      "attempts": 5,
+      "retries": 0,
+      "fails": 4,
+      "benched": false
+    },
+    {
+      "i": 7,
+      "attempts": 9,
+      "retries": 4,
+      "fails": 0,
+      "benched": false
+    },
+    {
+      "i": 8,
       "attempts": 5,
       "retries": 0,
       "fails": 3,
+      "benched": false
+    },
+    {
+      "i": 9,
+      "attempts": 8,
+      "retries": 3,
+      "fails": 0,
       "benched": false
     }
   ]
