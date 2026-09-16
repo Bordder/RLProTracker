@@ -41,8 +41,6 @@ async function fetchDerived(file, env) {
   return { res: raw, from: "raw-fallback" };
 }
 
-const ALLOWED = /^[a-z0-9-]+\.json$/i;
-
 // How long one upstream read is shared by every visitor hitting this colo.
 //
 // This is a rate-limit guard, not a speed tweak. An authenticated API response
@@ -67,19 +65,43 @@ const withCors = (res) => {
   return r;
 };
 
-export async function onRequestGet(context) {
-  const { request, params, waitUntil } = context;
-  const file = (params.path || []).join("/");
-  // Only ever proxy the derived JSON: no path traversal, no fetching arbitrary
-  // repo contents through the site's origin.
-  if (!ALLOWED.test(file)) return withCors(new Response("not found", { status: 404 }));
+const ALLOWED = /^[a-z0-9-]+\.json$/i;
 
+// The board's six feeds, as one file.
+//
+// Not a new collector output: this is assembled at the edge from the same six
+// files, which are still served individually and still share one hot cache
+// entry each, so a direct reader and a board reader warm the same copy.
+//
+// It exists because of REQUESTS, not bytes. Cloudflare's rate limit counts a
+// burst per address, and on 16 September a visitor who opened the board and
+// clicked through to the bracket sent about 40 requests inside two seconds and
+// was answered with error 1015. Six of those were this page asking for six
+// files it always wants together, in one volley, every single load. One asking
+// is one request, and the bytes over the wire are unchanged.
+const BOARD = [
+  "steam-hours.json",
+  "team-hours.json",
+  "tracker.json",
+  "team-tracker.json",
+  "presence-hours.json",
+  "event-now.json",
+];
+const BOARD_FILE = "board.json";
+
+/**
+ * One derived file's bytes, through the hot cache, the upstream, and then the
+ * long-lived backup copy, in that order.
+ *
+ * @returns { body, from } or null when every one of those failed.
+ */
+async function loadFile(file, context, request) {
   const cache = caches.default;
   const cacheKey = new Request(new URL(`/__data/${file}`, request.url).toString(), { method: "GET" });
   const hotKey = new Request(new URL(`/__hot/${file}`, request.url).toString(), { method: "GET" });
 
   const hot = await cache.match(hotKey);
-  if (hot) return withCors(hot);
+  if (hot) return { body: await hot.arrayBuffer(), from: "hot" };
 
   let upstream = null;
   try {
@@ -90,35 +112,80 @@ export async function onRequestGet(context) {
 
   if (upstream && upstream.res.ok) {
     const body = await upstream.res.arrayBuffer();
-    const fresh = () => new Response(body, {
+    const store = (ttl) => new Response(body, {
       headers: {
         "content-type": "application/json; charset=utf-8",
-        // Browsers revalidate quickly; the edge absorbs the repeat traffic.
-        "cache-control": `public, max-age=30, s-maxage=${HOT_TTL}`,
-        "x-proxied-from": upstream.from,
+        "cache-control": `public, max-age=${ttl}`,
       },
     });
     // Keep a long-lived copy purely as a fallback. It is only ever read when
     // upstream fails, so its age does not affect normal serving.
-    const backup = new Response(body, {
-      headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=86400" },
-    });
-    waitUntil(cache.put(cacheKey, backup));
-    waitUntil(cache.put(hotKey, fresh()));
-    return withCors(fresh());
+    context.waitUntil(cache.put(cacheKey, store(86400)));
+    context.waitUntil(cache.put(hotKey, store(HOT_TTL)));
+    return { body, from: upstream.from };
   }
 
   const stale = await cache.match(cacheKey);
-  if (stale) {
-    const headers = new Headers(stale.headers);
-    headers.set("cache-control", "public, max-age=15");
-    // Says plainly that this is a fallback, so a confusing number on the page
-    // can be traced without guessing.
-    headers.set("x-data-stale", "upstream-unavailable");
-    return withCors(new Response(stale.body, { headers }));
+  if (stale) return { body: await stale.arrayBuffer(), from: "stale", stale: true };
+  return null;
+}
+
+const asJson = (body) => new TextDecoder().decode(body).trim();
+
+/**
+ * The six feeds as one document, keyed by the file each came from.
+ *
+ * Assembled as text rather than parsed and re-serialised: the six come to
+ * about 290KB, and there is nothing to be gained from turning that into
+ * objects at the edge and straight back into the same bytes.
+ */
+function assembleBoard(parts) {
+  const body = BOARD.map((f, i) => `${JSON.stringify(f)}:${parts[i] ? asJson(parts[i].body) : "null"}`);
+  return `{${body.join(",")}}`;
+}
+
+const jsonResponse = (body, extra = {}) => new Response(body, {
+  headers: {
+    "content-type": "application/json; charset=utf-8",
+    // Browsers revalidate quickly; the edge absorbs the repeat traffic.
+    "cache-control": `public, max-age=30, s-maxage=${HOT_TTL}`,
+    ...extra,
+  },
+});
+
+export async function onRequestGet(context) {
+  const { request, params, waitUntil } = context;
+  const file = (params.path || []).join("/");
+  // Only ever proxy the derived JSON: no path traversal, no fetching arbitrary
+  // repo contents through the site's origin.
+  if (!ALLOWED.test(file)) return withCors(new Response("not found", { status: 404 }));
+
+  if (file === BOARD_FILE) {
+    const cache = caches.default;
+    const hotKey = new Request(new URL(`/__hot/${BOARD_FILE}`, request.url).toString(), { method: "GET" });
+    const hot = await cache.match(hotKey);
+    if (hot) return withCors(hot);
+
+    const parts = await Promise.all(BOARD.map((f) => loadFile(f, context, request)));
+    // Every feed unreachable is the 502 case. One missing feed is not: the
+    // board renders what it has and says so, which is far better than an empty
+    // page because team-hours.json hiccuped.
+    if (parts.every((p) => !p)) return withCors(new Response("upstream error", { status: 502 }));
+
+    const text = assembleBoard(parts);
+    const headers = { "x-proxied-from": "board-merge" };
+    if (parts.some((p) => p && p.stale)) headers["x-data-stale"] = "upstream-unavailable";
+    waitUntil(cache.put(hotKey, jsonResponse(text, headers)));
+    return withCors(jsonResponse(text, headers));
   }
 
-  return withCors(new Response("upstream error", { status: 502 }));
+  const part = await loadFile(file, context, request);
+  if (!part) return withCors(new Response("upstream error", { status: 502 }));
+  const headers = { "x-proxied-from": part.from };
+  // Says plainly that this is a fallback, so a confusing number on the page
+  // can be traced without guessing.
+  if (part.stale) headers["x-data-stale"] = "upstream-unavailable";
+  return withCors(jsonResponse(part.body, headers));
 }
 
 // Pages routes by exported handler name, so exporting onRequestGet alone leaves

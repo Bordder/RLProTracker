@@ -39,6 +39,17 @@ const TYPES = {
   ".xml": "application/xml", ".txt": "text/plain",
 };
 
+// Kept in step with BOARD in functions/data/[[path]].js and BOARD_FEEDS in
+// web/rlpt.js: all three describe the same six files in the same order.
+const BOARD_FEEDS = [
+  "steam-hours.json",
+  "team-hours.json",
+  "tracker.json",
+  "team-tracker.json",
+  "presence-hours.json",
+  "event-now.json",
+];
+
 // Copy latest derived data into web/ before serving.
 //
 // The page fetches its JSON files in parallel, so several requests land at once
@@ -88,6 +99,24 @@ createServer(async (req, res) => {
   // Production serves the JSON from /data/<file>.json via a Pages Function.
   // Mirror that here so a local build with DATA_BASE=/data behaves the same;
   // otherwise the page silently 404s every data file locally.
+  // Production merges the board's six feeds into one document at the edge, so
+  // the page makes one request rather than six. There is no Function here, and
+  // without this the board fetches its only data file, gets the static 404 and
+  // renders empty - which looks exactly like a data outage.
+  if (path === "/data/board.json") {
+    await syncData();
+    const merged = {};
+    for (const f of BOARD_FEEDS) {
+      try {
+        merged[f] = JSON.parse(await readFile(join(WEB, "data", "derived", f), "utf8"));
+      } catch {
+        merged[f] = null;
+      }
+    }
+    res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
+    res.end(JSON.stringify(merged));
+    return;
+  }
   if (/^\/data\/[a-z0-9-]+\.json$/i.test(path)) {
     await syncData();
     path = path.replace("/data/", "/data/derived/");

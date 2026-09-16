@@ -275,17 +275,17 @@
   // a team that carries a crest in one place and a monogram in the other looks
   // like two different teams.
   var TEAM_LOGO={
-    'chiefs-esports-club':'png','complexity-gaming':'png','dignitas':'png',
-    'elevate':'png','five-fears':'png','furia':'png','fut-esports':'png',
-    'g2-stride':'png','gaimin-gladiators':'png','geekay-esports':'png',
-    'geng-mobil1-racing':'png','gentle-mates':'png','karmine-corp':'png',
-    'lil-step-bros':'png','limitless':'png','luminosity-gaming':'png',
-    'man-city-esports':'png','mibr':'png','ninjas-in-pyjamas':'png','nrg':'png',
-    'og':'png','oxygen-esports':'png','pioneers':'png','pwr':'png',
-    'r8-esports':'png','roc-esports':'png','rule-one':'png',
-    'shopify-rebellion':'png','spacestation-gaming':'png','team-bds':'png',
-    'team-bsk':'png','team-falcons':'png','team-secret':'png','team-vitality':'png',
-    'the-ultimates':'png','tsm':'png','twisted-minds':'png','virtuspro':'png',
+    'chiefs-esports-club':'webp','complexity-gaming':'webp','dignitas':'webp',
+    'elevate':'webp','five-fears':'webp','furia':'webp','fut-esports':'webp',
+    'g2-stride':'webp','gaimin-gladiators':'webp','geekay-esports':'webp',
+    'geng-mobil1-racing':'webp','gentle-mates':'webp','karmine-corp':'webp',
+    'lil-step-bros':'webp','limitless':'webp','luminosity-gaming':'webp',
+    'man-city-esports':'webp','mibr':'webp','ninjas-in-pyjamas':'webp','nrg':'webp',
+    'og':'webp','oxygen-esports':'webp','pioneers':'webp','pwr':'webp',
+    'r8-esports':'webp','roc-esports':'webp','rule-one':'webp',
+    'shopify-rebellion':'webp','spacestation-gaming':'webp','team-bds':'webp',
+    'team-bsk':'webp','team-falcons':'webp','team-secret':'webp','team-vitality':'webp',
+    'the-ultimates':'webp','tsm':'webp','twisted-minds':'webp','virtuspro':'webp',
     'wildcard':'svg'
   };
   // One org, several names. The roster and the bracket disagree on some of
@@ -387,9 +387,29 @@
     var bust='?v='+Math.floor(Date.now()/60000);
     return fetch(DATA_BASE+'/'+f+bust,{cache:'no-store'}).then(function(r){return r.ok?r.json():null;}).catch(function(){return null;});
   };
+  // The six feeds this page always wants together, in the order everything
+  // below expects them.
+  var BOARD_FEEDS=['steam-hours.json','team-hours.json','tracker.json','team-tracker.json','presence-hours.json','event-now.json'];
+  // One request for all six, assembled at the edge from the same files.
+  //
+  // Six parallel fetches on every load is six of the roughly forty requests a
+  // visitor sent between opening the board and clicking through to the
+  // bracket, which is what tripped Cloudflare's per-address burst limit on 16
+  // September and answered them with error 1015. The bytes are identical; the
+  // asking is one instead of six.
+  //
+  // A feed the edge could not reach comes back null inside the document, which
+  // is the same thing a failed individual fetch produced, so nothing
+  // downstream has to care which way the data arrived.
+  var getBoard=function(){
+    return getJson('board.json').then(function(b){
+      if(!b)return BOARD_FEEDS.map(function(){return null;});
+      return BOARD_FEEDS.map(function(f){return b[f]||null;});
+    });
+  };
   var load=window.__RLDATA__
     ? Promise.resolve([window.__RLDATA__.steam,window.__RLDATA__.teams,window.__RLDATA__.tracker,window.__RLDATA__.teamTracker,window.__RLDATA__.presence,window.__RLDATA__.eventNow])
-    : Promise.all([getJson('steam-hours.json'),getJson('team-hours.json'),getJson('tracker.json'),getJson('team-tracker.json'),getJson('presence-hours.json'),getJson('event-now.json')]);
+    : getBoard();
 
   load.then(function(res){
     // ---- rank by 2v2 MMR (players by their twos, teams by avg twos) ----
@@ -750,17 +770,17 @@
       if(refreshing)return;
       refreshing=true;
       var full=Date.now()-lastFull>=SLOW_MS;
+      // The slow path wants everything, so it takes the merged document: one
+      // request rather than six. The fast path wants only the two feeds that
+      // move on the collector's beat, which is already fewer requests and far
+      // fewer bytes than re-reading the whole board every two minutes.
+      //
+      // A LAN starts and ends on a date, so event-now cannot change inside
+      // those two minutes and rides the slow path with the hours feeds.
       var keep=function(i){ return Promise.resolve(latest[i]); };
-      Promise.all([
-        full?getJson('steam-hours.json'):keep(0),
-        full?getJson('team-hours.json'):keep(1),
-        getJson('tracker.json'),
-        getJson('team-tracker.json'),
-        full?getJson('presence-hours.json'):keep(4),
-        // A LAN starts and ends on a date. Nothing about it can change inside
-        // the two minutes the ranked feeds move on, so it rides the slow path.
-        full?getJson('event-now.json'):keep(5)
-      ])
+      (full ? getBoard() : Promise.all([
+        keep(0), keep(1), getJson('tracker.json'), getJson('team-tracker.json'), keep(4), keep(5)
+      ]))
         .then(function(next){
           // A failed fetch yields null, which hydrate rejects wholesale. Keep
           // the previous copy for any feed that did not come back rather than
@@ -2192,9 +2212,14 @@
     // this one, a second monitor, a machine waking up. So every ordinary sign
     // of presence counts, rate limited so it costs nothing.
     var lastAsk=0;
+    // force skips the ordinary 15-second spacing, but not all spacing. Load
+    // fires ensureFresh directly and then pageshow and focus both arrive
+    // within the same tick, so one page load asked /api/status three times
+    // before the reader had seen anything. Three seconds is below the point a
+    // returning reader notices and well above a pile-up.
     var ensureFresh=function(force){
       var now=Date.now();
-      if(!force&&now-lastAsk<15000)return;
+      if(now-lastAsk<(force?3000:15000))return;
       lastAsk=now;
       pollStatus();
     };
