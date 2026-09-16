@@ -261,12 +261,23 @@ test("events.json is loadable, and every cache file it names exists", async () =
     slugs.add(e.slug);
     for (const t of e.titles) {
       assert.ok(t.title && t.cache, `${e.slug} has an incomplete title entry`);
-      // Either the live cache or the frozen fixture must hold it, since
-      // parseEvent falls back from one to the other.
-      const found = ["cache", "fixtures"].some((d) => {
-        try { readFileSync(join(BRACKET, d, t.cache)); return true; } catch { return false; }
-      });
-      assert.ok(found, `${e.slug}: no wikitext on disk for ${t.cache}`);
+      // The FIXTURE, not the cache.
+      //
+      // readCached prefers cache/ and falls back to fixtures/, so accepting
+      // either looked equivalent. It is not: cache/ is gitignored, live and
+      // disposable, so it exists on a machine that has run the collector and
+      // nowhere else. This assertion passed locally off a file no one else
+      // has and failed on every clean checkout, which is how CI sat red for
+      // 23 runs from 15 September while `npm test` was green on the desk it
+      // was written at.
+      //
+      // Requiring the committed copy makes the two agree: what CI checks is
+      // what a fresh clone checks.
+      const found = (() => {
+        try { readFileSync(join(BRACKET, "fixtures", t.cache)); return true; } catch { return false; }
+      })();
+      assert.ok(found, `${e.slug}: no committed fixture for ${t.cache}. ` +
+        `Copy data/bracket/cache/${t.cache} to data/bracket/fixtures/ and commit it.`);
     }
   }
 });
