@@ -324,11 +324,29 @@ async function main() {
   // Fail open: an unreadable or empty roster publishes everything rather than
   // emptying the board.
   let rosterIds = null;
+  // Nationality and Twitch channel, keyed by player id. These live only on the
+  // roster: name and team travel on the snapshot rows, but a country is a fact
+  // about the person rather than about a reading, so nothing in the history
+  // carries it and it has to be joined on here.
+  let profiles = new Map();
   try {
     const roster = JSON.parse(await readFile(join(ROOT, "data", "roster.json"), "utf8"));
     const ids = (roster.players ?? []).map((p) => p.id).filter(Boolean);
     if (ids.length) rosterIds = new Set(ids);
-  } catch { rosterIds = null; }
+    for (const p of roster.players ?? []) {
+      if (!p.id) continue;
+      // Only publish the fields that are actually set, so a player with neither
+      // adds no keys to the feed at all.
+      const entry = {};
+      if (p.country?.code) entry.country = p.country;
+      // Only where there is a real second nationality. The England/United
+      // Kingdom pairing is dropped at collection, so anything reaching here is
+      // two countries worth naming.
+      if (p.country?.code && p.country2?.code) entry.country2 = p.country2;
+      if (p.twitch) entry.twitch = p.twitch;
+      if (Object.keys(entry).length) profiles.set(p.id, entry);
+    }
+  } catch { rosterIds = null; profiles = new Map(); }
 
   const { now, players: computed } = computeTrackerPlayers(snaps, rosterIds);
   // presenceHot writes this at the top of the same run, so it is the freshest
@@ -343,7 +361,8 @@ async function main() {
   await writeStore(peaks);
   const players = withSteam.map((p) => {
     const peak = peakFor(peaks, p.id);
-    return peak ? { ...p, peak } : p;
+    const profile = profiles.get(p.id);
+    return { ...p, ...(peak ? { peak } : null), ...profile };
   });
   const dropped = rosterIds ? new Set([].concat(...snaps.map((s) => s.rows.map((r) => r.id)))).size - players.length : 0;
   if (dropped > 0) console.log(`dropped ${dropped} player(s) held in history but no longer on the roster`);
