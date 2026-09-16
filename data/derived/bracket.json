@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T19:35:04.682Z",
+  "generatedAt": "2026-09-16T19:37:00.651Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -1340,11 +1340,11 @@
                     "MIBR"
                   ],
                   "scores": [
-                    2,
+                    3,
                     1
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": null,
                   "maps": [
@@ -1365,13 +1365,8 @@
                     },
                     {
                       "name": "Utopia Coliseum (Dusk)",
-                      "score1": null,
-                      "score2": null
-                    },
-                    {
-                      "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score1": 4,
+                      "score2": 2
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/52a2b8e1/kc-mibr"
@@ -2466,16 +2461,16 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 16,
-            "live": 2,
+            "played": 17,
+            "live": 1,
             "upcoming": 29
           }
         }
       ],
       "counts": {
         "matches": 47,
-        "played": 16,
-        "live": 2,
+        "played": 17,
+        "live": 1,
         "upcoming": 29
       },
       "unresolved": [],
