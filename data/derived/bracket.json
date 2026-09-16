@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T17:51:00.446Z",
+  "generatedAt": "2026-09-16T17:53:00.827Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -1901,11 +1901,11 @@
                     "Bigodes"
                   ],
                   "scores": [
-                    2,
+                    3,
                     1
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": null,
                   "maps": [
@@ -1926,13 +1926,8 @@
                     },
                     {
                       "name": "Utopia Coliseum (Dusk)",
-                      "score1": null,
-                      "score2": null
-                    },
-                    {
-                      "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score1": 1,
+                      "score2": 0
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/582c55d5/nrg-bigodes"
@@ -2496,16 +2491,16 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 12,
-            "live": 2,
+            "played": 13,
+            "live": 1,
             "upcoming": 33
           }
         }
       ],
       "counts": {
         "matches": 47,
-        "played": 12,
-        "live": 2,
+        "played": 13,
+        "live": 1,
         "upcoming": 33
       },
       "unresolved": [],
