@@ -13,19 +13,19 @@ export const LOGO_DIR = "/img/teams/";
 
 // Drop a file at img/teams/<slug>.<ext> and list its extension here.
 const TEAM_LOGO = {
-  "geng-mobil1-racing": "png", "karmine-corp": "png", "lil-step-bros": "png",
-  "mibr": "png", "nrg": "png", "shopify-rebellion": "png",
-  "spacestation-gaming": "png", "team-bsk": "png", "tsm": "png", "wildcard": "svg",
-  "complexity-gaming": "png", "gentle-mates": "png", "team-falcons": "png",
-  "team-vitality": "png", "furia": "png", "twisted-minds": "png", "team-secret": "png",
-  "g2-stride": "png", "gaimin-gladiators": "png", "ninjas-in-pyjamas": "png",
-  "geekay-esports": "png", "fut-esports": "png", "r8-esports": "png",
-  "dignitas": "png", "pioneers": "png", "pwr": "png",
-  "virtuspro": "png", "five-fears": "png", "oxygen-esports": "png",
-  "team-bds": "png", "man-city-esports": "png", "og": "png",
-  "luminosity-gaming": "png", "the-ultimates": "png", "roc-esports": "png",
-  "rule-one": "png", "elevate": "png", "chiefs-esports-club": "png",
-  "limitless": "png",
+  "geng-mobil1-racing": "webp", "karmine-corp": "webp", "lil-step-bros": "webp",
+  "mibr": "webp", "nrg": "webp", "shopify-rebellion": "webp",
+  "spacestation-gaming": "webp", "team-bsk": "webp", "tsm": "webp", "wildcard": "svg",
+  "complexity-gaming": "webp", "gentle-mates": "webp", "team-falcons": "webp",
+  "team-vitality": "webp", "furia": "webp", "twisted-minds": "webp", "team-secret": "webp",
+  "g2-stride": "webp", "gaimin-gladiators": "webp", "ninjas-in-pyjamas": "webp",
+  "geekay-esports": "webp", "fut-esports": "webp", "r8-esports": "webp",
+  "dignitas": "webp", "pioneers": "webp", "pwr": "webp",
+  "virtuspro": "webp", "five-fears": "webp", "oxygen-esports": "webp",
+  "team-bds": "webp", "man-city-esports": "webp", "og": "webp",
+  "luminosity-gaming": "webp", "the-ultimates": "webp", "roc-esports": "webp",
+  "rule-one": "webp", "elevate": "webp", "chiefs-esports-club": "webp",
+  "limitless": "webp",
 };
 
 // One org, several names over the years. The display name stays whatever the
