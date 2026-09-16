@@ -285,14 +285,47 @@ export function parseInfobox(wikitext) {
   }
   const { named } = templateArgs(wikitext.slice(start + 2, end - 2));
 
+  // Wikitext to display text.
+  //
+  // Every rule here deletes a multi-character sequence, and deleting one can
+  // spell another out of what was on either side of it: "<scr<b>ipt>" loses
+  // "<b>" and becomes "<script>". One pass is therefore not a sanitizer, which
+  // is what CodeQL means by js/incomplete-multi-character-sanitization. The
+  // loop below runs the whole set until the text stops changing, so no removal
+  // can leave a sequence a later reader would have to deal with.
+  //
+  // The page escapes this text again before it reaches the DOM, and the CSP
+  // forbids inline script on top of that. This is the layer below both, and it
+  // matters because the input is a wiki: anyone with a Liquipedia account can
+  // put anything in an event name.
+  const strip = (t) => t
+    .replace(/\[(?:https?:)?\/\/\S+\s+([^\]]+)\]/g, "$1")   // [url label] -> label
+    .replace(/\[\[(?:[^|\]]*\|)?([^\]]+)\]\]/g, "$1")        // [[page|label]] -> label
+    // Whole tags, not their brackets. Copilot Autofix closed the alert with
+    // .replace(/[<>]/g, ""), which is safe and keeps what was INSIDE the tag:
+    // "RLCS <b>2026</b>" came out as "RLCS b2026/b". Removing the tag and
+    // looping is the same security property with the name left readable.
+    .replace(/'{2,}|<[^>]+>/g, "")
+    // Innermost first: [^{}] cannot cross another template's braces, so one
+    // pass takes the deepest one and the loop below peels outwards. The old
+    // [^}]* matched from the OUTER "{{" to the INNER "}}", which on a nested
+    // template deleted the wrong span and left "lag|de}}" sitting in the name.
+    .replace(/\{\{[^{}]*\}\}/g, "");
+
   const plain = (v) => {
     if (!v) return null;
     let t = String(v);
     // A field can carry the NEXT field after an unescaped pipe.
     t = t.split(/\|\w+\s*=/)[0];
-    t = t.replace(/\[(?:https?:)?\/\/\S+\s+([^\]]+)\]/g, "$1");   // [url label] -> label
-    t = t.replace(/\[\[(?:[^|\]]*\|)?([^\]]+)\]\]/g, "$1");        // [[page|label]] -> label
-    t = t.replace(/'{2,}/g, "").replace(/[<>]/g, "").replace(/\{\{[^}]*\}\}/g, "");
+    for (let prev = null; prev !== t; ) { prev = t; t = strip(t); }
+    // Whatever survives the loop, no angle bracket may reach a consumer: the
+    // rules above only match BALANCED markup, and an unclosed "<b" is left
+    // untouched by design so a stray "<" in a name is not silently eaten.
+    // This is the autofix's sweep, kept as the floor under the loop.
+    t = t.replace(/[<>]/g, "");
+    // Removing markup leaves the gaps it sat in. "RLCS {{flag|de}} Split" is a
+    // real Liquipedia name and became "RLCS  Split" with two spaces.
+    t = t.replace(/\s+/g, " ");
     return t.trim() || null;
   };
   const date = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v ?? "").trim()) ? v.trim() : null);
