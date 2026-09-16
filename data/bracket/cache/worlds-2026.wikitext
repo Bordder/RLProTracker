@@ -854,8 +854,8 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 |pbg1=up|pbg2=stay|pbg3=stay|pbg4=down
 |tiebreaker1=series|tiebreaker2=h2h series|tiebreaker3=diff
 |edate=
-|bg1=|team1=NRG|temp_tie1=4
-|bg2=|team2=Shopify Rebellion|temp_tie2=3
+|bg1=stay|team1=NRG|temp_tie1=4
+|bg2=stay|team2=Shopify Rebellion|temp_tie2=3
 |bg3=|team3=Manchester City Esports|temp_tie3=2
 |bg4=|team4=Bigodes|temp_tie4=1
 }}
@@ -891,7 +891,7 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 }}
 |M3header=Round 2|M3={{Match
 	|opponent1={{TeamOpponent|Manchester City Esports|score=1}}
-	|opponent2={{TeamOpponent|NRG|score=2}}
+	|opponent2={{TeamOpponent|NRG|score=3}}
 	|map1={{Map
 		|map=Mannfield (Dusk)
 		|score1=1|score2=0
@@ -911,17 +911,10 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 	}}
 	|map4={{Map
 		|map=Utopia Coliseum (Dusk)
-		|score1=|score2=
-		|ot=|otlength=
+		|score1=0|score2=3
 		|vod=
 	}}
-	|map5={{Map
-		|map=Champions Field
-		|score1=|score2=
-		|ot=|otlength=
-		|vod=
-	}}
-	|finished=
+	|finished=true
 	|ballchasing=nrg-vs-mcfc-axdfsecq0s
 	|blasttv=rl/tournaments/rlcs-world-championship-2026/series/271ca944/mancity-nrg
 	|twitch=Rocket League|youtube=Rocket League

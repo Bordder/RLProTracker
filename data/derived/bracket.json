@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T21:58:55.977Z",
+  "generatedAt": "2026-09-16T22:01:04.037Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -1915,10 +1915,10 @@
                   ],
                   "scores": [
                     1,
-                    2
+                    3
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": null,
                   "maps": [
@@ -1939,13 +1939,8 @@
                     },
                     {
                       "name": "Utopia Coliseum (Dusk)",
-                      "score1": null,
-                      "score2": null
-                    },
-                    {
-                      "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score1": 0,
+                      "score2": 3
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/271ca944/mancity-nrg"
@@ -2386,13 +2381,13 @@
                 {
                   "rank": 1,
                   "team": "NRG",
-                  "outcome": null,
+                  "outcome": "stay",
                   "meansIfHere": "up"
                 },
                 {
                   "rank": 2,
                   "team": "Shopify Rebellion",
-                  "outcome": null,
+                  "outcome": "stay",
                   "meansIfHere": "stay"
                 },
                 {
@@ -2441,16 +2436,16 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 21,
-            "live": 1,
+            "played": 22,
+            "live": 0,
             "upcoming": 25
           }
         }
       ],
       "counts": {
         "matches": 47,
-        "played": 21,
-        "live": 1,
+        "played": 22,
+        "live": 0,
         "upcoming": 25
       },
       "unresolved": [],
