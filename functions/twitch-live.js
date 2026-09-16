@@ -32,6 +32,15 @@ const LIVE_TTL = 60;
 // 401 refreshes it anyway, so the clock is a backstop rather than the mechanism.
 const TOKEN_TTL = 3600;
 
+// Only this game counts as live here.
+//
+// The board is about Rocket League, and a pro streaming something else is not
+// doing the thing the badge would be claiming. Filtered HERE rather than on the
+// page so the answer never carries what a player is playing when it is not
+// Rocket League: that is a fact about somebody's evening, the site has no use
+// for it, and the smallest way to look after it is not to publish it.
+const GAME = "Rocket League";
+
 const json = (body, status = 200, ttl = 0) =>
   new Response(JSON.stringify(body), {
     status,
@@ -71,13 +80,14 @@ export function chunk(list, n = MAX_LOGINS) {
  * controls, it would be the only free-form string on the board, and a badge
  * does not need it. Nothing here is worth the escaping it would require.
  */
-export function liveFrom(streams) {
+export function liveFrom(streams, game = null) {
   const live = {};
   for (const s of streams ?? []) {
     const login = fold(s?.user_login);
     if (!login) continue;
     // "live" as opposed to a rerun, which Twitch also returns here.
     if (s.type && s.type !== "live") continue;
+    if (game && fold(s?.game_name) !== fold(game)) continue;
     live[login] = {
       game: typeof s.game_name === "string" ? s.game_name : null,
       viewers: Number.isFinite(s.viewer_count) ? s.viewer_count : null,
@@ -177,7 +187,7 @@ export async function onRequestGet(context) {
           const body = await res.json();
           all.push(...(body?.data ?? []));
         }
-        if (ok) live = liveFrom(all);
+        if (ok) live = liveFrom(all, GAME);
       }
     } else {
       // No channels to ask about is a valid, empty answer.

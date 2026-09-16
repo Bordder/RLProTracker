@@ -568,14 +568,13 @@
       return TWLIVE[String(p.twitch).toLowerCase()]||null;
     };
     var isStreaming=function(p){ return !!streamOf(p); };
-    // The game is named because "live" on its own invites the wrong reading on
-    // a board about Rocket League specifically: a pro streaming something else
-    // is still not queueing.
+    // Rocket League only, and the endpoint enforces that, so the badge never has
+    // to qualify itself: a pro streaming something else is not doing the thing
+    // this board is about and gets no badge at all.
+    var STREAM_TITLE='Live on Twitch, playing Rocket League';
     var streamMark=function(p){
-      var s=streamOf(p);
-      if(!s)return '';
-      var what=s.game?('Live on Twitch: '+s.game):'Live on Twitch';
-      return '<span class="twlive" title="'+esc(what)+'" aria-label="'+esc(what)+'">LIVE</span>';
+      if(!isStreaming(p))return '';
+      return '<span class="twlive" title="'+esc(STREAM_TITLE)+'" aria-label="'+esc(STREAM_TITLE)+'">LIVE</span>';
     };
     var loadTwitch=function(){
       // Same 60s bucket the feeds use, and the endpoint is edge cached for the
@@ -1453,12 +1452,13 @@
         // them at once. Here it has room to be written out in full.
         ['Nationality', nationality(p)],
         ['Steam', statusChip(p.status)],
+        // The marker sits against the channel name, which is the thing it is
+        // about. No game name beside it: the endpoint only reports Rocket
+        // League, so printing it here would say the same thing twice.
         ['Twitch', p.twitch
-          ? twitchLink(p.twitch)+(function(st){
-              if(!st)return '';
-              // The panel has room to say what "live" actually means here.
-              return ' <span class="twlive">LIVE</span>'+(st.game?'<span class="twgame">'+esc(st.game)+'</span>':'');
-            })(streamOf(p))
+          ? twitchLink(p.twitch)+(isStreaming(p)
+              ? ' <span class="twlive" title="'+esc(STREAM_TITLE)+'">LIVE</span>'
+              : '')
           : '<span class="dash">&middot;</span>'],
         ['Peak MMR', peakFact(p)],
         ['Games, 24h', panelGames(p,'d1')],

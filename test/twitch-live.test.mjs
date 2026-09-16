@@ -70,11 +70,30 @@ test("a rerun is not live", () => {
   assert.deepEqual(liveFrom([{ user_login: "a_b_c", type: "rerun", game_name: "Rocket League" }]), {});
 });
 
-test("a game other than Rocket League is still reported, and named", () => {
-  // Deliberately not filtered. The badge says what they are playing, so a pro
-  // streaming something else reads as streaming something else rather than
-  // silently vanishing.
-  const live = liveFrom([{ user_login: "a_b_c", game_name: "Just Chatting", viewer_count: 4, type: "live" }]);
+test("only Rocket League counts as live", () => {
+  // The board is about Rocket League, so a pro streaming something else is not
+  // doing the thing a badge would be claiming. Filtered in the endpoint, which
+  // also keeps what somebody plays on their own time out of the response.
+  const streams = [
+    { user_login: "a_b_c", game_name: "Just Chatting", viewer_count: 4, type: "live" },
+    { user_login: "d_e_f", game_name: "Rocket League", viewer_count: 9, type: "live" },
+  ];
+  const live = liveFrom(streams, "Rocket League");
+  assert.deepEqual(Object.keys(live), ["d_e_f"]);
+  // The non-Rocket-League stream leaves no trace at all, not even the login.
+  assert.ok(!JSON.stringify(live).includes("a_b_c"), JSON.stringify(live));
+  assert.ok(!JSON.stringify(live).includes("Just Chatting"), JSON.stringify(live));
+});
+
+test("the game filter is case and whitespace tolerant", () => {
+  // Twitch's category name is what it is, but a comparison that breaks on
+  // casing would silently empty the board rather than fail loudly.
+  const live = liveFrom([{ user_login: "a_b_c", game_name: " rocket league ", type: "live" }], "Rocket League");
+  assert.deepEqual(Object.keys(live), ["a_b_c"]);
+});
+
+test("without a filter every game is reported", () => {
+  const live = liveFrom([{ user_login: "a_b_c", game_name: "Just Chatting", type: "live" }]);
   assert.equal(live.a_b_c.game, "Just Chatting");
 });
 
