@@ -27,5 +27,20 @@
       "source": "Said by the player on his own stream",
       "on": "2026-09"
     }
+  },
+  "twitch": {
+    "_note": "Manual corrections to the Twitch channel read off Liquipedia, which links an old or wrong account for some players. These win over the fetch and survive --refresh-profiles. A null means the player is known NOT to have a channel, which is different from one not having been found yet: null is published as no link, and stops the wrong one coming back on the next run.",
+    "spacestation-gaming-diaz": "diazrll_",
+    "novo-esports-giuk": "giuk_rl",
+    "spacestation-gaming-reveal": "reveal",
+    "karmine-corp-juicy": "juicyyrl",
+    "spacestation-gaming-zach": "zach34__",
+    "s-o-s-lunar-brawler": "lunarbrawler_",
+    "lil-step-bros-guh": "akaguh",
+    "five-fears-snowyy": null
+  },
+  "liquipedia": {
+    "_note": "The Liquipedia page title to read for a player, where the player's own name resolves to somebody else. Liquipedia disambiguates with a parenthesised suffix, and the bare title usually belongs to whoever held it first. Getting this wrong is quiet and expensive: it publishes another person's nationality, Twitch channel and Steam link under this player's name.",
+    "karmine-corp-juicy": "Juicy (French Player)"
   }
 }
