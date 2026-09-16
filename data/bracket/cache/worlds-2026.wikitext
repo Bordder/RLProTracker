@@ -706,36 +706,11 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 |M1header=Round 1|M1={{Match
 	|opponent1={{TeamOpponent|Twisted Minds|score=3}}
 	|opponent2={{TeamOpponent|FUT Esports|score=2}}
-	|map1={{Map
-		|map=Mannfield (Dusk)
-		|score1=2|score2=1|timeout=2
-		|ot=|otlength=
-		|vod=
-	}}
-	|map2={{Map
-		|map=Forbidden Temple
-		|score1=3|score2=2
-		|ot=|otlength=
-		|vod=
-	}}
-	|map3={{Map
-		|map=Futura Garden (Night)
-		|score1=1|score2=2
-		|ot=|otlength=
-		|vod=
-	}}
-	|map4={{Map
-		|map=Utopia Coliseum (Dusk)
-		|score1=3|score2=4|timeout=1
-		|ot=true|otlength=+1:19
-		|vod=
-	}}
-	|map5={{Map
-		|map=Champions Field
-		|score1=3|score2=2
-		|ot=true|otlength=+2:39
-		|vod=
-	}}
+	|map1={{Map|map=Mannfield (Dusk)|score1=2|score2=1|timeout=2|vod=}}
+	|map2={{Map|map=Forbidden Temple|score1=3|score2=2|vod=}}
+	|map3={{Map|map=Futura Garden (Night)|score1=1|score2=2|vod=}}
+	|map4={{Map|map=Utopia Coliseum (Dusk)|score1=3|score2=4|timeout=1|ot=true|otlength=+1:19|vod=}}
+	|map5={{Map|map=Champions Field|score1=3|score2=2|ot=true|otlength=+2:39|vod=}}
 	|finished=true
 	|ballchasing=twis-vs-fut-iutd4h5cpt
 	|blasttv=rl/tournaments/rlcs-world-championship-2026/series/0c315a70/twistedminds-fut
@@ -747,24 +722,9 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 |M2={{Match
 	|opponent1={{TeamOpponent|Ninjas in Pyjamas|score=0}}
 	|opponent2={{TeamOpponent|FURIA|score=3}}
-	|map1={{Map
-		|map=Mannfield (Dusk)
-		|score1=1|score2=5
-		|ot=|otlength=
-		|vod=https://www.twitch.tv/videos/2875740280?t=00h56m54s
-	}}
-	|map2={{Map
-		|map=Forbidden Temple
-		|score1=3|score2=4|timeout=1
-		|ot=|otlength=
-		|vod=https://www.twitch.tv/videos/2875740280?t=01h05m21s
-	}}
-	|map3={{Map
-		|map=Futura Garden (Night)
-		|score1=0|score2=4
-		|ot=|otlength=
-		|vod=https://www.twitch.tv/videos/2875740280?t=01h15m28s
-	}}
+	|map1={{Map|map=Mannfield (Dusk)|score1=1|score2=5|vod=https://www.twitch.tv/videos/2875740280?t=00h56m54s}}
+	|map2={{Map|map=Forbidden Temple|score1=3|score2=4|timeout=1|vod=https://www.twitch.tv/videos/2875740280?t=01h05m21s}}
+	|map3={{Map|map=Futura Garden (Night)|score1=0|score2=4|vod=https://www.twitch.tv/videos/2875740280?t=01h15m28s}}
 	|finished=true
 	|ballchasing=nip-vs-fur-u06v7p1dyr
 	|blasttv=rl/tournaments/rlcs-world-championship-2026/series/22259c19/nip-furia
