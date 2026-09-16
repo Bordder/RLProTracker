@@ -880,16 +880,11 @@
   .fb h3{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:12px;font-weight:700;color:var(--bone);margin:0 0 4px}
   .fb .lead{font-size:12px;color:var(--slate);margin:0 0 12px;max-width:78ch}
   .fb .row{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 10px}
-  @media (min-width:760px){
-    .fb .wide{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:12px;align-items:start}
-    .fb .wide .row{margin:0 0 10px}
-    .fb textarea{min-height:104px}
-  }
   /* One line-height across all three, so the select cannot end up a pixel
      taller than the field beside it once its native appearance is removed. */
   .fb input,.fb select,.fb textarea{font-family:var(--body);font-size:13px;color:var(--bone);background:var(--bg2);border:1px solid var(--line2);border-radius:8px;padding:9px 11px;outline:none;transition:border-color .15s;line-height:1.15}
   .fb input:focus,.fb select:focus,.fb textarea:focus{border-color:var(--accent-line)}
-  .fb input.u{flex:1;min-width:140px}
+  .fb input.u{flex:1;min-width:140px;max-width:340px}
   /* The native control lays its own label out and put it low in the box, so it
      sat a couple of pixels under the placeholder in the field beside it. Taking
      the appearance off hands the vertical centring back to our own padding and
@@ -900,7 +895,7 @@
     background-position:right 11px center;background-size:9px 6px;
     background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 6'%3E%3Cpath d='M1 1l3.5 3.5L8 1' fill='none' stroke='%237E8A99' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")}
   .fb select:focus{background-image:url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 9 6'%3E%3Cpath d='M1 1l3.5 3.5L8 1' fill='none' stroke='%23FF5A1F' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E")}
-  .fb textarea{width:100%;min-height:82px;resize:vertical}
+  .fb textarea{width:100%;min-height:96px;resize:vertical}
   .fb .hp{position:absolute!important;left:-9999px;width:1px;height:1px;opacity:0}
   .fb button{appearance:none;border:0;cursor:pointer;background:var(--accent);color:var(--ink);font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-weight:700;font-size:12.5px;padding:10px 22px;border-radius:8px;transition:opacity .15s}
   .fb button:hover{opacity:.9}
@@ -909,8 +904,20 @@
   .fb .count.short{color:var(--slate);opacity:.75} .fb .count.full{color:#E0655A}
   .fb .msg{font-size:12px;margin:10px 0 0;min-height:1em;color:var(--slate)}
   .fb .msg.ok{color:var(--live)} .fb .msg.err{color:#E0655A}
-  .copyright{margin-top:24px;padding-top:14px;border-top:1px solid var(--line);font-size:11.5px;color:var(--dim);line-height:1.6;max-width:74ch}
+  /* Three subjects, three columns, the whole width of the footer.
+     It was one 74ch paragraph with two <br> in it, which on a 1176px footer
+     used 488px and ran credit, trademarks and the logo takedown together as
+     though they were one thought. They are not, and the takedown notice in
+     particular has to be findable by someone who is looking for it. */
+  .copyright{margin-top:24px;padding-top:14px;border-top:1px solid var(--line);
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 28px;
+    font-size:11.5px;color:var(--dim);line-height:1.6}
+  .copyright section{margin:0}
+  .copyright h4{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;
+    font-size:10px;font-weight:700;color:var(--slate);margin:0 0 5px}
+  .copyright p{margin:0}
   .copyright b{color:var(--slate);font-weight:600}
+  @media (max-width:860px){ .copyright{grid-template-columns:1fr;gap:14px} }
   /* The takedown address was the only anchor on the page with no rule of its
      own and fell through to the browser default: #0000EE on a dim grey
      paragraph, which is the worst contrast anywhere on the site. */
@@ -943,6 +950,12 @@
     /* Tabs and the window switch share a line; the search sits under them. */
     .controls{gap:8px;margin:14px 0 8px;flex-wrap:wrap}
     .tabs{flex:0 0 auto}
+    /* Four tabs in one pill need 463px, so on a 380px phone the page itself
+       scrolled sideways and the board went with it. The pill scrolls inside
+       its own edges instead; nothing else on the page moves. */
+    .seg{max-width:100%;overflow-x:auto;scrollbar-width:none}
+    .seg::-webkit-scrollbar{display:none}
+    .seg button,.seg .segout{flex:0 0 auto}
     .search{flex:1 1 100%;order:3}
     #searchWrap{width:100%}
     #searchWrap input{width:100%}
@@ -1317,8 +1330,6 @@
     <form class="fb" id="fbForm" autocomplete="off" novalidate>
       <h3>Send feedback</h3>
       <p class="lead">Feature idea, bug, or general feedback? Send it below. What you write is posted publicly as a <a href="https://github.com/Bordder/RLProTracker/issues" target="_blank" rel="noopener noreferrer">GitHub issue</a>. Email <a href="mailto:contact@198x.online">contact@198x.online</a> for anything you would rather keep private. <b>You will get a reply within 48 hours.</b></p>
-      <div class="wide">
-      <div>
       <div class="row">
         <input class="u" id="fbUser" type="text" placeholder="Username (optional)" maxlength="60" />
         <select id="fbType" aria-label="Type of feedback">
@@ -1328,15 +1339,11 @@
           <option value="Other">Other</option>
         </select>
       </div>
-      </div>
-      <div>
       <textarea id="fbMsg" placeholder="Your message&hellip;" minlength="25" maxlength="500" required></textarea>
       <p class="count" id="fbCount" aria-live="off"></p>
       <input class="hp" id="fbHp" type="text" tabindex="-1" aria-hidden="true" autocomplete="off" placeholder="Leave this empty" />
       <button type="submit" id="fbBtn">Send</button>
       <p class="msg" id="fbResult" role="status" aria-live="polite"></p>
-      </div>
-      </div>
     </form>
 
     <div class="foot-links">
@@ -1348,11 +1355,23 @@
       <a href="https://github.com/Bordder/RLProTracker" target="_blank" rel="noopener noreferrer">View the source on GitHub</a>
     </div>
 
-    <p class="copyright">Built and maintained by <b>Bordder</b>. &copy; <span id="yr"></span>.<br />
-    A fan-made project, not affiliated with Psyonix, Epic Games or RLCS. Rocket League is a trademark of Psyonix LLC. Player and team names belong to their respective owners.<br />Team logos are the property of their respective organisations and appear here only to identify the team a player competes for. No endorsement is implied. If you represent an org and want your mark removed, email <a href="mailto:contact@198x.online">contact@198x.online</a> and it will be taken down.</p>
+    <div class="copyright">
+      <section>
+        <h4>The site</h4>
+        <p>Built and maintained by <b>Bordder</b>. &copy; <span id="yr"></span>. <a href="https://github.com/Bordder/RLProTracker" target="_blank" rel="noopener noreferrer">Source on GitHub</a>.</p>
+      </section>
+      <section>
+        <h4>Not affiliated</h4>
+        <p>A fan-made project, with no connection to Psyonix, Epic Games or RLCS. Rocket League is a trademark of Psyonix LLC. Player and team names belong to their respective owners.</p>
+      </section>
+      <section>
+        <h4>Team logos</h4>
+        <p>Each mark is the property of its organisation and appears only to identify the team a player competes for. No endorsement is implied. If you represent an org and want your mark removed, email <a href="mailto:contact@198x.online">contact@198x.online</a> and it will be taken down.</p>
+      </section>
+    </div>
   </footer>
 </div>
 
-<script src="rlpt.js?v=71826885" defer></script>
+<script src="rlpt.js?v=489943fa" defer></script>
 </body>
 </html>

@@ -316,9 +316,18 @@
   footer.legal .links{display:flex;flex-wrap:wrap;gap:8px 16px}
   footer.legal .links a{color:var(--steel)}
   footer.legal .links a:hover{color:var(--boost)}
+  /* Three subjects, three columns, the whole width of the footer. Run
+     together in one paragraph, the logo takedown notice was unfindable by
+     anyone looking for it, which is the one reader it exists for. */
   footer.legal .copyright{margin:16px 0 0;padding-top:14px;border-top:1px solid var(--rule);
+                          display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 28px;
                           color:var(--faint);font-size:11.5px;line-height:1.6}
+  footer.legal .copyright h4{font-family:"Big Shoulders Display",Impact,sans-serif;
+                             text-transform:uppercase;letter-spacing:.12em;
+                             font-size:11px;font-weight:700;color:var(--steel);margin:0 0 5px}
+  footer.legal .copyright p{margin:0}
   footer.legal .copyright b{color:var(--steel);font-weight:600}
+  @media (max-width:860px){ footer.legal .copyright{grid-template-columns:1fr;gap:14px} }
   .mast{padding:18px 0 18px;border-bottom:2px solid var(--chalk)}
 
   /* ---- Site nav ---------------------------------------------------------
@@ -473,8 +482,20 @@
     <p class="tip">Hover a match for the time and where to watch. On a keyboard, press Enter on a match to step into that panel and Escape to leave it.</p>
     <p id="attr"></p>
     <div class="links"><a href="/how-it-works">How it works</a><a href="/faq">FAQ</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div>
-    <p class="copyright">Built and maintained by <b>Bordder</b>. &copy; <span id="yr">2026</span>.<br />
-    A fan-made project, not affiliated with or endorsed by Psyonix, Epic Games, RLCS or any team. Rocket League is a trademark of Psyonix LLC. Team names and logos are the property of their respective owners, used here only to identify the teams. Any owner who would rather their mark was not shown can email <a href="mailto:contact@198x.online">contact@198x.online</a> and it will be removed.</p>
+    <div class="copyright">
+      <section>
+        <h4>The site</h4>
+        <p>Built and maintained by <b>Bordder</b>. &copy; <span id="yr">2026</span>.</p>
+      </section>
+      <section>
+        <h4>Not affiliated</h4>
+        <p>A fan-made project, with no connection to and no endorsement from Psyonix, Epic Games, RLCS or any team. Rocket League is a trademark of Psyonix LLC.</p>
+      </section>
+      <section>
+        <h4>Team logos</h4>
+        <p>The property of their respective owners, used here only to identify the teams. Any owner who would rather their mark was not shown can email <a href="mailto:contact@198x.online">contact@198x.online</a> and it will be removed.</p>
+      </section>
+    </div>
   </footer>
 </div>
 <script type="module" src="brackets.js?v=a771e1b3"></script>
