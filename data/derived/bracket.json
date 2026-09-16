@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T21:01:01.312Z",
+  "generatedAt": "2026-09-16T21:03:04.075Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -1676,10 +1676,10 @@
                   ],
                   "scores": [
                     2,
-                    2
+                    3
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": null,
                   "maps": [
@@ -1705,8 +1705,8 @@
                     },
                     {
                       "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score1": 1,
+                      "score2": 2
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/4ebfa3c5/twistedminds-furia"
@@ -2451,16 +2451,16 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 19,
-            "live": 2,
+            "played": 20,
+            "live": 1,
             "upcoming": 26
           }
         }
       ],
       "counts": {
         "matches": 47,
-        "played": 19,
-        "live": 2,
+        "played": 20,
+        "live": 1,
         "upcoming": 26
       },
       "unresolved": [],
