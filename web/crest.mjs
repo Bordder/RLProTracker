@@ -81,7 +81,7 @@ export function assignHues(names) {
   uniq.forEach((n, i) => HUE.set(n, Math.round((i * 360) / uniq.length)));
 }
 
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 /** The mark for one team. `size` is a CSS length. */
 export function crest(name, cls = "") {

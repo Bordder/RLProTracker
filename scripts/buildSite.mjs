@@ -82,6 +82,17 @@ await writeFile(join(ROOT, "web", "_headers"), [
   // one-way door that needs a submission to hstspreload.org and is painful
   // to undo, and nothing here needs it.
   "  Strict-Transport-Security: max-age=15552000; includeSubDomains",
+  // frame-ancestors already says this, and every browser this site supports
+  // honours it. X-Frame-Options is here for the scanners and the proxies that
+  // only read the old header, and it costs 24 bytes.
+  "  X-Frame-Options: DENY",
+  // A page opened from here gets no window.opener handle back, so a link that
+  // slips past rel=noopener cannot navigate the tab it came from.
+  "  Cross-Origin-Opener-Policy: same-origin",
+  // The HTTP-level version of the CORS rule the data Functions already apply:
+  // another origin cannot pull these documents, images or fonts into its own
+  // page and run on this project's bandwidth.
+  "  Cross-Origin-Resource-Policy: same-origin",
   "",
   "# Font FILES are content-addressed by name and never change under the same name.",
   "/fonts/*.woff2",

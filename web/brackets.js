@@ -1,7 +1,7 @@
 import { crest, assignHues } from "/crest.mjs";
 import { standings, pairGroups } from "/standings.mjs";
 
-const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const timeOf = (iso) => iso ? new Date(iso).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" }) : "TBD";
 const dayOf = (iso) => iso ? new Date(iso).toLocaleDateString([], { month: "long", day: "numeric", year: "numeric" }) : null;
 const shortDay = (d) => d ? new Date(`${d}T12:00:00Z`).toLocaleDateString([], { day: "numeric", month: "short" }) : "";
