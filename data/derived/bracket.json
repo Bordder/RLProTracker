@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T16:55:03.530Z",
+  "generatedAt": "2026-09-16T16:56:59.573Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -1604,11 +1604,11 @@
                     "FUT Esports"
                   ],
                   "scores": [
-                    2,
+                    3,
                     2
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": null,
                   "maps": [
@@ -1634,8 +1634,8 @@
                     },
                     {
                       "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score1": 3,
+                      "score2": 2
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/0c315a70/twistedminds-fut"
@@ -2496,16 +2496,16 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 11,
-            "live": 1,
+            "played": 12,
+            "live": 0,
             "upcoming": 35
           }
         }
       ],
       "counts": {
         "matches": 47,
-        "played": 11,
-        "live": 1,
+        "played": 12,
+        "live": 0,
         "upcoming": 35
       },
       "unresolved": [],
