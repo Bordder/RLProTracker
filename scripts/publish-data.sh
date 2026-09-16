@@ -25,8 +25,16 @@ BRANCH=data
 WORK=.databranch
 [ -d "$WORK" ] || { echo "publish-data: $WORK is missing; the workflow must check out $BRANCH there"; exit 1; }
 
-git -C "$WORK" config user.name "rl-tracker-bot"
-git -C "$WORK" config user.email "actions@github.com"
+# The identity is passed per command, never written to a config file.
+#
+# `git -C .databranch config user.name ...` looks scoped and is not: a linked
+# worktree shares .git/config with the main one, so running this script on a
+# workstation rewrote the developer's own name and email for the whole repo.
+# Thirty-one hand-made commits between 15 and 16 September 2026 were authored
+# as rl-tracker-bot <actions@github.com> - which GitHub renders as
+# "actions-user" - and counted toward nobody's contributions. -c sets the value
+# for one invocation and leaves nothing behind.
+BOT=(-c user.name=rl-tracker-bot -c user.email=actions@github.com)
 
 for attempt in 1 2 3 4 5; do
   # Start each attempt from the current remote tip, so a push that lost a race
@@ -57,7 +65,7 @@ for attempt in 1 2 3 4 5; do
     exit 0
   fi
 
-  git -C "$WORK" commit -q -m "$MSG"
+  git "${BOT[@]}" -C "$WORK" commit -q -m "$MSG"
   if git -C "$WORK" push -q origin "HEAD:$BRANCH"; then
     echo "published to $BRANCH"
     exit 0
