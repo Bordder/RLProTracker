@@ -1,6 +1,6 @@
 {
-  "computedAt": "2026-09-16T02:05:25.376Z",
-  "snapshotCount": 1956,
+  "computedAt": "2026-09-16T02:07:21.044Z",
+  "snapshotCount": 1957,
   "teams": [
     {
       "team": "Twisted Minds",
@@ -67,6 +67,22 @@
       }
     },
     {
+      "team": "Shopify Rebellion",
+      "players": 3,
+      "ranked": 3,
+      "avgMmr": {
+        "ones": 1411,
+        "twos": 2653,
+        "threes": 1567
+      },
+      "seasonGames": 4096,
+      "games": {
+        "d1": 48,
+        "d7": 502,
+        "d14": 922
+      }
+    },
+    {
       "team": "Team Falcons",
       "players": 3,
       "ranked": 3,
@@ -80,22 +96,6 @@
         "d1": 51,
         "d7": 527,
         "d14": 907
-      }
-    },
-    {
-      "team": "Shopify Rebellion",
-      "players": 3,
-      "ranked": 3,
-      "avgMmr": {
-        "ones": 1411,
-        "twos": 2647,
-        "threes": 1567
-      },
-      "seasonGames": 4094,
-      "games": {
-        "d1": 47,
-        "d7": 500,
-        "d14": 920
       }
     },
     {
@@ -173,7 +173,7 @@
       },
       "seasonGames": 3848,
       "games": {
-        "d1": 29,
+        "d1": 28,
         "d7": 553,
         "d14": 840
       }
@@ -200,14 +200,14 @@
       "ranked": 3,
       "avgMmr": {
         "ones": 1309,
-        "twos": 2552,
+        "twos": 2546,
         "threes": 1534
       },
-      "seasonGames": 4142,
+      "seasonGames": 4144,
       "games": {
-        "d1": 34,
-        "d7": 285,
-        "d14": 728
+        "d1": 36,
+        "d7": 287,
+        "d14": 730
       }
     },
     {
@@ -221,7 +221,7 @@
       },
       "seasonGames": 3128,
       "games": {
-        "d1": 24,
+        "d1": 22,
         "d7": 117,
         "d14": 556
       }
@@ -339,19 +339,35 @@
       }
     },
     {
+      "team": "MIBR",
+      "players": 3,
+      "ranked": 3,
+      "avgMmr": {
+        "ones": 1288,
+        "twos": 2416,
+        "threes": 1385
+      },
+      "seasonGames": 2687,
+      "games": {
+        "d1": 28,
+        "d7": 374,
+        "d14": 584
+      }
+    },
+    {
       "team": "Bigodes",
       "players": 3,
       "ranked": 3,
       "avgMmr": {
         "ones": 1302,
-        "twos": 2417,
+        "twos": 2416,
         "threes": 1888
       },
-      "seasonGames": 4582,
+      "seasonGames": 4584,
       "games": {
-        "d1": 69,
-        "d7": 395,
-        "d14": 884
+        "d1": 71,
+        "d7": 397,
+        "d14": 886
       }
     },
     {
@@ -368,22 +384,6 @@
         "d1": 19,
         "d7": 169,
         "d14": 332
-      }
-    },
-    {
-      "team": "MIBR",
-      "players": 3,
-      "ranked": 3,
-      "avgMmr": {
-        "ones": 1291,
-        "twos": 2409,
-        "threes": 1385
-      },
-      "seasonGames": 2684,
-      "games": {
-        "d1": 25,
-        "d7": 371,
-        "d14": 581
       }
     },
     {
@@ -408,30 +408,14 @@
       "ranked": 3,
       "avgMmr": {
         "ones": 1231,
-        "twos": 2394,
+        "twos": 2392,
         "threes": 1316
       },
-      "seasonGames": 2587,
+      "seasonGames": 2588,
       "games": {
-        "d1": 52,
-        "d7": 525,
-        "d14": 902
-      }
-    },
-    {
-      "team": "Five Fears",
-      "players": 3,
-      "ranked": 3,
-      "avgMmr": {
-        "ones": 1385,
-        "twos": 2361,
-        "threes": 1651
-      },
-      "seasonGames": 3585,
-      "games": {
-        "d1": 73,
-        "d7": 332,
-        "d14": 576
+        "d1": 53,
+        "d7": 526,
+        "d14": 903
       }
     },
     {
@@ -445,9 +429,25 @@
       },
       "seasonGames": 2804,
       "games": {
-        "d1": 30,
+        "d1": 28,
         "d7": 209,
         "d14": 474
+      }
+    },
+    {
+      "team": "Five Fears",
+      "players": 3,
+      "ranked": 3,
+      "avgMmr": {
+        "ones": 1385,
+        "twos": 2358,
+        "threes": 1651
+      },
+      "seasonGames": 3586,
+      "games": {
+        "d1": 73,
+        "d7": 333,
+        "d14": 577
       }
     },
     {
