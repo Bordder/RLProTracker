@@ -292,7 +292,7 @@ export function parseInfobox(wikitext) {
     t = t.split(/\|\w+\s*=/)[0];
     t = t.replace(/\[(?:https?:)?\/\/\S+\s+([^\]]+)\]/g, "$1");   // [url label] -> label
     t = t.replace(/\[\[(?:[^|\]]*\|)?([^\]]+)\]\]/g, "$1");        // [[page|label]] -> label
-    t = t.replace(/'{2,}|<[^>]+>/g, "").replace(/\{\{[^}]*\}\}/g, "");
+    t = t.replace(/'{2,}/g, "").replace(/[<>]/g, "").replace(/\{\{[^}]*\}\}/g, "");
     return t.trim() || null;
   };
   const date = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(String(v ?? "").trim()) ? v.trim() : null);
