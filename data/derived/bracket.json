@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T16:41:08.038Z",
+  "generatedAt": "2026-09-16T16:42:58.614Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -1648,10 +1648,10 @@
                   ],
                   "scores": [
                     0,
-                    2
+                    3
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": null,
                   "maps": [
@@ -1667,18 +1667,8 @@
                     },
                     {
                       "name": "Futura Garden (Night)",
-                      "score1": null,
-                      "score2": null
-                    },
-                    {
-                      "name": "Utopia Coliseum (Dusk)",
-                      "score1": null,
-                      "score2": null
-                    },
-                    {
-                      "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score1": 0,
+                      "score2": 4
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/22259c19/nip-furia"
@@ -2506,16 +2496,16 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 10,
-            "live": 2,
+            "played": 11,
+            "live": 1,
             "upcoming": 35
           }
         }
       ],
       "counts": {
         "matches": 47,
-        "played": 10,
-        "live": 2,
+        "played": 11,
+        "live": 1,
         "upcoming": 35
       },
       "unresolved": [],
