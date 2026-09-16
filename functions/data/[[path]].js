@@ -130,7 +130,21 @@ async function loadFile(file, context, request) {
   return null;
 }
 
-const asJson = (body) => new TextDecoder().decode(body).trim();
+// A feed's bytes as a JSON value, or null if they are not one.
+//
+// The merge splices upstream text into a document without parsing it, so
+// whatever comes back is trusted to be JSON. Usually it is. But GitHub answers
+// a rate limit, an outage or a moved file with an HTML page and a 200 in some
+// paths, and splicing "<!DOCTYPE html>" between two braces produces a body the
+// page cannot parse AT ALL: one bad feed takes out the other five, and the
+// board goes blank rather than partial. The shape check below costs a scan of
+// the first character and turns that into the missing-feed case the page
+// already handles.
+const asJson = (body) => {
+  const text = new TextDecoder().decode(body).trim();
+  if (!text.startsWith("{") && !text.startsWith("[")) return null;
+  return text;
+};
 
 /**
  * The six feeds as one document, keyed by the file each came from.
@@ -140,7 +154,10 @@ const asJson = (body) => new TextDecoder().decode(body).trim();
  * objects at the edge and straight back into the same bytes.
  */
 function assembleBoard(parts) {
-  const body = BOARD.map((f, i) => `${JSON.stringify(f)}:${parts[i] ? asJson(parts[i].body) : "null"}`);
+  const body = BOARD.map((f, i) => {
+    const text = parts[i] ? asJson(parts[i].body) : null;
+    return `${JSON.stringify(f)}:${text ?? "null"}`;
+  });
   return `{${body.join(",")}}`;
 }
 
