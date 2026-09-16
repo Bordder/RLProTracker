@@ -377,6 +377,111 @@
   };
   var regionChip=function(r){ return r?'<span class="rg '+(REGION_CLASS[r]||'')+'">'+esc(r)+'</span>':'<span class="dash">&middot;</span>'; };
 
+  // ---- nationality and Twitch --------------------------------------------
+  //
+  // Both are read off a JSON document this page fetched, so both are validated
+  // here as well as at collection. The collector already restricts them to a
+  // fixed country table and Twitch's own character set; this second check is
+  // what stands between a tampered feed and an href the page builds itself.
+
+  // A flag emoji is a pair of regional indicator letters, and a platform with no
+  // flag glyphs draws the pair as two letterboxes reading "FR". That fallback is
+  // legible, so nothing has to be done about it.
+  //
+  // England, Scotland, Wales and Northern Ireland are not letter pairs. They are
+  // tag sequences: a black flag followed by invisible tag characters spelling the
+  // subdivision. A platform that does not support them ignores the tags and draws
+  // the black flag ALONE - a meaningless black rectangle, identical for all four,
+  // with no letters to read. That is worse than no flag, and it is what Windows
+  // does; it put a blank flag on six players on this board.
+  //
+  // So tag support is measured rather than assumed, once, by drawing England's
+  // flag and a bare black flag and comparing the pixels. Identical pixels mean
+  // the tags were dropped, and those countries fall back to their label instead.
+  var tagFlagsOk=(function(){
+    var cached=null;
+    return function(){
+      if(cached!==null)return cached;
+      cached=false;
+      try{
+        var cv=document.createElement('canvas'); cv.width=24; cv.height=24;
+        var cx=cv.getContext('2d');
+        if(!cx)return cached;
+        var draw=function(s){
+          cx.clearRect(0,0,24,24);
+          cx.font='16px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif';
+          cx.fillText(s,0,18);
+          return cv.toDataURL();
+        };
+        cached=draw('🏴󠁧󠁢󠁥󠁮󠁧󠁿')!==draw('🏴');
+      }catch(e){ cached=false; }   // no canvas, or a locked-down context: assume not
+      return cached;
+    };
+  })();
+
+  // `allowText` decides what happens when the platform drops tag sequences. The
+  // panel writes the country's name right beside this, so there it renders
+  // nothing rather than putting "ENG" in front of "England"; anywhere the chip
+  // stands alone it should pass true and get the label.
+  var flagChip=function(c,allowText){
+    if(!c||!c.name)return '';
+    // A subdivision code is not two letters, which is exactly why the collector
+    // publishes a label for it.
+    var isTag=!!c.code&&c.code.length>2;
+    if(isTag&&!tagFlagsOk()){
+      if(!allowText||!c.label)return '';
+      return '<span class="fl fl-t" title="'+esc(c.name)+'" aria-label="'+esc(c.name)+'">'+esc(c.label)+'</span>';
+    }
+    if(!c.flag)return '';
+    return '<span class="fl" title="'+esc(c.name)+'" aria-label="'+esc(c.name)+'">'+esc(c.flag)+'</span>';
+  };
+
+  // Both nationalities where a player holds two, in the order Liquipedia lists
+  // them. 19 of 104 players carry a second one, so naming only the first was
+  // wrong for a fifth of the board - diaz reads United States on his page and
+  // Mexico directly under it, and the panel said only the first.
+  //
+  // The panel names ONE nationality and nothing more, so every player's entry
+  // is the same size. Two earlier attempts both cost the row its shape: run
+  // together as "United States and Mexico" this fact was three times the width
+  // of any other in the row, and stacked on two lines it was twice their height.
+  // Either way the 19 players with a second nationality made the panel jump
+  // around relative to the 83 without one.
+  //
+  // The second one lives behind a marker instead. It is drawn only where there
+  // IS one, it is absolutely positioned so it takes no space in the row, and
+  // the marker itself is a couple of characters on the same line.
+  var nationality=function(p){
+    if(!p.country)return '<span class="dash">&middot;</span>';
+    // No "ENG England": the name is written right beside it.
+    var chip=flagChip(p.country,false)||'<span class="fl" aria-hidden="true"></span>';
+    var out='<span class="nat">'+chip+esc(p.country.name);
+    var extra=[p.country2].filter(Boolean);
+    if(extra.length){
+      var names=extra.map(function(c){ return c.name; }).join(', ');
+      var shown=extra.map(function(c){ return (c.flag?c.flag+' ':'')+c.name; }).join(', ');
+      // tabindex, because hover alone reaches neither a keyboard nor a phone.
+      // aria-label carries the same words the tooltip does, so the marker is not
+      // a "+1" with no meaning attached to anyone not using a mouse.
+      out+='<span class="natx" tabindex="0" role="note"'+
+        ' aria-label="Also '+esc(names)+'"'+
+        ' data-more="'+esc(shown)+'">+'+extra.length+'</span>';
+    }
+    return out+'</span>';
+  };
+
+  // Twitch's own rule for a login. A channel that does not match is dropped
+  // rather than escaped: there is no such account, so there is no link to make.
+  var TWITCH=/^[A-Za-z0-9_]{3,25}$/;
+  var twitchLink=function(name,label){
+    if(!name||!TWITCH.test(name))return '';
+    // rel=noopener because target=_blank without it hands the new tab a handle
+    // back to this one. noreferrer keeps the player's page out of Twitch's
+    // referrer log, which is nobody's business but the reader's.
+    return '<a class="tw" href="https://www.twitch.tv/'+esc(name)+'" target="_blank" rel="noopener noreferrer nofollow">'+
+      (label||esc(name))+'</a>';
+  };
+
   var DATA_BASE=window.__DATA_BASE__||"/data";
   // Busting on a 60s bucket keeps a tab from sitting on a stale copy: the
   // collector writes every ~2 minutes, so a minute is fine enough to matter and
@@ -537,6 +642,10 @@
         var p=steamById[id]||trById[id]||{};
         var t=trById[id]||{};
         return { id:id, name:p.name, team:p.team, region:REGION[p.team]||PLAYER_REGION[id]||null,
+          // Facts about the person rather than about a reading, joined onto the
+          // tracker feed from the roster. Both can be absent: a player whose
+          // Liquipedia page does not exist has neither.
+          country:t.country||null, country2:t.country2||null, twitch:t.twitch||null,
           // Not 'unknown', which means Steam answered oddly. This player has
           // simply not been through the hourly Steam job yet.
           status:steamById[id]?steamById[id].status:'pending',
@@ -921,7 +1030,12 @@
       peak:function(p){return p.peak&&p.peak[mmrKey]!=null?p.peak[mmrKey]:null;}};
     var playerRow=function(p){
       var mmr=p.hasMmr?(mmrCell(ratingOf(p,'ones'),'m1')+mmrCell(ratingOf(p,'twos'),'m2')+mmrCell(ratingOf(p,'threes'),'m3')):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
-      return '<tr class="'+(p.hasMmr?'':'isnorank')+(p.__pos<=3?' lead lead'+p.__pos:'')+'" data-player="'+esc(p.name)+'">'+
+      // mobfacts says a strip will follow this row when it opens on a phone.
+      // The card flattens its bottom edge to join that strip, so it must not
+      // flatten for a player who has neither nationality nor Twitch and gets no
+      // strip at all - that one keeps its own rounded corners.
+      return '<tr class="'+(p.hasMmr?'':'isnorank')+(p.__pos<=3?' lead lead'+p.__pos:'')+
+        ((p.country||p.twitch)?' mobfacts':'')+'" data-player="'+esc(p.name)+'">'+
         '<td class="c-rk">'+rankMark(p.__pos||p.__rank)+'</td>'+
         '<td class="c-who">'+teamMark(p.team)+'<span class="nm"><b>'+esc(p.name)+liveMark(p)+'</b><i>'+esc(p.team||'Free agent')+lanTag(p.team)+'</i></span></td>'+
         // The phone layout needs both chips in one container so they can sit
@@ -1222,7 +1336,10 @@
       host.innerHTML=p?detailInner(p):'';
     };
     podEl.addEventListener('click',function(e){
-      if(e.target.closest&&e.target.closest('a'))return;
+      // A link, or the nationality marker: both live inside the panel and
+      // neither is a request to close it. The marker is a span, so the anchor
+      // guard alone let a click on it collapse the row being read.
+      if(e.target.closest&&(e.target.closest('a')||e.target.closest('.natx')))return;
       // Copying must not also open the card: the icon sits inside it.
       var cb=e.target.closest?e.target.closest('.copyrow'):null;
       if(cb){
@@ -1285,7 +1402,14 @@
       // three used to carry them and no longer do, and a panel that silently
       // changes which window it means is worse than one that says.
       var facts=[
+        // The panel is the only place the country appears. It was tried in front
+        // of the name on every row and taken back out: at 104 rows the flags
+        // read as a second column of noise beside the team marks, and the fact
+        // itself is one a reader wants about ONE player rather than about all of
+        // them at once. Here it has room to be written out in full.
+        ['Nationality', nationality(p)],
         ['Steam', statusChip(p.status)],
+        ['Twitch', twitchLink(p.twitch)||'<span class="dash">&middot;</span>'],
         ['Peak MMR', peakFact(p)],
         ['Games, 24h', panelGames(p,'d1')],
         ['Games, 7d', panelGames(p,'d7')],
@@ -1313,7 +1437,11 @@
 
       return '<div class="pexp-in">'+
         '<div class="pexp-facts">'+facts.map(function(f){
-          return '<div><span class="pk">'+f[0]+'</span><span class="pvv">'+f[1]+'</span></div>';
+          // data-k is the phone's handle on these. The card a row opens into
+          // already carries every number, so mobile keeps only the facts it has
+          // no room for, and picks them by key rather than by position.
+          var k=String(f[0]).toLowerCase().replace(/[^a-z0-9]+/g,'-');
+          return '<div data-k="'+k+'"><span class="pk">'+f[0]+'</span><span class="pvv">'+f[1]+'</span></div>';
         }).join('')+'</div>'+
         // Straight through to this player's rating history rather than making
         // the reader find them again in the other tab's search.
@@ -1322,7 +1450,11 @@
       '</div>';
     };
     var detailRow=function(p,span){
-      return '<tr class="pexp"><td colspan="'+span+'">'+detailInner(p)+'</td></tr>';
+      // On a phone this row is trimmed to nationality and Twitch. A player with
+      // neither would otherwise open an empty strip under the card, so the row
+      // says so and the phone hides it outright.
+      var mob=(p.country||p.twitch)?'':' pexp-nomob';
+      return '<tr class="pexp'+mob+'"><td colspan="'+span+'">'+detailInner(p)+'</td></tr>';
     };
     var applyOpenPlayer=function(){
       var rows=pv.querySelectorAll('tbody tr');
@@ -1339,7 +1471,10 @@
       });
     };
     pv.addEventListener('click',function(e){
-      if(e.target.closest&&e.target.closest('a'))return;
+      // A link, or the nationality marker: both live inside the panel and
+      // neither is a request to close it. The marker is a span, so the anchor
+      // guard alone let a click on it collapse the row being read.
+      if(e.target.closest&&(e.target.closest('a')||e.target.closest('.natx')))return;
       // Copying must not also open the row: the icon sits inside it.
       var cb=e.target.closest?e.target.closest('.copyrow'):null;
       if(cb){
@@ -1509,10 +1644,18 @@
       var counts={};
       players.forEach(function(p){ if(p.region)counts[p.region]=(counts[p.region]||0)+1; });
       var order=['EU','NA','SAM','MENA','APAC','OCE','SSA'].filter(function(r){return counts[r];});
-      regionSeg.innerHTML='<button data-r="" aria-pressed="'+(regionQ?'false':'true')+'">All<span class="rn">'+players.length+'</span></button>'+
-        order.map(function(r){
-          return '<button data-r="'+r+'" aria-pressed="'+(regionQ===r?'true':'false')+'">'+r+'<span class="rn">'+counts[r]+'</span></button>';
-        }).join('');
+      // Label and count share one wrapper on purpose. At narrow widths the
+      // button is a flex container, and a bare text label plus a <span> are two
+      // separate flex items that align:center lifts independently - which put
+      // the count above the label's baseline. Inside one item they are ordinary
+      // inline text on one line, so they share a baseline, and the flex box
+      // centres the pair as a unit.
+      var seg=function(r,label,n){
+        return '<button data-r="'+r+'" aria-pressed="'+(regionQ===r?'true':'false')+'">'+
+          '<span class="rin">'+label+'<span class="rn">'+n+'</span></span></button>';
+      };
+      regionSeg.innerHTML=seg('','All',players.length)+
+        order.map(function(r){ return seg(r,r,counts[r]); }).join('');
       Array.prototype.forEach.call(regionSeg.querySelectorAll('button'),function(b){
         b.addEventListener('click',function(){
           regionQ=b.dataset.r||'';

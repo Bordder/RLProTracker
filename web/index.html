@@ -50,6 +50,12 @@
     --accent:#FF5A1F; --accent-soft:rgba(255,90,31,.13); --accent-line:rgba(255,90,31,.5);
     --line:#262B36; --line2:#2E3441; --live:#48C98A; --playing:#5EC8FF;
     --t-low:#6A7482; --t-champ:#5AA0E0; --t-gc:#D98A5A; --t-ssl:#FF6A3D;
+    /* One height for every control on the toolbar row. The tab rail derives
+       40px from its own padding and type; the search input was 35px and sat
+       2.5px inset at the top and bottom of the same line, which made two
+       identical 1px borders read as different weights. Set in one place so
+       they cannot drift apart again. */
+    --ctl-h:40px;
     --display:'Big Shoulders Display','Arial Narrow',system-ui,sans-serif;
     --body:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
     --mono:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
@@ -192,15 +198,19 @@
 
   /* ---- Controls: view toggle + search ---- */
   .controls{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:26px 0 12px}
-  .seg{display:inline-flex;background:var(--surface);border:1px solid var(--line2);border-radius:999px;padding:3px}
+  /* Same shape as the metric and region bars below: 8px on the rail, 6px on
+     the items, 2px of padding between. Three segmented controls stacked on a
+     phone, one of them a pill and two of them rounded rectangles, read as
+     three different kinds of control rather than one set. */
+  .seg{display:inline-flex;background:var(--surface);border:1px solid var(--line2);border-radius:8px;padding:2px;min-height:var(--ctl-h)}
   .seg button{
-    appearance:none;border:0;background:transparent;cursor:pointer;border-radius:999px;
+    appearance:none;border:0;background:transparent;cursor:pointer;border-radius:6px;
     font-family:var(--body);font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:12.5px;
     color:var(--slate);padding:8px 22px;transition:color .15s,background .15s;
   }
   .seg button:hover{color:var(--bone)}
   .seg .segout{
-    display:inline-flex;align-items:center;text-decoration:none;border-radius:999px;
+    display:inline-flex;align-items:center;text-decoration:none;border-radius:6px;
     font-family:var(--body);font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:12.5px;
     color:var(--slate);padding:8px 22px;transition:color .15s,background .15s;
   }
@@ -216,8 +226,11 @@
   .search svg{position:absolute;left:12px;width:15px;height:15px;stroke:var(--slate);pointer-events:none}
   .search input{
     font-family:var(--body);font-size:14px;color:var(--bone);
-    background:var(--surface);border:1px solid var(--line2);border-radius:999px;
-    padding:9px 34px 9px 34px;width:min(280px,60vw);outline:none;transition:border-color .15s;
+    background:var(--surface);border:1px solid var(--line2);
+    /* Still a pill. Only the height is being matched to the tab rail. */
+    border-radius:999px;
+    height:var(--ctl-h);
+    padding:0 34px;width:min(280px,60vw);outline:none;transition:border-color .15s;
   }
   .search input::placeholder{color:var(--dim)}
   .search input:focus{border-color:var(--accent-line)}
@@ -229,6 +242,9 @@
   /* Region filter sits with the search so it applies to players and teams alike. */
   .rseg button{font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:11.5px;font-weight:600;padding:5px 10px}
   .rseg button[aria-pressed="true"]{background:var(--panel2);color:var(--bone);box-shadow:inset 0 0 0 1px var(--accent-line)}
+  /* Holds the region label and its count as ONE flex item, so the two sit on a
+     shared baseline instead of being centred separately against each other. */
+  .rseg button .rin{display:inline-block;white-space:nowrap}
   .rseg button .rn{font-family:var(--mono);font-size:10px;font-weight:400;color:var(--dim);margin-left:5px;letter-spacing:0}
   .rseg button[aria-pressed="true"] .rn{color:var(--slate)}
   .wseg{display:inline-flex;background:var(--surface);border:1px solid var(--line2);border-radius:8px;padding:2px;max-width:100%;overflow-x:auto;scrollbar-width:none}
@@ -560,10 +576,49 @@
   .pexp-link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   /* The phone lays every row out as a grid with a selector of its own, which
      outranked a bare .pexp rule: the detail row went on rendering underneath
-     the card as a squashed strip repeating what the card already said.
+     the card as a squashed strip repeating what the card already said. That is
+     still true of most of it, so most of it is still hidden - but not the row.
+     Nationality and Twitch have nowhere else to go on a phone: the card a row
+     opens into is built from the table's own cells, and neither of these is a
+     column. So the row comes back carrying only those two.
      Matched specificity, and it stays a CSS decision so resizing works. */
   @media (max-width:700px){
-    #playersView .feed>tbody>tr.pexp{display:none}
+    /* A player with neither fact opens no strip at all. */
+    #playersView .feed>tbody>tr.pexp.pexp-nomob{display:none}
+    #playersView .feed>tbody>tr.pexp{display:block;padding:0;margin:-9px 0 9px}
+    #playersView .feed>tbody>tr.pexp>td{
+      display:block;padding:9px 13px 11px;background:var(--surface);
+      border:1px solid var(--line2);border-top:0;
+      border-radius:0 0 12px 12px;white-space:normal;
+    }
+    /* The card above it loses its bottom edge so the two read as one object -
+       but only where a strip is actually coming. A player with neither fact
+       gets no strip, and would otherwise be left with a flat bottom edge and
+       no spacing under it. */
+    #playersView .feed>tbody>tr.open.mobfacts{border-bottom-left-radius:0;border-bottom-right-radius:0;margin-bottom:0}
+    #playersView .feed>tbody>tr.pexp .pexp-in{display:block;padding:0;border:0;background:none}
+    /* Everything the card already says, and the chart link, which belongs to a
+       width this is not. */
+    #playersView .feed>tbody>tr.pexp .pexp-facts>div{display:none}
+    #playersView .feed>tbody>tr.pexp .pexp-facts>div[data-k="nationality"],
+    #playersView .feed>tbody>tr.pexp .pexp-facts>div[data-k="twitch"]{display:flex}
+    #playersView .feed>tbody>tr.pexp .pexp-link{display:none}
+    #playersView .feed>tbody>tr.pexp .pexp-facts{gap:10px 26px}
+    /* No hover on a phone, and :focus-visible does not fire on a tap, so a
+       marker that reveals on hover would reveal nothing at all. The strip has
+       the width the desktop row did not, so the second nationality is simply
+       printed: the "+1" is dropped and the tooltip becomes the text itself,
+       laid out in normal flow rather than over the top of anything. */
+    #playersView .feed>tbody>tr.pexp .natx{
+      font-size:0;padding:0;margin-left:7px;border:0;background:none;
+      cursor:default;vertical-align:baseline;
+    }
+    #playersView .feed>tbody>tr.pexp .natx::before{display:none}
+    #playersView .feed>tbody>tr.pexp .natx::after{
+      position:static;transform:none;opacity:1;box-shadow:none;
+      font-family:var(--mono);font-size:12.5px;font-weight:400;
+      color:var(--slate);background:none;border:0;padding:0;
+    }
   }
 
   /* ---- the ratings tab ------------------------------------------------
@@ -704,19 +759,47 @@
        Its margin lives on .devnote itself and .controls carries its own top
        margin, so deleting the note from the markup leaves no gap behind. */
     .devnote{order:2; margin:14px 0 0}
-    /* Same slot as the note, straight after it: both are time-sensitive framing
-       that nobody on a phone reaches if it sits under the board. */
-    #lanNote{order:2; margin:14px 0 0}
+    /* The headline, the standfirst and the four figures lead on a phone the way
+       they do on a desktop. They were under the board for a while, on the
+       measurement quoted above; what that measurement was really about was the
+       CONTROLS - tabs, search, six metric buttons and eight region chips, which
+       is the bulk of the 1,600px. Those still sit below, so the board arrives
+       after one screen of framing rather than after four. */
+    .headline{order:3}
+    .dek{order:4}
+    #stats{order:5}
+    /* Under the figures rather than under the kicker. It is still framing that
+       has to be read before the board - it says which event is being played
+       right now - so it stays above the controls; it just does not come before
+       the headline the page opens with.
+       Margins on a flex child do not collapse, so both sides are set here and
+       both come to 18px: 12 of its own on top of the 6 #stats leaves below,
+       and 4 under it plus the 14 .controls carries. Removing the note from the
+       markup still leaves no gap behind, because .controls keeps its own. */
+    #lanNote{order:6; margin:12px 0 4px}
     #lanNote .lannote{margin:0}
-    .controls{order:3}
-    .wrow{order:4}
-    #dataStatus{order:5}
-    #playersView,#teamsView,#ratingsView{order:6}
-    .headline{order:7; margin-top:26px}
-    .dek{order:8}
-    #stats{order:9}
-    footer.foot{order:10}
-    #podium{order:11}
+    /* The tabs and the search are both inside .controls, and the region bar is
+       its SIBLING, so no amount of ordering inside .controls can put the search
+       under the region bar. display:contents dissolves the wrapper and lets its
+       two children take their own places in this same column, the way the
+       header already does above.
+       The wrapper's own gap and margins go with it, so both children carry
+       their own: .seg replaces the 14px .controls had on top, and .search
+       carries the space that used to be the gap between them. */
+    .controls{display:contents}
+    .controls .seg{order:7; margin:14px 0 0}
+    .wrow{order:8}
+    /* Specificity, not source order: the 560px block sets .search{order:3} for
+       the old wrapper, and it sits later in this file. Two classes beat one
+       wherever it is written.
+       flex-basis has to be reset with it. `flex:1 1 100%` was sizing a WIDTH
+       inside a row; out here the column is the main axis, so 100% would ask for
+       the full height of the page. */
+    .controls .search{order:9; flex:0 0 auto; margin:10px 0 0}
+    #dataStatus{order:10}
+    #playersView,#teamsView,#ratingsView{order:11}
+    footer.foot{order:12}
+    #podium{order:13}
     noscript{order:0}
 
     /* The filters follow the list down. Scrolling to rank 40 and having to
@@ -815,6 +898,56 @@
   .note p{margin:0 0 8px}
   .note p:last-child{margin:0}
 
+  /* ---- Flag, and the Twitch link ---- */
+  /* A flag emoji is drawn by the platform's own emoji font, so the colour and
+     weight around it do not apply and only the size and spacing do.
+     Windows has no flag glyphs and draws the pair as two small letterboxes
+     instead, which are wider than a flag - hence a min-width rather than a
+     fixed one, so the name after it does not shift between platforms. */
+  .fl{display:inline-block;min-width:1.15em;margin-right:6px;font-size:13px;line-height:1;
+      font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+      font-weight:400;letter-spacing:0;vertical-align:baseline;cursor:help}
+  /* The written stand-in for a UK nation on a platform that drops emoji tag
+     sequences. Shaped to sit like the letterboxes the other countries fall back
+     to, so a board mixing the two does not look like two different things. */
+  .fl-t{font-family:var(--mono);font-size:9.5px;font-weight:600;letter-spacing:.04em;
+      color:var(--slate);vertical-align:2px}
+  /* One nationality, one line, the same height for every player. */
+  .nat{white-space:nowrap}
+  .nat .fl{min-width:15px;font-size:12.5px}
+  /* The marker for a second nationality. Only drawn where there is one, so it
+     is never an empty affordance, and it sits inside the existing line rather
+     than adding to it. */
+  .natx{position:relative;display:inline-block;margin-left:6px;cursor:help;
+     font-family:var(--mono);font-size:9.5px;font-weight:600;line-height:1;
+     padding:2px 4px;border-radius:4px;border:1px solid var(--line2);
+     background:var(--bg2);color:var(--slate);vertical-align:1px}
+  .natx:hover,.natx:focus-visible{color:var(--bone);border-color:var(--accent-line)}
+  .natx:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  /* Absolutely positioned, so revealing it moves nothing. Nothing between here
+     and the table establishes a containing block or clips overflow, which is
+     what makes that safe. */
+  .natx::after{
+    content:attr(data-more);position:absolute;left:50%;bottom:calc(100% + 7px);
+    transform:translateX(-50%);z-index:20;
+    font-family:var(--body);font-size:11.5px;font-weight:500;letter-spacing:.01em;
+    line-height:1.3;white-space:nowrap;padding:5px 8px;border-radius:6px;
+    background:var(--surface);color:var(--bone);border:1px solid var(--line2);
+    box-shadow:0 6px 18px rgba(0,0,0,.5);
+    opacity:0;pointer-events:none;transition:opacity .12s
+  }
+  /* The little pointer down to the marker. */
+  .natx::before{
+    content:"";position:absolute;left:50%;bottom:calc(100% + 3px);
+    transform:translateX(-50%);z-index:21;
+    border:4px solid transparent;border-top-color:var(--line2);
+    opacity:0;pointer-events:none;transition:opacity .12s
+  }
+  .natx:hover::after,.natx:focus-visible::after,
+  .natx:hover::before,.natx:focus-visible::before{opacity:1}
+  .tw{color:var(--bone);text-decoration:none;border-bottom:1px solid var(--line2)}
+  .tw:hover,.tw:focus-visible{color:#bf94ff;border-bottom-color:#bf94ff}
+
   /* ---- Region chip ---- */
   /* Mobile only: the status chip rendered alongside the region one. */
   .chip-pair{display:none}
@@ -850,7 +983,11 @@
      finding. The class stays in the markup for anything that wants it later. */
 
   /* ---- Team marks: a real logo when one is supplied, else a tinted monogram ---- */
-  .av.mk{background:var(--mk,var(--panel2));color:var(--mkfg,var(--slate));border-color:var(--mkline,var(--line2))}
+  /* Same tile shape whether or not a logo file exists. The monogram used to
+     fall through to .av's circle while a crest got the rounded square below,
+     so a row of teams was a mix of two shapes decided by nothing the reader
+     can see - which of them happens to have shipped artwork. */
+  .av.mk{background:var(--mk,var(--panel2));color:var(--mkfg,var(--slate));border-color:var(--mkline,var(--line2));border-radius:8px}
   .av.mk.logo{padding:0;overflow:hidden;position:relative}
   /* The monogram stays underneath as the fallback: if the logo file is missing
      the img removes itself and the tinted initials show through, instead of a
@@ -860,8 +997,8 @@
   /* A crest is a square mark, so its tile is a rounded square rather than a
      circle: a circular mask with overflow:hidden clipped the ends off wide
      wordmarks like NRG and MIBR, which read as the logo sitting off centre.
-     The inset keeps a portrait mark from touching the edges. */
-  .av.mk.logo{border-radius:8px}
+     The inset keeps a portrait mark from touching the edges. The radius itself
+     now comes from .av.mk above, so the monogram underneath matches. */
   .av.mk.logo img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;display:block;padding:8%;background:var(--panel2)}
 
   /* ---- Footer extras: links, feedback, credit ---- */
@@ -1250,6 +1387,43 @@
     .mini th:nth-child(4),.mini td:nth-child(4),
     .mini th:nth-child(5),.mini td:nth-child(5),
     .mini th:nth-child(8),.mini td:nth-child(8){display:none}
+  }
+
+  /* ---- Phone: four control bars, each one row, no scrolling --------------
+     Every bar fills the width and divides it equally between its buttons, so
+     the four tabs, the six metric buttons and the eight region chips each sit
+     on one line at any phone width. Measured before this: the tab row wanted
+     447px inside 347px and scrolled, which hid Ratings and Brackets behind a
+     gesture nothing advertised.
+
+     `flex:1 1 0` is what makes the shares equal - `1 1 auto` divides the
+     SLACK equally and leaves each button its own text width, which is why the
+     region chips used to come out at eight different sizes.
+
+     The type is sized in vw between a floor and a ceiling rather than being
+     fixed, because equal shares and fixed type cannot both hold across the
+     range: at 320px an equal sixth is 48px and "Total games" needs 54px at
+     9px, so something has to give and it is the type. Checked for clipping at
+     320, 360, 375, 412, 430, 540, 620 and 700.
+
+     This block sits after the 560px one deliberately: same specificity on
+     .seg button, so it has to come later to win. */
+  @media (max-width:700px){
+    .seg{display:flex;width:100%;padding:2px}
+    /* Brackets is a link rather than a button, so it needs naming separately or
+       it keeps its own width while the other three share what is left. */
+    .seg button,.seg .segout{
+      flex:1 1 0;min-width:0;padding:8px 3px;white-space:nowrap;
+      justify-content:center;text-align:center;
+      font-size:clamp(9.5px,2.9vw,13px);letter-spacing:.04em;
+    }
+    /* The 560px block gives these width:100%; the phone layout runs to 700px,
+       and between the two they were sized by their own content. */
+    #metricSeg,#regionSeg{display:flex;width:100%;flex-wrap:nowrap;overflow:visible}
+    #metricSeg button,#regionSeg button{flex:1 1 0;min-width:0;padding-left:2px;padding-right:2px}
+    #metricSeg button{font-size:clamp(7.4px,2.35vw,11px);letter-spacing:0}
+    #regionSeg button{font-size:clamp(8.6px,2.7vw,12px);letter-spacing:.02em}
+    #regionSeg button .rn{font-size:clamp(7px,2.2vw,10px);margin-left:2px}
   }
 
   @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
