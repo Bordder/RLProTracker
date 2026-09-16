@@ -303,6 +303,11 @@
     .pod .pmeta{position:absolute;top:11px;right:13px;margin-left:0;z-index:1}
   }
   .pod .plive{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:10px;font-weight:700;color:var(--playing);border:1px solid rgba(94,200,255,.35);background:rgba(94,200,255,.08);border-radius:4px;padding:2px 6px;white-space:nowrap}
+  /* The weaker of the two, in the same slot and never beside it: a card shows
+     Playing when the ranked count has moved and In game when only Steam has
+     spoken. Muted and unfilled, so the corner does not claim a ladder session
+     the data does not support. */
+  .pod .pgame{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:10px;font-weight:700;color:var(--slate);border:1px solid var(--line2);background:transparent;border-radius:4px;padding:2px 6px;white-space:nowrap}
   @media (max-width:820px){
     /* One card per row, but the six figures stay: they are the reason to look
        at the top three at all, and the table below is a long way down. */
@@ -318,9 +323,9 @@
     .pod .prow{grid-template-columns:repeat(3,1fr);gap:7px 10px;padding-top:8px}
     .pod .prow b{font-size:14px}
     .pod .prow span{font-size:9.5px;letter-spacing:.08em}
-    /* No width to spare on the head row: the mark shows on that player's own
+    /* No width to spare on the head row: the marks show on that player's own
        row in the table instead. */
-    .pod .plive{display:none}
+    .pod .plive,.pod .pgame{display:none}
   }
 
   /* ---- Playing: its own mark beside the name, never in place of a status ---- */
@@ -357,10 +362,15 @@
 
   /* On the team line under a name, not on the name: it is a fact about the org,
      and the name already carries the Playing and In game marks. */
-  .lantag{display:inline-block;margin-left:6px;padding:0 4px;border-radius:3px;
-    font-family:var(--display);text-transform:uppercase;letter-spacing:.08em;font-size:8.5px;font-weight:700;
+  .lantag{display:inline-block;margin-left:7px;padding:1px 5px;border-radius:4px;
+    font-family:var(--display);text-transform:uppercase;letter-spacing:.09em;font-size:10px;font-weight:700;
     color:var(--live);border:1px solid rgba(72,201,138,.35);background:rgba(72,201,138,.08);
-    vertical-align:1px;font-style:normal;cursor:help}
+    vertical-align:0;font-style:normal;cursor:help}
+  /* The podium's team line is 12px against the table's 11px, but the tag does
+     not follow it up. At 11px it read as a second heading on a card that
+     already has a placing number, a name and a headline figure competing for
+     the eye; a size below the text it sits in keeps it a note on the team. */
+  .pod .pwho i .lantag{font-size:9px;padding:1px 4px;margin-left:6px}
   /* In game: the same mark with the confidence taken out of it. Steam says the
      app is open, which arrives minutes before a ranked result can and means
      less. Muted, hollow, and the dot does not pulse, so a row that is only
@@ -1280,6 +1290,9 @@
       <button data-k="g14" data-w="d7" aria-pressed="false">7d</button>
       <button data-k="h2" aria-pressed="false">2wk hours</button>
       <button data-k="sg" aria-pressed="false">Total games</button>
+      <!-- Shows the peak in the same three rating columns rather than adding
+           three more, the way 24h and 7d share one games column. -->
+      <button data-k="peak" aria-pressed="false" title="Rank by the highest rating ever reached. Click again to step playlist.">Peak MMR</button>
     </div>
     <div class="wseg rseg" id="regionSeg" role="group" aria-label="Region"></div>
   </div>

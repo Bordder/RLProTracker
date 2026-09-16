@@ -12,6 +12,7 @@ import { readFile, writeFile, mkdir, readdir } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import { historyToSnaps } from "./trackerHistory.mjs";
+import { updatePeaks, peakFor, readStore, writeStore } from "./peakMmr.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const SNAP_DIR = join(ROOT, "data", "tracker-snapshots");
@@ -332,7 +333,18 @@ async function main() {
   const { now, players: computed } = computeTrackerPlayers(snaps, rosterIds);
   // presenceHot writes this at the top of the same run, so it is the freshest
   // thing in the pipeline by a whole scrape.
-  const players = withPresence(computed, await readJson(STATE_FILE));
+  const withSteam = withPresence(computed, await readJson(STATE_FILE));
+
+  // Peaks are kept forward rather than derived, because the readings behind
+  // them are thinned at 90 days and emptied outright at a season boundary.
+  // All time rather than per season, and updated before it is read, so a
+  // rating set on this very run is already the peak it produced.
+  const peaks = updatePeaks(await readStore(), snaps);
+  await writeStore(peaks);
+  const players = withSteam.map((p) => {
+    const peak = peakFor(peaks, p.id);
+    return peak ? { ...p, peak } : p;
+  });
   const dropped = rosterIds ? new Set([].concat(...snaps.map((s) => s.rows.map((r) => r.id)))).size - players.length : 0;
   if (dropped > 0) console.log(`dropped ${dropped} player(s) held in history but no longer on the roster`);
 
@@ -357,7 +369,8 @@ async function main() {
   );
   const withMmr = players.filter((p) => p.mmr.twos != null).length;
   const inGame = players.filter((p) => p.steam?.inGame).length;
-  console.log(`tracker.json: ${players.length} players, ${withMmr} with 2v2 MMR, ${inGame} in Rocket League, ${snaps.length} snapshots`);
+  const atPeak = players.filter((p) => p.peak?.twos != null && p.mmr.twos === p.peak.twos).length;
+  console.log(`tracker.json: ${players.length} players, ${withMmr} with 2v2 MMR, ${inGame} in Rocket League, ${atPeak} at their 2v2 peak, ${snaps.length} snapshots`);
 
   const hist = computeMmrHistory(snaps, rosterIds);
   const histPath = join(ROOT, "data", "derived", "mmr-history.json");

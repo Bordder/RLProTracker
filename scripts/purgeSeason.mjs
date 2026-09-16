@@ -19,6 +19,12 @@
 //
 // What this DOES NOT touch, deliberately:
 //
+//   peak-mmr.json. The highest rating each player has ever reached. It is a
+//   store rather than a derivation for exactly this reason: the readings
+//   behind it are what this script empties, and the peak is meant to outlive
+//   them. It is not season-bound and is never reset - a mark stands until
+//   somebody beats it.
+//
 //   steam-history.json, presence/, last-known-hours.json. Hours are wall clock
 //   on a rolling two weeks and know nothing about seasons. They are the one
 //   column that stays truthful across the boundary, and deleting them would
@@ -74,7 +80,7 @@ export function resetState(doc) {
   );
 }
 
-// Imported for the two transforms alone by the tests: nothing read, nothing
+// Imported for the transforms alone by the tests: nothing read, nothing
 // written, and above all nothing purged.
 if (import.meta.main) {
 
@@ -102,7 +108,7 @@ if (state) {
   const withBaseline = Object.values(state).filter((s) => s?.matches != null).length;
   lines.push(`tracker-state.json    ${withBaseline} cumulative baselines -> null`);
 }
-lines.push("untouched             steam-history.json, presence/, last-known-hours.json, derived/");
+lines.push("untouched             peak-mmr.json, steam-history.json, presence/, last-known-hours.json, derived/");
 
 console.log(`${APPLY ? "purging" : "dry run"}  ${DATA}`);
 for (const l of lines) console.log(`  ${l}`);

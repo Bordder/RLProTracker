@@ -523,6 +523,10 @@
           mmr:(t.mmr&&t.mmr.twos!=null)?t.mmr:(t.mmr||null),
           hasMmr:!!(t.mmr&&(t.mmr.ones!=null||t.mmr.twos!=null||t.mmr.threes!=null)),
           tier:t.tier||null,
+          // Held forward by the collector rather than derived from the 90 days
+          // of history the charts read, so it survives both retention and the
+          // purge at a season boundary. All time, never reset.
+          peak:t.peak||null,
           seasonGames:t.seasonGames?t.seasonGames.total:null,
           // Per playlist as well as the total, for the panel a row opens into.
           seasonByPl:t.seasonGames||null,
@@ -644,7 +648,7 @@
     // names the player, because the mark sits in a table of a hundred rows and
     // a tooltip that starts "Steam says" could be about any of them.
     var gameMark=function(p){
-      var hint=(p.name||'This player')+' has Rocket League open. Menus, freeplay and casual count too, so it is not proof of a ranked session.';
+      var hint=(p.name||'This player')+' has Rocket League open.';
       return '<span class="gmark" title="'+esc(hint)+'">In game</span>';
     };
     var liveMark=function(p){ return isLive(p)?playMark(p):(isInGame(p)?gameMark(p):''); };
@@ -675,6 +679,16 @@
       if(!l.ends||l.ends===l.starts)return d(l.starts);
       return new Date(l.starts+'T12:00:00Z').getUTCDate()+'–'+d(l.ends);
     }
+
+    // The highest rating ever reached in the playlist being read. The figure
+    // alone: a rating is already a four digit number and the line sits in a
+    // column of short values, so a gap and a date beside it made the one fact
+    // the entry exists for the hardest thing in it to find. Unseparated for
+    // the same reason - the number is read, not counted in thousands.
+    var peakFact=function(p){
+      var pk=p.peak?p.peak[mmrKey]:null;
+      return pk==null?'<span class="dash">&middot;</span>':String(pk);
+    };
 
     var renderStatus=function(){
       var meta=document.querySelector('.kick-meta');
@@ -861,16 +875,32 @@
 
     var win='d1'; // recent-games window: d1 (24h, live now) / d7 / d14
     var mmrKey='twos'; // which playlist the MMR mode ranks on: ones / twos / threes
+    // Peaks are read in the SAME three columns as current ratings rather than
+    // three more of their own. A board with 1v1, 2v2, 3v3 and then their peaks
+    // beside them is eleven number columns, and the question "who peaked
+    // highest" is a different way to read the board, not more of it. The games
+    // column already works this way - one column, and 24h or 7d decided above
+    // it - so the headers say which they are showing and the control does the
+    // rest.
+    var peakMode=false;
+    var ratingOf=function(p,pl){
+      if(peakMode)return p.peak&&p.peak[pl]!=null?p.peak[pl]:null;
+      return p.mmr?p.mmr[pl]:null;
+    };
     var pCols=[{label:'#',cls:'c-rk'},{label:'Player',cls:'c-who',k:'name'},{label:'Region',cls:'c-rg',k:'region'},{label:'Status',cls:'c-st',k:'status'},{label:'1v1',cls:'c-mmr',k:'ones',num:true,title:MMR_COL_TITLE},{label:'2v2',cls:'c-mmr',k:'twos',num:true,title:MMR_COL_TITLE},{label:'3v3',cls:'c-mmr',k:'threes',num:true,title:MMR_COL_TITLE},{label:'Total games',cls:'c-sg',k:'sg',num:true,title:'Ranked games played since the current competitive season began'},{label:COL_LABEL[win],cls:'c-g14',k:'g14',num:true,title:'Ranked games played in the window selected above the table'},{label:'2wk h',cls:'c-hr c-hr2',k:'h2',num:true},{label:'Total h',cls:'c-hr c-hrt',k:'ht',num:true},{label:'',cls:'c-cp'}];
-    var pAcc={name:function(p){return(p.name||'').toLowerCase();},region:function(p){return p.region||null;},status:function(p){return p.status?String(p.status).toLowerCase():null;},ones:function(p){return p.mmr?p.mmr.ones:null;},twos:function(p){return p.mmr?p.mmr.twos:null;},threes:function(p){return p.mmr?p.mmr.threes:null;},sg:function(p){return p.seasonGames;},g14:function(p){
+    var pAcc={name:function(p){return(p.name||'').toLowerCase();},region:function(p){return p.region||null;},status:function(p){return p.status?String(p.status).toLowerCase():null;},ones:function(p){return ratingOf(p,'ones');},twos:function(p){return ratingOf(p,'twos');},threes:function(p){return ratingOf(p,'threes');},sg:function(p){return p.seasonGames;},g14:function(p){
         // "pending" in the cell means the window has not filled yet, so there is
         // nothing to rank: a new player's first reading is their whole season,
         // which would otherwise put them top of a 24h ordering.
         var g=p.games&&p.games[win];
         return g&&g.games!=null&&!g.partial?g.games:null;
-      },h2:function(p){return p.hours2wk!=null?p.hours2wk:p.estHours2wk;},ht:function(p){return p.totalHours;}};
+      },h2:function(p){return p.hours2wk!=null?p.hours2wk:p.estHours2wk;},ht:function(p){return p.totalHours;},
+      // Peaks rank on whichever playlist the board is already reading, so the
+      // control answers "who peaked highest" in the playlist being looked at
+      // rather than always in 2v2.
+      peak:function(p){return p.peak&&p.peak[mmrKey]!=null?p.peak[mmrKey]:null;}};
     var playerRow=function(p){
-      var mmr=p.hasMmr?(mmrCell(p.mmr.ones,'m1')+mmrCell(p.mmr.twos,'m2')+mmrCell(p.mmr.threes,'m3')):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
+      var mmr=p.hasMmr?(mmrCell(ratingOf(p,'ones'),'m1')+mmrCell(ratingOf(p,'twos'),'m2')+mmrCell(ratingOf(p,'threes'),'m3')):'<td class="c-mmr norank" colspan="3">no ranked data</td>';
       return '<tr class="'+(p.hasMmr?'':'isnorank')+(p.__pos<=3?' lead lead'+p.__pos:'')+'" data-player="'+esc(p.name)+'">'+
         '<td class="c-rk">'+rankMark(p.__pos||p.__rank)+'</td>'+
         '<td class="c-who">'+teamMark(p.team)+'<span class="nm"><b>'+esc(p.name)+liveMark(p)+'</b><i>'+esc(p.team||'Free agent')+lanTag(p.team)+'</i></span></td>'+
@@ -1054,7 +1084,7 @@
     // filter, so it is always the head of the list below it rather than a
     // second, competing ranking.
     var podEl=document.getElementById('podium');
-    var METRIC_LABEL={twos:'2v2 MMR',ones:'1v1 MMR',threes:'3v3 MMR',sg:'total games',g14:'games',h2:'hours, 2wk',ht:'hours total',name:'',region:'',status:''};
+    var METRIC_LABEL={twos:'2v2 MMR',ones:'1v1 MMR',threes:'3v3 MMR',sg:'total games',g14:'games',h2:'hours, 2wk',ht:'hours total',peak:'peak MMR',name:'',region:'',status:''};
     // The headline names its window. Ranking by 24h printed "74 GAMES" over a
     // stat cell reading "1,785 GAMES", two different figures under one word.
     var podLabel=function(k){
@@ -1076,6 +1106,7 @@
       if(k==='h2'){ var h=p.hours2wk!=null?p.hours2wk:p.estHours2wk; return h!=null?hf(h):null; }
       if(k==='ht') return p.totalHours!=null?nf(Math.round(p.totalHours)):null;
       if(k==='sg') return p.seasonGames!=null?nf(p.seasonGames):null;
+      if(k==='peak'){ var pk=p.peak?p.peak[mmrKey]:null; return pk!=null?nf(pk):null; }
       var v=p.mmr?p.mmr[k]:null; return v!=null?nf(v):null;
     };
     var podStat=function(label,value,active,na){
@@ -1131,13 +1162,13 @@
             '<div class="ptop">'+
               '<span class="pnum">'+String(i+1).padStart(2,'0')+'</span>'+
               teamMark(p.team)+
-              '<span class="pwho"><b>'+esc(p.name)+'</b><i>'+esc(p.team||'Free agent')+'</i></span>'+
+              '<span class="pwho"><b>'+esc(p.name)+'</b><i>'+esc(p.team||'Free agent')+lanTag(p.team)+'</i></span>'+
               // Region and Steam status stacked in the top corner, the two
               // things the table shows beside a name that the card was missing.
               // Playing joins the top of the stack when it applies, so it keeps
               // the corner and nothing has to share a line.
               '<span class="pmeta">'+
-                (isLive(p)?'<span class="plive">Playing</span>':'')+
+                (isLive(p)?'<span class="plive">Playing</span>':isInGame(p)?'<span class="pgame">In game</span>':'')+
                 (p.region?regionChip(p.region):'')+
                 statusChip(p.status)+
               '</span>'+
@@ -1235,6 +1266,7 @@
       // changes which window it means is worse than one that says.
       var facts=[
         ['Steam', statusChip(p.status)],
+        ['Peak MMR', peakFact(p)],
         ['Games, 24h', panelGames(p,'d1')],
         ['Games, 7d', panelGames(p,'d7')],
         ['Hours, 2 weeks', hours2wkCell(p).replace(/^<td[^>]*>|<\/td>$/g,'')],
@@ -1258,9 +1290,7 @@
         facts.unshift(['Playing now',
           [forWhen,played].filter(Boolean).join(':')||'yes']);
       }
-      else if(isInGame(p)){
-        facts.unshift(['In game','yes; no ranked game in the last 10 minutes']);
-      }
+
       return '<div class="pexp-in">'+
         '<div class="pexp-facts">'+facts.map(function(f){
           return '<div><span class="pk">'+f[0]+'</span><span class="pvv">'+f[1]+'</span></div>';
@@ -1367,7 +1397,7 @@
     var markMetric=function(k){
       Array.prototype.forEach.call(metricBtns,function(b){
         var mine=(b.dataset.k==='mmr')
-          ? (k==='ones'||k==='twos'||k==='threes')
+          ? (!peakMode&&(k==='ones'||k==='twos'||k==='threes'))
           : (b.dataset.k===k&&(!b.dataset.w||b.dataset.w===win));
         b.setAttribute('aria-pressed',mine?'true':'false');
       });
@@ -1381,11 +1411,38 @@
       var el=document.getElementById('mmrPl');
       if(el)el.textContent=PL_LABEL[mmrKey];
     };
+    // The three rating columns, relabelled when they are showing peaks. Held
+    // as a function rather than done once, because the table is rebuilt on
+    // every repaint and the headers come back with their original labels.
+    var PL_TH={ones:'1v1',twos:'2v2',threes:'3v3'};
+    var showRatingHeaders=function(){
+      Object.keys(PL_TH).forEach(function(pl){
+        var th=pv.querySelector('th[data-k="'+pl+'"]');
+        if(!th)return;
+        var sp=th.querySelector('span');
+        if(sp)sp.textContent=peakMode?(PL_TH[pl]+' peak'):PL_TH[pl];
+        th.title=peakMode
+          ? 'The highest rating ever reached in this playlist.'
+          : MMR_COL_TITLE;
+      });
+    };
     var setMetric=function(btn,fromClick){
       var k=btn.dataset.k, w=btn.dataset.w;
+      // Any other order leaves peak mode, so the columns never keep showing
+      // peaks while the board is sorted by something else.
+      peakMode=(k==='peak');
       if(w){
         win=w;
         var th=pv.querySelector('th.c-g14 span'); if(th)th.textContent=COL_LABEL[w];
+      }
+      if(k==='peak'){
+        // Peaks are per playlist like ratings are, and the board is already in
+        // one of them. Clicking again steps to the next, the same way the MMR
+        // button does, so the two controls behave alike.
+        if(fromClick&&paintP.sortKey()==='peak'){
+          mmrKey=PLAYLISTS[(PLAYLISTS.indexOf(mmrKey)+1)%PLAYLISTS.length];
+        }
+        showMmrPlaylist();
       }
       if(k==='mmr'){
         var cur=paintP.sortKey();
@@ -1400,6 +1457,7 @@
       markMetric(k);
       renderPodium(k);
       paintP.setSort(k,'desc');
+      showRatingHeaders();
     };
     Array.prototype.forEach.call(metricBtns,function(b){
       b.addEventListener('click',function(){setMetric(b,true);});
@@ -1412,9 +1470,12 @@
       if(!th)return;
       var k=paintP.sortKey();
       if(k==='ones'||k==='twos'||k==='threes'){ mmrKey=k; showMmrPlaylist(); }
+      // A header click is a request for that column as it normally reads.
+      peakMode=false;
       markMetric(k);
       renderPodium();
       paintP();
+      showRatingHeaders();
     });
 
     // ---- region filter ----
