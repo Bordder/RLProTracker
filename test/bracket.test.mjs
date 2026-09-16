@@ -723,3 +723,22 @@ test("it stays small enough for the board to fetch", () => {
   // thing to download in order to learn whether a tournament is on.
   assert.ok(JSON.stringify(eventNow(lanDoc, "2026-09-16")).length < 2048);
 });
+
+// ---- what still needs resolving -------------------------------------------
+
+import { looksLikeCode } from "../scripts/assemble.mjs";
+
+test("a Liquipedia short code is what needs resolving", () => {
+  for (const code of ["kc", "g2s", "flcn", "vp", "virtus.pro", "geng"]) {
+    assert.equal(looksLikeCode(code), true, code);
+  }
+});
+
+test("a name that is already a name is not an unresolved code", () => {
+  // The 15 September alarm, repeating every five minutes: the Paris wikitext
+  // writes {{TeamOpponent|Manchester City Esports}} in full, so there is no
+  // code to resolve and no amount of re-resolving could ever produce one.
+  for (const name of ["Manchester City Esports", "Shopify Rebellion", "NRG", "TSM", "Team Falcons"]) {
+    assert.equal(looksLikeCode(name), false, name);
+  }
+});

@@ -131,6 +131,22 @@ async function shapes() {
   return SHAPES;
 }
 
+/**
+ * Does this name still need resolving, or is it already a name?
+ *
+ * Absence from the alias map is not the test. Most pages write the code -
+ * {{TeamOpponent|flcn}} - but some write the org out in full, and a team whose
+ * Liquipedia template was retired renders as plain text with no dynamic name
+ * to read, so it can never enter the map however many times it is re-resolved.
+ * Judging by absence alone reported "Manchester City Esports" as an unresolved
+ * code every five minutes from 15 September, while the board showed exactly
+ * that name and was right to.
+ *
+ * A code is what the wikitext writes it as: one lower-case token, no spaces -
+ * kc, g2s, flcn, virtus.pro. A display name has a capital or a space in it.
+ */
+export const looksLikeCode = (t) => !/\s/.test(t) && t === t.toLowerCase();
+
 /** Parse one event from whatever wikitext is cached on disk. */
 export async function parseEvent(event) {
   const stages = [];
@@ -152,7 +168,7 @@ export async function parseEvent(event) {
     named
       .flatMap((s) => [...s.brackets.flatMap((b) => b.matches), ...s.matchlists.flatMap((l) => l.matches)])
       .flatMap((m) => m.teams)
-      .filter((t) => t && t !== "TBD" && !teams.known.has(t))
+      .filter((t) => t && t !== "TBD" && !teams.known.has(t) && looksLikeCode(t))
   )].sort();
 
   // Attach each bracket's real edge list, so the page needs no second fetch

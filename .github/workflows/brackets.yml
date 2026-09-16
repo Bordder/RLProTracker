@@ -53,6 +53,18 @@ jobs:
             mkdir -p data/bracket
             cp -r .databranch/data/bracket/cache data/bracket/cache
           fi
+          # The team alias maps, for the same reason. resolveTeams.mjs writes
+          # them from an action=parse render, which is rate limited to one
+          # request per 30 seconds, and without restoring them every run starts
+          # from whatever was committed to main - so the resolve ran again every
+          # two minutes during Worlds and its answer was thrown away each time.
+          # Only teams-*.json: the rest of fixtures/ is frozen wikitext the
+          # tests assert against, and nothing on the runner may overwrite that.
+          for f in .databranch/data/bracket/fixtures/teams-*.json; do
+            [ -e "$f" ] || continue
+            mkdir -p data/bracket/fixtures
+            cp "$f" data/bracket/fixtures/
+          done
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -65,3 +77,4 @@ jobs:
         run: >-
           bash scripts/publish-data.sh "[skip ci] data: bracket refresh"
           data/derived/bracket.json data/derived/event-now.json data/bracket/cache
+          data/bracket/fixtures/teams-*.json
