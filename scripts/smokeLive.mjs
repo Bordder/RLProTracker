@@ -227,6 +227,33 @@ export function refusalNote(results, total) {
     "Look at the site in a browser before treating it as an outage" + (ray ? ` (cf-ray ${ray})` : "");
 }
 
+/**
+ * What one fetched feed contributes to the failure list.
+ *
+ * Three outcomes, and the first one is the reason this is a function rather
+ * than three lines in the loop:
+ *
+ *   REFUSED - nothing. The feed was never read, so there is nothing to audit.
+ *   The refusal is reported once at the end, for all of them together.
+ *
+ *   A transport problem the fetch already described (a 502, an unparseable
+ *   body) - that description.
+ *
+ *   Otherwise the contents, audited.
+ *
+ * A refusal carries neither `problems` nor `doc`, so the loop used to fall
+ * through to auditFeed(feed, undefined), which answered "not a JSON object" -
+ * a sentence about the site's data describing a request the site never
+ * answered. It also defeated the rest of the design: a partial refusal is
+ * deliberately not posted, and the invented problems made every refused run
+ * look like a real failure and page the channel every hour.
+ */
+export function problemsFor(feed, res, now) {
+  if (res.refused) return [];
+  if (res.problems) return res.problems;
+  return auditFeed(feed, res.doc, now);
+}
+
 // Imported for auditFeed alone by the tests: nothing to fetch, nothing to post.
 if (import.meta.main) {
 
@@ -237,8 +264,7 @@ for (const feed of FEEDS) {
   try {
     const res = await readFeed(feed);
     results.push(res);
-    if (res.problems) problems.push(...res.problems);
-    else problems.push(...auditFeed(feed, res.doc, now));
+    problems.push(...problemsFor(feed, res, now));
   } catch (err) {
     // A network failure from the runner is not the same news as a broken feed,
     // and saying so stops an Actions outage being read as a dead site.
