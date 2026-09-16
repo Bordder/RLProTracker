@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T18:51:01.290Z",
+  "generatedAt": "2026-09-16T18:52:59.446Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -2141,10 +2141,10 @@
                   ],
                   "scores": [
                     1,
-                    2
+                    3
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": null,
                   "maps": [
@@ -2165,13 +2165,8 @@
                     },
                     {
                       "name": "Utopia Coliseum (Dusk)",
-                      "score1": null,
-                      "score2": null
-                    },
-                    {
-                      "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score1": 0,
+                      "score2": 1
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/d9564a16/vitality-vp"
@@ -2471,16 +2466,16 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 15,
-            "live": 1,
+            "played": 16,
+            "live": 0,
             "upcoming": 31
           }
         }
       ],
       "counts": {
         "matches": 47,
-        "played": 15,
-        "live": 1,
+        "played": 16,
+        "live": 0,
         "upcoming": 31
       },
       "unresolved": [],
