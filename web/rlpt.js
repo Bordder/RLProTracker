@@ -550,6 +550,41 @@
     var isInGame=function(p){
       return p.inGameAt!=null&&Date.now()-p.inGameAt<=LIVE_MS;
     };
+
+    // ---- who is streaming right now ---------------------------------------
+    //
+    // A third signal, and deliberately not folded into the two above. "Playing"
+    // means their match count just moved, "In game" means Steam says the app is
+    // open, and this means a Twitch stream is up. A pro can be any combination
+    // of the three, and collapsing them would make the board claim things it
+    // has not measured.
+    //
+    // This rides its own request rather than the board document, so Twitch
+    // being slow or down cannot hold up the table. Failure leaves the map empty
+    // and no badge appears, which is what the page did before this existed.
+    var TWLIVE={};
+    var streamOf=function(p){
+      if(!p.twitch)return null;
+      return TWLIVE[String(p.twitch).toLowerCase()]||null;
+    };
+    var isStreaming=function(p){ return !!streamOf(p); };
+    // The game is named because "live" on its own invites the wrong reading on
+    // a board about Rocket League specifically: a pro streaming something else
+    // is still not queueing.
+    var streamMark=function(p){
+      var s=streamOf(p);
+      if(!s)return '';
+      var what=s.game?('Live on Twitch: '+s.game):'Live on Twitch';
+      return '<span class="twlive" title="'+esc(what)+'" aria-label="'+esc(what)+'">LIVE</span>';
+    };
+    var loadTwitch=function(){
+      // Same 60s bucket the feeds use, and the endpoint is edge cached for the
+      // same minute, so this costs one upstream call however many tabs are open.
+      return fetch('/twitch-live?v='+Math.floor(Date.now()/60000),{cache:'no-store'})
+        .then(function(r){return r.ok?r.json():null;})
+        .then(function(j){ if(j&&j.live&&typeof j.live==='object')TWLIVE=j.live; return j; })
+        .catch(function(){return null;});
+    };
     var sessionMins=function(p){
       if(!p.session||collectedAt==null)return null;
       return Math.max(1,Math.round((collectedAt-p.session.startedAt)/60000));
@@ -780,7 +815,7 @@
       var hint=(p.name||'This player')+' has Rocket League open.';
       return '<span class="gmark" title="'+esc(hint)+'">In game</span>';
     };
-    var liveMark=function(p){ return isLive(p)?playMark(p):(isInGame(p)?gameMark(p):''); };
+    var liveMark=function(p){ return (isLive(p)?playMark(p):(isInGame(p)?gameMark(p):''))+streamMark(p); };
 
     // One line naming the tournament that is on, with the way through to it.
     // Empty and invisible for most of the year, which is correct: there is
@@ -920,6 +955,15 @@
     };
 
     renderStatus();
+
+    // Who is streaming, on its own beat. Once now and once a minute, matching
+    // the endpoint's own cache so a tab never asks for something newer than it
+    // can get. The repaint is guarded: a failed fetch leaves the map alone and
+    // redrawing for nothing would collapse any open row.
+    var twPaint=function(j){ if(j)( renderPodium(), paintP() ); };
+    loadTwitch().then(twPaint);
+    setInterval(function(){ loadTwitch().then(twPaint); },60000);
+
     // A live session goes stale on its own, so re-check on the same beat as the
     // freshness line rather than waiting for the next fetch.
     setInterval(function(){ renderCards(); buildPlaying(); renderPodium(); paintP(); },60000);
@@ -1409,7 +1453,13 @@
         // them at once. Here it has room to be written out in full.
         ['Nationality', nationality(p)],
         ['Steam', statusChip(p.status)],
-        ['Twitch', twitchLink(p.twitch)||'<span class="dash">&middot;</span>'],
+        ['Twitch', p.twitch
+          ? twitchLink(p.twitch)+(function(st){
+              if(!st)return '';
+              // The panel has room to say what "live" actually means here.
+              return ' <span class="twlive">LIVE</span>'+(st.game?'<span class="twgame">'+esc(st.game)+'</span>':'');
+            })(streamOf(p))
+          : '<span class="dash">&middot;</span>'],
         ['Peak MMR', peakFact(p)],
         ['Games, 24h', panelGames(p,'d1')],
         ['Games, 7d', panelGames(p,'d7')],
