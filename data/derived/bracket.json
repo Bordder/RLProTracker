@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T20:18:58.112Z",
+  "generatedAt": "2026-09-16T20:21:00.164Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -1415,10 +1415,10 @@
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/02d53feb/falcons-spacestation"
                 },
                 {
-                  "label": "Round 2 & 3",
+                  "label": "Round 2",
                   "teams": [
                     "Karmine Corp",
-                    "Spacestation Gaming"
+                    "Team Falcons"
                   ],
                   "scores": [
                     null,
@@ -1460,8 +1460,8 @@
                 {
                   "label": null,
                   "teams": [
-                    "Team Falcons",
-                    "MIBR"
+                    "MIBR",
+                    "Spacestation Gaming"
                   ],
                   "scores": [
                     null,
@@ -1501,10 +1501,10 @@
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/69f805a5/falcons-mibr"
                 },
                 {
-                  "label": "Round 3-->",
+                  "label": "Round 3",
                   "teams": [
                     "Karmine Corp",
-                    "Team Falcons"
+                    "Spacestation Gaming"
                   ],
                   "scores": [
                     null,
@@ -1546,8 +1546,8 @@
                 {
                   "label": null,
                   "teams": [
-                    "MIBR",
-                    "Spacestation Gaming"
+                    "Team Falcons",
+                    "MIBR"
                   ],
                   "scores": [
                     null,
@@ -1719,10 +1719,10 @@
                   ],
                   "scores": [
                     0,
-                    2
+                    3
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": null,
                   "maps": [
@@ -1738,18 +1738,8 @@
                     },
                     {
                       "name": "Futura Garden (Night)",
-                      "score1": null,
-                      "score2": null
-                    },
-                    {
-                      "name": "Utopia Coliseum (Dusk)",
-                      "score1": null,
-                      "score2": null
-                    },
-                    {
-                      "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score1": 1,
+                      "score2": 2
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/c471ae37/nip-fut"
@@ -2461,16 +2451,16 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 18,
-            "live": 1,
+            "played": 19,
+            "live": 0,
             "upcoming": 28
           }
         }
       ],
       "counts": {
         "matches": 47,
-        "played": 18,
-        "live": 1,
+        "played": 19,
+        "live": 0,
         "upcoming": 28
       },
       "unresolved": [],
