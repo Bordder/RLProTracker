@@ -699,7 +699,7 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 |bg1=|team1=Twisted Minds|temp_tie1=4
 |bg2=|team2=Ninjas in Pyjamas|temp_tie2=3
 |bg3=|team3=FURIA|temp_tie3=2
-|bg4=|team4=FUT Esports|temp_tie4=1
+|bg4=stay|team4=FUT Esports|temp_tie4=1
 }}
 <section end="Group B" />
 {{matchlist|id=xHTqjmzca5|title=Group B Matches|width=400px|matchsection=Group B
@@ -889,24 +889,9 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 |M1header=Round 1|M1={{Match
 	|opponent1={{TeamOpponent|Manchester City Esports|score=3}}
 	|opponent2={{TeamOpponent|Shopify Rebellion|score=0}}
-	|map1={{Map
-		|map=Mannfield (Dusk)
-		|score1=2|score2=1
-		|ot=|otlength=
-		|vod=https://www.twitch.tv/videos/2875740280?t=02h08m45s
-	}}
-	|map2={{Map
-		|map=Forbidden Temple
-		|score1=2|score2=1|timeout=2
-		|ot=true|otlength=+4:20
-		|vod=https://www.twitch.tv/videos/2875740280?t=02h16m27s
-	}}
-	|map3={{Map
-		|map=Futura Garden (Night)
-		|score1=1|score2=0
-		|ot=|otlength=
-		|vod=https://www.twitch.tv/videos/2875740280?t=02h29m21s
-	}}
+	|map1={{Map|map=Mannfield (Dusk)|score1=2|score2=1|vod=https://www.twitch.tv/videos/2875740280?t=02h08m45s}}
+	|map2={{Map|map=Forbidden Temple|score1=2|score2=1|timeout=2|ot=true|otlength=+4:20|vod=https://www.twitch.tv/videos/2875740280?t=02h16m27s}}
+	|map3={{Map|map=Futura Garden (Night)|score1=1|score2=0|vod=https://www.twitch.tv/videos/2875740280?t=02h29m21s}}
 	|finished=true
 	|ballchasing=sr-vs-mcfc-2f0gl8p6u3
 	|blasttv=rl/tournaments/rlcs-world-championship-2026/series/27937367/mancity-shopify
@@ -918,30 +903,10 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 |M2={{Match
 	|opponent1={{TeamOpponent|NRG|score=3}}
 	|opponent2={{TeamOpponent|Bigodes|score=1}}
-	|map1={{Map
-		|map=Mannfield (Dusk)
-		|score1=1|score2=2
-		|ot=true|otlength=+2:16
-		|vod=
-	}}
-	|map2={{Map
-		|map=Forbidden Temple
-		|score1=3|score2=2
-		|ot=true|otlength=+0:59
-		|vod=
-	}}
-	|map3={{Map
-		|map=Futura Garden (Night)
-		|score1=7|score2=0|timeout=2
-		|ot=|otlength=
-		|vod=
-	}}
-	|map4={{Map
-		|map=Utopia Coliseum (Dusk)
-		|score1=1|score2=0
-		|ot=|otlength=
-		|vod=
-	}}
+	|map1={{Map|map=Mannfield (Dusk)|score1=1|score2=2|ot=true|otlength=+2:16|vod=}}
+	|map2={{Map|map=Forbidden Temple|score1=3|score2=2|ot=true|otlength=+0:59|vod=}}
+	|map3={{Map|map=Futura Garden (Night)|score1=7|score2=0|timeout=2|vod=}}
+	|map4={{Map|map=Utopia Coliseum (Dusk)|score1=1|score2=0|vod=}}
 	|finished=true
 	|ballchasing=nrg-vs-bigo-0sfyztw27m
 	|blasttv=rl/tournaments/rlcs-world-championship-2026/series/582c55d5/nrg-bigodes
@@ -1028,7 +993,7 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 	|blasttv=rl/tournaments/rlcs-world-championship-2026/series/4ca2e3e1/shopify-bigodes
 	|twitch=RLEsports|youtube=Rocket League
 	|caster1=|caster2=
-	|date=2026-09-16 16:15 {{Abbr/CDT}}
+	|date=2026-09-16 15:45 {{Abbr/CDT}}
 }}
 
 |M5header=Round 3|M5={{Match
