@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T19:52:58.824Z",
+  "generatedAt": "2026-09-16T19:55:33.491Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -1378,11 +1378,11 @@
                     "Spacestation Gaming"
                   ],
                   "scores": [
-                    2,
+                    3,
                     2
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": null,
                   "maps": [
@@ -1408,8 +1408,8 @@
                     },
                     {
                       "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score1": 2,
+                      "score2": 1
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/02d53feb/falcons-spacestation"
@@ -2461,16 +2461,16 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 17,
-            "live": 1,
+            "played": 18,
+            "live": 0,
             "upcoming": 29
           }
         }
       ],
       "counts": {
         "matches": 47,
-        "played": 17,
-        "live": 1,
+        "played": 18,
+        "live": 0,
         "upcoming": 29
       },
       "unresolved": [],
