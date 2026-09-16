@@ -102,9 +102,32 @@ async function dispatch(env, workflow) {
   return res.status;
 }
 
+// Length-independent string compare.
+//
+// `a !== b` returns as soon as two bytes differ, so the time it takes leaks how
+// much of a guess was right and a key can be recovered one byte at a time. Over
+// the public internet that signal is buried in jitter, but the compare below
+// costs nothing and removes the question.
+function sameKey(a, b) {
+  const x = String(a ?? "");
+  const y = String(b ?? "");
+  let diff = x.length ^ y.length;
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    diff |= x.charCodeAt(i % (x.length || 1)) ^ y.charCodeAt(i % (y.length || 1));
+  }
+  return diff === 0;
+}
+
 // Read-only health check. Deliberately says nothing about the token beyond
-// whether one is bound - this URL is public once Cloudflare Access is removed
-// so the feedback endpoint can be reached from a browser.
+// whether one is bound.
+//
+// This makes TWO authenticated GitHub API calls per request, against the same
+// GH_TOKEN budget of 5000/hour that the collectors dispatch through. It used to
+// answer anybody, which made a workers.dev URL that nobody links to into a way
+// to stop collection for an hour from a laptop: 2500 requests, no key, no cost
+// to the caller. It is behind the run key now. The reason it was open - the
+// feedback form lived here and needed to be reachable from a browser - ended
+// when feedback moved to the Pages Function; the path left behind answers 410.
 async function check(env, workflow) {
   if (!env.GH_TOKEN) return { workflow, error: "GH_TOKEN binding missing" };
   const url = `https://api.github.com/repos/${env.GH_OWNER}/${env.GH_REPO}` +
@@ -147,7 +170,7 @@ export default {
       if (request.method !== "POST") return new Response("method not allowed", { status: 405 });
       const key = (env.RUN_KEY || "").trim();
       if (!key) return Response.json({ error: "not-configured" }, { status: 503 });
-      if ((request.headers.get("x-run-key") || "").trim() !== key) {
+      if (!sameKey((request.headers.get("x-run-key") || "").trim(), key)) {
         return new Response("forbidden", { status: 403 });
       }
       const wanted = url.searchParams.get("only");
@@ -166,6 +189,18 @@ export default {
     // calling here at the new home rather than failing silently.
     if (url.pathname === "/feedback") {
       return Response.json({ error: "moved", endpoint: "https://198x.online/feedback" }, { status: 410 });
+    }
+
+    // Anything else is the health check. Unkeyed callers get the one fact that
+    // costs nothing to produce; the GitHub reads below happen only for a caller
+    // holding RUN_KEY, because each one spends the collectors' rate limit.
+    const runKey = (env.RUN_KEY || "").trim();
+    const authed = runKey && sameKey((request.headers.get("x-run-key") || "").trim(), runKey);
+    if (!authed) {
+      return Response.json(
+        { ok: true, tokenPresent: Boolean(env.GH_TOKEN) },
+        { headers: { "cache-control": "no-store" } },
+      );
     }
 
     const results = await Promise.all([
