@@ -41,6 +41,11 @@ const LOGO_ALIAS = {
   // named the way the roster spells them, because that is what the board draws
   // most of.
   "manchester-city-esports": "man-city-esports",
+  // And the reverse. The live bracket feed carries BOTH "Team Vitality" and
+  // "Vitality" as separate team names, because Liquipedia spells the org
+  // differently between events, so the short one missed the file entirely and
+  // drew a "VI" monogram beside the full name's crest.
+  "vitality": "team-vitality",
   "quiktrip-pioneers-gaming": "pioneers",
   "virtus-pro": "virtuspro",
 };
