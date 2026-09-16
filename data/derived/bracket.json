@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-16T19:16:59.711Z",
+  "generatedAt": "2026-09-16T19:18:56.566Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -1341,7 +1341,7 @@
                   ],
                   "scores": [
                     1,
-                    0
+                    1
                   ],
                   "finished": false,
                   "live": true,
@@ -1355,8 +1355,8 @@
                     },
                     {
                       "name": "Forbidden Temple",
-                      "score1": null,
-                      "score2": null
+                      "score1": 1,
+                      "score2": 2
                     },
                     {
                       "name": "Futura Garden (Night)",
@@ -1383,12 +1383,12 @@
                     "Spacestation Gaming"
                   ],
                   "scores": [
-                    null,
-                    null
+                    0,
+                    0
                   ],
                   "finished": false,
-                  "live": false,
-                  "upcoming": true,
+                  "live": true,
+                  "upcoming": false,
                   "startsAt": null,
                   "maps": [
                     {
@@ -2467,16 +2467,16 @@
           "counts": {
             "matches": 47,
             "played": 16,
-            "live": 1,
-            "upcoming": 30
+            "live": 2,
+            "upcoming": 29
           }
         }
       ],
       "counts": {
         "matches": 47,
         "played": 16,
-        "live": 1,
-        "upcoming": 30
+        "live": 2,
+        "upcoming": 29
       },
       "unresolved": [],
       "resolvedAt": "2026-09-15T21:05:17.964Z"
