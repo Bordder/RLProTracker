@@ -156,15 +156,22 @@ export function auditBracket(doc, now) {
 // asking not to be refused.
 const UA = "rlprotracker-livecheck/1.0 (+https://198x.online)";
 
-async function readFeed(feed) {
+// Cloudflare declining to serve this client at all. It says nothing about
+// whether the site is working, which is why it is counted apart from a 404 or
+// a 502 - those are findings about the site itself.
+const REFUSAL = new Set([403, 429]);
+
+// Long enough to outlast the burst that triggered the refusal, short enough
+// that the check still finishes well inside its job.
+const RETRY_MS = 5000;
+
+async function fetchFeed(feed) {
   // Cache-busted, because the point is what is being served now, not what an
   // edge node kept. A 502 here is the finding, not an error to retry away.
   const res = await fetch(`${SITE}/data/${feed.file}?t=${Date.now()}`, {
     headers: { "cache-control": "no-cache", "user-agent": UA },
   });
-  if (!res.ok) {
-    return { status: res.status, ray: res.headers.get("cf-ray"), problems: [`${feed.file}: HTTP ${res.status}`] };
-  }
+  if (!res.ok) return { status: res.status, ray: res.headers.get("cf-ray") };
   try {
     return { doc: await res.json() };
   } catch {
@@ -173,27 +180,51 @@ async function readFeed(feed) {
 }
 
 /**
- * Every feed refused with the same status is one fact, not six.
+ * One feed, with a refused request tried once more before it is believed.
+ *
+ * A refusal is often a single bad second rather than a state: on 16 September
+ * three of six feeds answered 403 and the other three were served normally, in
+ * one run, within half a second of each other. Asking again costs one request
+ * and settles which of the two it was.
+ */
+async function readFeed(feed) {
+  let res = await fetchFeed(feed);
+  if (REFUSAL.has(res.status)) {
+    await new Promise((r) => setTimeout(r, RETRY_MS));
+    res = await fetchFeed(feed);
+  }
+  if (!res.status) return res;
+  return REFUSAL.has(res.status)
+    ? { ...res, refused: true, file: feed.file }
+    : { ...res, problems: [`${feed.file}: HTTP ${res.status}`] };
+}
+
+/**
+ * What being turned away means, said once instead of per feed.
  *
  * On 15 September this check reported "tracker.json: HTTP 403" and five more
  * like it, which reads as the data being down. It was not: every feed was
  * serving correctly to browsers throughout, and what had happened was that
- * Cloudflare refused THIS CLIENT - the runner is a datacenter address whose
- * requests carried no name, which is the profile bot protection exists to
- * stop. alertBuildBehind was being refused in the same run and said only "no
- * build stamp on the live site; skipping", so nothing in the job could tell
- * anyone what was actually happening.
+ * Cloudflare refused THIS CLIENT - the runner is a datacenter address, which
+ * is the profile bot protection exists to stop. Naming a User-Agent did not
+ * end it; on 16 September it came back for three feeds of six, which the
+ * all-or-nothing version of this could not recognise at all and reported as
+ * three dead feeds.
  *
  * A checker that cannot tell "the site is broken" from "I was not let in"
  * raises the wrong alarm, and the wrong alarm is worse than none.
  */
-export function collapseRefusals(results, total) {
-  const refused = results.filter((r) => r.status);
-  if (refused.length < total || new Set(refused.map((r) => r.status)).size !== 1) return null;
+export function refusalNote(results, total) {
+  const refused = results.filter((r) => r.refused);
+  if (!refused.length) return null;
+  const statuses = [...new Set(refused.map((r) => r.status))].sort();
+  const files = refused.map((r) => r.file).filter(Boolean).join(", ");
   const ray = refused.find((r) => r.ray)?.ray;
-  return `all ${total} feeds answered HTTP ${refused[0].status} to this check. ` +
-    "Every feed at once from one client is this checker being refused rather than the site being down, " +
-    "so check it in a browser before treating it as an outage" + (ray ? ` (cf-ray ${ray})` : "");
+  return `${refused.length} of ${total} feeds answered HTTP ${statuses.join("/")} to this check` +
+    (files ? ` (${files})` : "") + ", twice. " +
+    "This check runs from a datacenter address that Cloudflare scores, so a refusal is this client " +
+    "being turned away rather than the site being down, and those feeds went unchecked. " +
+    "Look at the site in a browser before treating it as an outage" + (ray ? ` (cf-ray ${ray})` : "");
 }
 
 // Imported for auditFeed alone by the tests: nothing to fetch, nothing to post.
@@ -216,20 +247,39 @@ for (const feed of FEEDS) {
   }
 }
 
-const refusedAll = collapseRefusals(results, FEEDS.length);
+const refused = refusalNote(results, FEEDS.length);
+const blind = results.every((r) => r.refused);
 
 if (!problems.length) {
-  console.log(`${FEEDS.length} feeds served correctly by ${SITE}`);
+  // Nothing wrong with what was served. A refusal is only worth a message
+  // when it left this check with nothing to look at: a run that was turned
+  // away from some feeds and found the rest healthy has learned that the site
+  // is up, and posting that every few minutes is the noise this check exists
+  // to avoid.
+  if (refused) console.log(refused);
+  else console.log(`${FEEDS.length} feeds served correctly by ${SITE}`);
+  if (blind) {
+    await postEmbed({
+      title: "Live data check could not reach the site",
+      description: `- ${refused}`.slice(0, 3800),
+      color: 0xb98b32,
+      url: process.env.RUN_URL || undefined,
+      footer: { text: SITE },
+      timestamp: new Date(now).toISOString(),
+    });
+  }
   process.exit(0);
 }
 
-const lines = refusedAll ? [refusedAll] : problems;
+// Real problems, with the refusal kept as context underneath them: what was
+// not checked changes how much the list below is worth.
+const lines = refused ? [...problems, refused] : problems;
 for (const p of lines) console.log(p);
 
 await postEmbed({
-  title: refusedAll ? "Live data check could not reach the site" : "Live data check failed",
+  title: "Live data check failed",
   description: lines.map((p) => `- ${p}`).join("\n").slice(0, 3800),
-  color: refusedAll ? 0xb98b32 : 0xb93b32,
+  color: 0xb93b32,
   url: process.env.RUN_URL || undefined,
   footer: { text: SITE },
   timestamp: new Date(now).toISOString(),

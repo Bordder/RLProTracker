@@ -109,32 +109,47 @@ test("an hourly feed is judged on its own cadence", () => {
 
 // ---- refused is not down ---------------------------------------------------
 
-import { collapseRefusals } from "../scripts/smokeLive.mjs";
+import { refusalNote } from "../scripts/smokeLive.mjs";
+
+const refusal = (status = 403, file = "tracker.json", ray = null) => ({ status, file, ray, refused: true });
 
 test("every feed refused with the same status is reported as one refusal", () => {
   // The 15 September alarm: six lines saying "HTTP 403", which reads as the
   // data being down. Every feed was serving correctly to browsers; Cloudflare
   // had refused the runner.
-  const all = Array.from({ length: 6 }, () => ({ status: 403, ray: "9abc-LHR" }));
-  const line = collapseRefusals(all, 6);
-  assert.match(line, /all 6 feeds answered HTTP 403/);
-  assert.match(line, /this checker being refused rather than the site being down/);
+  const all = Array.from({ length: 6 }, (_, i) => refusal(403, `feed${i}.json`, "9abc-LHR"));
+  const line = refusalNote(all, 6);
+  assert.match(line, /6 of 6 feeds answered HTTP 403/);
+  assert.match(line, /being turned away rather than the site being down/);
   assert.match(line, /cf-ray 9abc-LHR/);
 });
 
-test("one feed failing is still that feed's problem", () => {
-  // A single 502 is the case this check was written for and must not be
-  // softened into "we were probably blocked".
-  const mixed = [{ status: 502 }, { doc: {} }, { doc: {} }, { doc: {} }, { doc: {} }, { doc: {} }];
-  assert.equal(collapseRefusals(mixed, 6), null);
+test("a partial refusal is still a refusal", () => {
+  // 16 September: three feeds refused and three served, in one run. The
+  // all-or-nothing version said nothing and the three refusals were posted as
+  // three dead feeds.
+  const mixed = [refusal(403, "tracker.json"), refusal(403, "steam-hours.json"), { doc: {} }, { doc: {} }];
+  const line = refusalNote(mixed, 4);
+  assert.match(line, /2 of 4 feeds answered HTTP 403 to this check \(tracker\.json, steam-hours\.json\)/);
 });
 
-test("different statuses are not one refusal", () => {
-  const mixed = Array.from({ length: 6 }, (_, i) => ({ status: i < 3 ? 403 : 502 }));
-  assert.equal(collapseRefusals(mixed, 6), null);
+test("a 502 is the site's problem, not a refusal", () => {
+  // The case this check was written for, and it must not be softened into
+  // "we were probably blocked" however many feeds report it.
+  const down = Array.from({ length: 6 }, () => ({ status: 502, problems: ["x: HTTP 502"] }));
+  assert.equal(refusalNote(down, 6), null);
+});
+
+test("nothing refused says nothing", () => {
+  assert.equal(refusalNote([{ doc: {} }, { doc: {} }], 2), null);
+});
+
+test("mixed refusal statuses are named together", () => {
+  const both = [refusal(403, "a.json"), refusal(429, "b.json")];
+  assert.match(refusalNote(both, 2), /HTTP 403\/429/);
 });
 
 test("a refusal with no ray still reports", () => {
-  const all = Array.from({ length: 2 }, () => ({ status: 429 }));
-  assert.match(collapseRefusals(all, 2), /all 2 feeds answered HTTP 429/);
+  assert.match(refusalNote([refusal(429, "a.json")], 2), /1 of 2 feeds answered HTTP 429/);
+  assert.doesNotMatch(refusalNote([refusal(429, "a.json")], 2), /cf-ray/);
 });
