@@ -106,3 +106,35 @@ test("an hourly feed is judged on its own cadence", () => {
   const [problem] = auditFeed(hourly, { computedAt: ago(200), players: players(40) }, NOW);
   assert.match(problem, /steam-hours\.json: 3\.3h old/);
 });
+
+// ---- refused is not down ---------------------------------------------------
+
+import { collapseRefusals } from "../scripts/smokeLive.mjs";
+
+test("every feed refused with the same status is reported as one refusal", () => {
+  // The 15 September alarm: six lines saying "HTTP 403", which reads as the
+  // data being down. Every feed was serving correctly to browsers; Cloudflare
+  // had refused the runner.
+  const all = Array.from({ length: 6 }, () => ({ status: 403, ray: "9abc-LHR" }));
+  const line = collapseRefusals(all, 6);
+  assert.match(line, /all 6 feeds answered HTTP 403/);
+  assert.match(line, /this checker being refused rather than the site being down/);
+  assert.match(line, /cf-ray 9abc-LHR/);
+});
+
+test("one feed failing is still that feed's problem", () => {
+  // A single 502 is the case this check was written for and must not be
+  // softened into "we were probably blocked".
+  const mixed = [{ status: 502 }, { doc: {} }, { doc: {} }, { doc: {} }, { doc: {} }, { doc: {} }];
+  assert.equal(collapseRefusals(mixed, 6), null);
+});
+
+test("different statuses are not one refusal", () => {
+  const mixed = Array.from({ length: 6 }, (_, i) => ({ status: i < 3 ? 403 : 502 }));
+  assert.equal(collapseRefusals(mixed, 6), null);
+});
+
+test("a refusal with no ray still reports", () => {
+  const all = Array.from({ length: 2 }, () => ({ status: 429 }));
+  assert.match(collapseRefusals(all, 2), /all 2 feeds answered HTTP 429/);
+});

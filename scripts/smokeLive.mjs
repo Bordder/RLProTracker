@@ -150,13 +150,21 @@ export function auditBracket(doc, now) {
   return problems;
 }
 
+// Who is asking. Cloudflare sits in front of the site and scores automated
+// clients, and a request with no name from a datacenter address is the worst
+// case it sees. Saying who this is costs nothing and is the polite half of
+// asking not to be refused.
+const UA = "rlprotracker-livecheck/1.0 (+https://198x.online)";
+
 async function readFeed(feed) {
   // Cache-busted, because the point is what is being served now, not what an
   // edge node kept. A 502 here is the finding, not an error to retry away.
   const res = await fetch(`${SITE}/data/${feed.file}?t=${Date.now()}`, {
-    headers: { "cache-control": "no-cache" },
+    headers: { "cache-control": "no-cache", "user-agent": UA },
   });
-  if (!res.ok) return { problems: [`${feed.file}: HTTP ${res.status}`] };
+  if (!res.ok) {
+    return { status: res.status, ray: res.headers.get("cf-ray"), problems: [`${feed.file}: HTTP ${res.status}`] };
+  }
   try {
     return { doc: await res.json() };
   } catch {
@@ -164,34 +172,64 @@ async function readFeed(feed) {
   }
 }
 
+/**
+ * Every feed refused with the same status is one fact, not six.
+ *
+ * On 15 September this check reported "tracker.json: HTTP 403" and five more
+ * like it, which reads as the data being down. It was not: every feed was
+ * serving correctly to browsers throughout, and what had happened was that
+ * Cloudflare refused THIS CLIENT - the runner is a datacenter address whose
+ * requests carried no name, which is the profile bot protection exists to
+ * stop. alertBuildBehind was being refused in the same run and said only "no
+ * build stamp on the live site; skipping", so nothing in the job could tell
+ * anyone what was actually happening.
+ *
+ * A checker that cannot tell "the site is broken" from "I was not let in"
+ * raises the wrong alarm, and the wrong alarm is worse than none.
+ */
+export function collapseRefusals(results, total) {
+  const refused = results.filter((r) => r.status);
+  if (refused.length < total || new Set(refused.map((r) => r.status)).size !== 1) return null;
+  const ray = refused.find((r) => r.ray)?.ray;
+  return `all ${total} feeds answered HTTP ${refused[0].status} to this check. ` +
+    "Every feed at once from one client is this checker being refused rather than the site being down, " +
+    "so check it in a browser before treating it as an outage" + (ray ? ` (cf-ray ${ray})` : "");
+}
+
 // Imported for auditFeed alone by the tests: nothing to fetch, nothing to post.
 if (import.meta.main) {
 
 const now = Date.now();
 const problems = [];
+const results = [];
 for (const feed of FEEDS) {
   try {
-    const { doc, problems: fetchProblems } = await readFeed(feed);
-    if (fetchProblems) problems.push(...fetchProblems);
-    else problems.push(...auditFeed(feed, doc, now));
+    const res = await readFeed(feed);
+    results.push(res);
+    if (res.problems) problems.push(...res.problems);
+    else problems.push(...auditFeed(feed, res.doc, now));
   } catch (err) {
     // A network failure from the runner is not the same news as a broken feed,
     // and saying so stops an Actions outage being read as a dead site.
+    results.push({});
     problems.push(`${feed.file}: could not be reached (${err.message})`);
   }
 }
+
+const refusedAll = collapseRefusals(results, FEEDS.length);
 
 if (!problems.length) {
   console.log(`${FEEDS.length} feeds served correctly by ${SITE}`);
   process.exit(0);
 }
 
-for (const p of problems) console.log(p);
+const lines = refusedAll ? [refusedAll] : problems;
+for (const p of lines) console.log(p);
 
 await postEmbed({
-  title: "Live data check failed",
-  description: problems.map((p) => `- ${p}`).join("\n").slice(0, 3800),
-  color: 0xb93b32,
+  title: refusedAll ? "Live data check could not reach the site" : "Live data check failed",
+  description: lines.map((p) => `- ${p}`).join("\n").slice(0, 3800),
+  color: refusedAll ? 0xb98b32 : 0xb93b32,
   url: process.env.RUN_URL || undefined,
   footer: { text: SITE },
   timestamp: new Date(now).toISOString(),

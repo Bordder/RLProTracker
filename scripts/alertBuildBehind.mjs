@@ -26,8 +26,12 @@ const SITE = process.env.SITE ?? "https://198x.online";
 const GRACE = Number(process.env.BEHIND_MINUTES ?? 90);
 const MAIN = process.env.MAIN_SHA ?? "";
 
+// Who is asking. Cloudflare scores automated clients, and an unnamed request
+// from a datacenter address is the worst case it sees.
+const UA = "rlprotracker-livecheck/1.0 (+https://198x.online)";
+
 const j = async (url, init) => {
-  const res = await fetch(url, init);
+  const res = await fetch(url, { ...init, headers: { "user-agent": UA, ...(init?.headers ?? {}) } });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 };
@@ -35,7 +39,14 @@ const j = async (url, init) => {
 let stamp;
 try {
   stamp = await j(`${SITE}/build.json?t=${Date.now()}`);
-} catch {
+} catch (err) {
+  // A refusal is not an absence. On 15 September Cloudflare answered this
+  // runner 403 for an hour and the only thing said about it was "skipping",
+  // while the live check beside it reported six feeds down. Say which it was.
+  if (/HTTP \d/.test(err.message)) {
+    console.log(`build stamp: ${err.message} from ${SITE} - the check was refused, not the stamp missing`);
+    process.exit(0);
+  }
   // Predates the stamp, or the deploy did not include it. Nothing to compare,
   // so say so and stay quiet rather than guessing.
   console.log("no build stamp on the live site; skipping");
