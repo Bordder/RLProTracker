@@ -100,6 +100,12 @@ const ZONES = { UTC: 0, GMT: 0, BST: 60, CET: 60, CEST: 120, EST: -300, EDT: -24
  */
 export function parseDay(raw) {
   if (!raw) return null;
+  // Liquipedia writes both forms, sometimes on the same page: the group
+  // matchlists use "2026-09-16 11:00 CDT" and the playoff bracket "September
+  // 18, 2026". Reading only the prose one left every group match undated on a
+  // page that had published every kickoff.
+  const iso = String(raw).match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
   const m = String(raw).match(/([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})/);
   if (!m) return null;
   const month = MONTHS.indexOf(m[1].toLowerCase());
@@ -113,13 +119,19 @@ export function parseDay(raw) {
 export function parseDate(raw) {
   if (!raw) return null;
   const zone = raw.match(/Abbr\/([A-Z]{2,5})/)?.[1] ?? raw.match(/\b([A-Z]{2,5})\b\s*$/)?.[1];
-  const m = raw.match(/([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})\s*-\s*(\d{1,2}):(\d{2})/);
+  // Two shapes, both live on the 2026 Worlds page: "November 15, 2025 - 18:45"
+  // in the brackets and "2026-09-16 11:00" in the group matchlists.
+  const iso = raw.match(/(\d{4})-(\d{2})-(\d{2})[\sT]+(\d{1,2}):(\d{2})/);
+  const m = iso ?? raw.match(/([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})\s*-\s*(\d{1,2}):(\d{2})/);
   if (!m) return null;
-  const month = MONTHS.indexOf(m[1].toLowerCase());
-  if (month === -1) return null;
+  // The prose form is "month day year", the ISO one "year month day".
+  const month = iso ? Number(m[2]) - 1 : MONTHS.indexOf(m[1].toLowerCase());
+  if (!(month >= 0 && month <= 11)) return null;
   const offset = ZONES[zone];
   if (offset === undefined) return null;
-  const utc = Date.UTC(+m[3], month, +m[2], +m[4], +m[5]) - offset * 60e3;
+  const year = iso ? +m[1] : +m[3];
+  const dayOfMonth = iso ? +m[3] : +m[2];
+  const utc = Date.UTC(year, month, dayOfMonth, +m[4], +m[5]) - offset * 60e3;
   return new Date(utc).toISOString();
 }
 

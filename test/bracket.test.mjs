@@ -10,7 +10,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { parsePage, parseDate, splitArgs, findTemplates, parseBrackets } from "../scripts/parseBracket.mjs";
+import { parsePage, parseDate, parseDay, splitArgs, findTemplates, parseBrackets } from "../scripts/parseBracket.mjs";
 import { pollPlan, perHour, MINUTE, LIVE, IDLE, EVENT_DAY } from "../scripts/bracketSchedule.mjs";
 import { teamsFromRender } from "../scripts/resolveTeams.mjs";
 
@@ -89,6 +89,20 @@ test("undrawn group slots stay null rather than inventing a team", () => {
 test("dates convert to a real instant in UTC", () => {
   assert.equal(parseDate("November 15, 2025 - 18:45 {{Abbr/CET}}"), "2025-11-15T17:45:00.000Z");
   assert.equal(parseDate("September 15, 2026 - 11:00 {{Abbr/CDT}}"), "2026-09-15T16:00:00.000Z");
+  // Liquipedia writes both shapes, and on the 2026 Worlds page it uses both at
+  // once: prose in the brackets, this one in the group matchlists. Reading
+  // only the prose form left every group match of a scheduled day undated.
+  assert.equal(parseDate("2026-09-16 11:00 {{Abbr/CDT}}"), "2026-09-16T16:00:00.000Z");
+  assert.equal(parseDate("2026-09-17 15:20 {{Abbr/CDT}}"), "2026-09-17T20:20:00.000Z");
+});
+
+test("a date with no time keeps the day", () => {
+  // The playoff and 1v1 finals are dated but not timed. That is not a kickoff,
+  // so parseDate refuses it; the day is still worth publishing.
+  assert.equal(parseDay("September 18, 2026"), "2026-09-18");
+  assert.equal(parseDay("2026-09-16 11:00 {{Abbr/CDT}}"), "2026-09-16");
+  assert.equal(parseDay("soon"), null);
+  assert.equal(parseDay(""), null);
 });
 
 test("an unparseable or unknown-zone date is null, not a guess", () => {
