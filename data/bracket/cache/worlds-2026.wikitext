@@ -684,8 +684,8 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 |pbg1=up|pbg2=stay|pbg3=stay|pbg4=down
 |tiebreaker1=series|tiebreaker2=h2h series|tiebreaker3=diff
 |edate=
-|bg1=|team1=Twisted Minds|temp_tie1=4
-|bg2=|team2=Ninjas in Pyjamas|temp_tie2=3
+|bg1=stay|team1=Twisted Minds|temp_tie1=4
+|bg2=down|team2=Ninjas in Pyjamas|temp_tie2=3
 |bg3=stay|team3=FURIA|temp_tie3=2
 |bg4=up|team4=FUT Esports|temp_tie4=1
 }}
@@ -751,7 +751,7 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 }}
 
 |M5header=Round 3|M5={{Match
-	|opponent1={{TeamOpponent|Twisted Minds|score=2}}
+	|opponent1={{TeamOpponent|Twisted Minds|score=3}}
 	|opponent2={{TeamOpponent|Ninjas in Pyjamas|score=2}}
 	|map1={{Map
 		|map=Mannfield (Dusk)
@@ -779,11 +779,11 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 	}}
 	|map5={{Map
 		|map=Champions Field
-		|score1=|score2=
+		|score1=3|score2=2
 		|ot=|otlength=
 		|vod=
 	}}
-	|finished=
+	|finished=true
 	|ballchasing=twis-vs-nip-pi7447bj0u
 	|blasttv=rl/tournaments/rlcs-world-championship-2026/series/fe615347/twistedminds-nip
 	|twitch=RLEsports|youtube=Rocket League
@@ -1289,7 +1289,7 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 
 <!-- Lower Bracket Round 1 -->
 |R1M1={{Match
-	|opponent1={{LiteralOpponent|Group B #2|score=}}
+	|opponent1={{TeamOpponent|Twisted Minds|score=}}
 	|opponent2={{LiteralOpponent|Group D #3|score=}}
 	|map1={{Map
 		|map=Mannfield (Dusk)
@@ -1449,7 +1449,7 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 
 |R1M4={{Match
 	|opponent1={{LiteralOpponent|Group D #2|score=}}
-	|opponent2={{LiteralOpponent|Group B #3|score=}}
+	|opponent2={{TeamOpponent|FURIA|score=}}
 	|map1={{Map
 		|map=Mannfield (Dusk)
 		|score1=|score2=

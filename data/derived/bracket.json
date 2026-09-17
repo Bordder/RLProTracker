@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T18:57:00.523Z",
+  "generatedAt": "2026-09-17T18:59:01.856Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -550,7 +550,7 @@
                   "label": "Lower Bracket Round 1",
                   "section": "lower",
                   "teams": [
-                    null,
+                    "Twisted Minds",
                     null
                   ],
                   "scores": [
@@ -722,7 +722,7 @@
                   "section": "lower",
                   "teams": [
                     null,
-                    null
+                    "FURIA"
                   ],
                   "scores": [
                     null,
@@ -1768,11 +1768,11 @@
                     "Ninjas in Pyjamas"
                   ],
                   "scores": [
-                    2,
+                    3,
                     2
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": "2026-09-17T18:10:00.000Z",
                   "maps": [
@@ -1798,8 +1798,8 @@
                     },
                     {
                       "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score1": 3,
+                      "score2": 2
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/fe615347/twistedminds-nip"
@@ -2349,13 +2349,13 @@
                 {
                   "rank": 1,
                   "team": "Twisted Minds",
-                  "outcome": null,
+                  "outcome": "stay",
                   "meansIfHere": "up"
                 },
                 {
                   "rank": 2,
                   "team": "Ninjas in Pyjamas",
-                  "outcome": null,
+                  "outcome": "down",
                   "meansIfHere": "stay"
                 },
                 {
@@ -2433,8 +2433,8 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 27,
-            "live": 1,
+            "played": 28,
+            "live": 0,
             "upcoming": 19
           }
         },
@@ -2838,8 +2838,8 @@
       ],
       "counts": {
         "matches": 53,
-        "played": 29,
-        "live": 1,
+        "played": 30,
+        "live": 0,
         "upcoming": 23
       },
       "unresolved": [],
