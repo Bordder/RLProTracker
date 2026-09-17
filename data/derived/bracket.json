@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T16:05:00.487Z",
+  "generatedAt": "2026-09-17T16:07:02.716Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -1448,12 +1448,12 @@
                     "Spacestation Gaming"
                   ],
                   "scores": [
-                    null,
-                    null
+                    0,
+                    0
                   ],
                   "finished": false,
-                  "live": false,
-                  "upcoming": true,
+                  "live": true,
+                  "upcoming": false,
                   "startsAt": "2026-09-17T16:00:00.000Z",
                   "maps": [
                     {
@@ -1491,7 +1491,7 @@
                     "MIBR"
                   ],
                   "scores": [
-                    0,
+                    1,
                     0
                   ],
                   "finished": false,
@@ -1501,8 +1501,8 @@
                   "maps": [
                     {
                       "name": "Mannfield (Dusk)",
-                      "score1": null,
-                      "score2": null
+                      "score1": 2,
+                      "score2": 0
                     },
                     {
                       "name": "Forbidden Temple",
@@ -2464,8 +2464,8 @@
           "counts": {
             "matches": 47,
             "played": 22,
-            "live": 1,
-            "upcoming": 24
+            "live": 2,
+            "upcoming": 23
           }
         },
         {
@@ -2869,8 +2869,8 @@
       "counts": {
         "matches": 53,
         "played": 24,
-        "live": 1,
-        "upcoming": 28
+        "live": 2,
+        "upcoming": 27
       },
       "unresolved": [],
       "resolvedAt": "2026-09-17T03:05:06.824Z"
