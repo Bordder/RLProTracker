@@ -335,7 +335,7 @@ export function parseInfobox(wikitext) {
   // forbids inline script on top of that. This is the layer below both, and it
   // matters because the input is a wiki: anyone with a Liquipedia account can
   // put anything in an event name.
-  const strip = (t) => t
+  const stripOnce = (t) => t
     .replace(/\[(?:https?:)?\/\/\S+\s+([^\]]+)\]/g, "$1")   // [url label] -> label
     .replace(/\[\[(?:[^|\]]*\|)?([^\]]+)\]\]/g, "$1")        // [[page|label]] -> label
     // Whole tags, not their brackets. Copilot Autofix closed the alert with
@@ -348,6 +348,16 @@ export function parseInfobox(wikitext) {
     // [^}]* matched from the OUTER "{{" to the INNER "}}", which on a nested
     // template deleted the wrong span and left "lag|de}}" sitting in the name.
     .replace(/\{\{[^{}]*\}\}/g, "");
+
+  const strip = (t) => {
+    let cur = String(t ?? "");
+    let prev;
+    do {
+      prev = cur;
+      cur = stripOnce(cur);
+    } while (cur !== prev);
+    return cur;
+  };
 
   const plain = (v) => {
     if (!v) return null;
