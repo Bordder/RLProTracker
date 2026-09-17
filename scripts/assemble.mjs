@@ -152,10 +152,19 @@ export async function parseEvent(event) {
   const stages = [];
   for (const t of event.titles) {
     const text = await readCached(t.cache);
-    stages.push(parsePage(text, { stage: t.stage, source: t.title }));
+    // format: which discipline this page is, for an event that runs more than
+    // one. The 2026 Worlds plays a 1v1 title alongside the 3v3, on its own
+    // page, and without this the two are indistinguishable once the matches
+    // are flattened into one list.
+    stages.push(parsePage(text, { stage: t.stage, source: t.title, format: t.format ?? null }));
   }
   const teams = await loadTeams(event.slug);
-  const named = stages.map((s) => renameIn(s, teams.name));
+  // The alias map turns Liquipedia's short codes into org names, and it applies
+  // to the TEAM event only. A 1v1 page puts player handles in the same field,
+  // where "kv1" is a person rather than an unresolved code, so running them
+  // through the map can only rename somebody into a team.
+  const isTeams = (s) => !s.format || s.format === "3v3";
+  const named = stages.map((s) => (isTeams(s) ? renameIn(s, teams.name) : s));
 
   // Which teams came out of the rename still wearing a Liquipedia short code.
   //
@@ -166,6 +175,7 @@ export async function parseEvent(event) {
   // without being asked.
   const unresolved = [...new Set(
     named
+      .filter(isTeams)
       .flatMap((s) => [...s.brackets.flatMap((b) => b.matches), ...s.matchlists.flatMap((l) => l.matches)])
       .flatMap((m) => m.teams)
       .filter((t) => t && t !== "TBD" && !teams.known.has(t) && looksLikeCode(t))
@@ -214,6 +224,10 @@ export function eventNow(doc, today = new Date().toISOString().slice(0, 10)) {
 
   const teams = new Set();
   for (const stage of ev.stages ?? []) {
+    // The team event only. A 1v1 stage names PLAYERS in the same field, and
+    // this list is what tags a roster row as being at the LAN: a player name
+    // arriving here as though it were an org is how that tag goes wrong.
+    if (stage.format && stage.format !== "3v3") continue;
     for (const group of [...(stage.brackets ?? []), ...(stage.matchlists ?? [])]) {
       for (const m of group.matches ?? []) {
         for (const t of m.teams ?? []) if (t) teams.add(t);

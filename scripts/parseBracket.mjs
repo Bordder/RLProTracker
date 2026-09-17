@@ -89,6 +89,26 @@ const MONTHS = ["january","february","march","april","may","june","july","august
 // worse than none, and the page can fall back to "TBD".
 const ZONES = { UTC: 0, GMT: 0, BST: 60, CET: 60, CEST: 120, EST: -300, EDT: -240, CST: -360, CDT: -300, PST: -480, PDT: -420, AEST: 600, KST: 540, JST: 540 };
 
+/**
+ * "September 18, 2026" -> "2026-09-18", for a match Liquipedia has put on a
+ * DAY but not yet at a time.
+ *
+ * The 2026 1v1 final is the case this exists for: its date field carries the
+ * day alone, which parseDate rightly refuses because there is no instant in
+ * it. Refusing it twice left the final with nothing at all, when "18 Sept" is
+ * both true and the thing a reader wants.
+ */
+export function parseDay(raw) {
+  if (!raw) return null;
+  const m = String(raw).match(/([A-Za-z]+)\s+(\d{1,2}),\s*(\d{4})/);
+  if (!m) return null;
+  const month = MONTHS.indexOf(m[1].toLowerCase());
+  if (month === -1) return null;
+  const day = Number(m[2]);
+  if (!(day >= 1 && day <= 31)) return null;
+  return `${m[3]}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 // "November 15, 2025 - 18:45 {{Abbr/CET}}" -> ISO instant
 export function parseDate(raw) {
   if (!raw) return null;
@@ -145,13 +165,18 @@ export function parseMatch(body) {
   // flagged, and the only two unflagged were the two being played. So the
   // flag is what decides a series, and a score without it means in progress.
   const finished = /^(t|true|1)$/i.test(named.finished ?? "");
+  const startsAt = parseDate(named.date);
   return {
     teams: [a.team, b.team],
     scores: [a.score, b.score],
     finished,
     live: hasScore && !finished,
     upcoming: !hasScore,
-    startsAt: parseDate(named.date),
+    startsAt,
+    // The day, when that is all the page gives. Never a substitute for a
+    // kickoff: both are published, and anything reading this has to decide
+    // for itself which it has.
+    ...(!startsAt && parseDay(named.date) ? { startsOn: parseDay(named.date) } : null),
     maps: maps.length ? maps : null,
     blasttv: named.blasttv || null,
   };
