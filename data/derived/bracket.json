@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T19:57:00.231Z",
+  "generatedAt": "2026-09-17T19:58:58.716Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -2035,11 +2035,11 @@
                     "Bigodes"
                   ],
                   "scores": [
-                    2,
+                    3,
                     1
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": "2026-09-17T19:15:00.000Z",
                   "maps": [
@@ -2060,13 +2060,8 @@
                     },
                     {
                       "name": "Utopia Coliseum (Dusk)",
-                      "score1": null,
-                      "score2": null
-                    },
-                    {
-                      "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score1": 4,
+                      "score2": 1
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/7e218bf3/mancity-bigodes"
@@ -2433,8 +2428,8 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 28,
-            "live": 2,
+            "played": 29,
+            "live": 1,
             "upcoming": 17
           }
         },
@@ -2838,8 +2833,8 @@
       ],
       "counts": {
         "matches": 53,
-        "played": 30,
-        "live": 2,
+        "played": 31,
+        "live": 1,
         "upcoming": 21
       },
       "unresolved": [],
