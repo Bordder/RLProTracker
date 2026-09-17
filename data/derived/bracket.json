@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T22:33:15.463Z",
+  "generatedAt": "2026-09-17T22:35:02.134Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -2633,12 +2633,12 @@
                     "FURIA"
                   ],
                   "scores": [
-                    null,
-                    null
+                    0,
+                    0
                   ],
                   "finished": false,
-                  "live": false,
-                  "upcoming": true,
+                  "live": true,
+                  "upcoming": false,
                   "startsAt": "2026-09-17T22:00:00.000Z",
                   "maps": [
                     {
@@ -2801,16 +2801,16 @@
           "counts": {
             "matches": 3,
             "played": 0,
-            "live": 0,
-            "upcoming": 3
+            "live": 1,
+            "upcoming": 2
           }
         }
       ],
       "counts": {
         "matches": 53,
         "played": 36,
-        "live": 0,
-        "upcoming": 17
+        "live": 1,
+        "upcoming": 16
       },
       "unresolved": [],
       "resolvedAt": "2026-09-17T03:05:06.824Z"
