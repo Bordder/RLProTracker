@@ -224,11 +224,11 @@
      place means: advancing green, eliminated dimmed, nothing while the group
      is still being played. */
   .tbl{width:100%;border-collapse:collapse;font-size:12.5px}
-  .tbl th{font:700 10px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.12em;
-          text-transform:uppercase;color:var(--faint);text-align:right;padding:6px 8px 5px;
+  .tbl th{font:700 9.5px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.12em;
+          text-transform:uppercase;color:var(--faint);text-align:right;padding:4px 8px 3px;
           font-weight:700;white-space:nowrap}
   .tbl th:first-child,.tbl th:nth-child(2){text-align:left}
-  .tbl td{padding:5px 8px;border-top:1px solid var(--rule);text-align:right;white-space:nowrap}
+  .tbl td{padding:3px 8px;border-top:1px solid var(--rule);text-align:right;white-space:nowrap}
   .tbl td:nth-child(2){text-align:left;width:99%}
   .tbl .pos{color:var(--faint);font:700 11px "JetBrains Mono",ui-monospace,monospace;
             width:26px;border-left:3px solid transparent}
@@ -243,9 +243,20 @@
   .gsplit{border-top:1px solid var(--rule)}
 
   .groups{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-top:8px}
+  /* Four groups: two and two, not three with one underneath. A lone card on a
+     second row reads as an afterthought rather than as Group D, and with the
+     schedule column taking its share of the width three across is what
+     auto-fit lands on. All four go on one row only when there is genuinely
+     room for them. */
+  .groups.g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+  @media (min-width:1700px){ .groups.g4{grid-template-columns:repeat(4,minmax(0,1fr))} }
+  @media (max-width:700px){ .groups.g4{grid-template-columns:minmax(0,1fr)} }
   .gcard{border:1px solid var(--rule);background:var(--deck)}
-  .gcard .cap{font-family:"Big Shoulders Display",Impact,sans-serif;font-weight:700;font-size:17px;
-              text-transform:uppercase;letter-spacing:.05em;padding:7px 10px;border-bottom:2px solid var(--chalk);
+  /* Tighter than it was. Four of these plus a schedule column is a lot of page
+     for eight numbers and six fixtures, and the rows were carrying more air
+     than they needed: nothing here has been dropped, only the padding. */
+  .gcard .cap{font-family:"Big Shoulders Display",Impact,sans-serif;font-weight:700;font-size:16px;
+              text-transform:uppercase;letter-spacing:.05em;padding:5px 10px 4px;border-bottom:2px solid var(--chalk);
               display:flex;align-items:baseline;justify-content:space-between;gap:10px}
 
   h2.stage{font-family:"Big Shoulders Display",Impact,sans-serif;font-weight:800;font-size:30px;
@@ -262,14 +273,116 @@
      problem into a seasons navbox above a tab strip of that season's
      events, which is three tabs here and never scrolls. */
   .rail{margin:16px 0 0}
+
+  /* ---- The schedule column ----------------------------------------------
+     A bracket is a shape: who plays whom, and who came through. It answers
+     "when is the next match" badly, because that means finding the one box
+     with a clock under it. This is the same event ordered by time instead,
+     kept beside the diagram rather than replacing anything in it.
+
+     Nothing here ever invents a time. Liquipedia publishes per-match kickoffs
+     only a few days before a stage is played, so a stage that has none says
+     which days it runs and stops there. */
+  .sched[hidden]{display:none}
+  .fxbox{border:1px solid var(--rule);border-radius:10px;background:var(--deck);
+    padding:12px 13px 14px}
+  .fxbox.onair{border-color:color-mix(in srgb,var(--boost) 55%,var(--rule))}
+  .fxtop{display:flex;align-items:baseline;justify-content:space-between;gap:10px;
+    padding-bottom:9px;border-bottom:1px solid var(--rule)}
+  .fxev{font-family:"Big Shoulders Display",Impact,sans-serif;text-transform:uppercase;
+    letter-spacing:.06em;font-size:19px;font-weight:800;color:var(--chalk);line-height:1}
+  .fxon{display:inline-flex;align-items:center;gap:6px;color:var(--boost);
+    font:700 10px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.12em;text-transform:uppercase}
+  /* Says whose clock these are. The browser converts them, which is silently
+     right and silently invisible. */
+  .fxtz{flex:0 0 auto;color:var(--faint);
+    font:700 9.5px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase}
+  .fxg h3{margin:13px 0 7px;font:700 10px "JetBrains Mono",ui-monospace,monospace;
+    letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+  .fxg ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:7px}
+  .fxm{border:1px solid var(--rule);border-radius:8px;padding:7px 8px 8px;background:var(--deck-2)}
+  /* On now. The card itself carries it, because with the banner gone this is
+     the only thing on the page saying a match is being played, and it has to
+     be readable from across the column rather than hunted for. It goes as soon
+     as the series is called finished, which is what takes the match out of the
+     live bucket entirely. */
+  .fxm.live{border-color:var(--boost);border-left-width:3px;
+    background:color-mix(in srgb,var(--boost) 12%,var(--deck));
+    box-shadow:0 0 0 1px color-mix(in srgb,var(--boost) 22%,transparent)}
+  .fxm.live .fxt{color:var(--chalk)}
+  .fxh{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+  .fxl{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--steel)}
+  /* The time is the reason this panel exists, so it never wraps and is never
+     squeezed by a long round name. */
+  .fxw{flex:0 0 auto;font:600 10.5px "JetBrains Mono",ui-monospace,monospace;
+    color:var(--chalk);font-variant-numeric:tabular-nums}
+  .fxm.live .fxw,.fxm.live .fxl{color:var(--boost)}
+  .fxm.soft .fxw{color:var(--faint)}
+  .fxpip{flex:0 0 auto;width:6px;height:6px;border-radius:50%;background:var(--boost);
+    animation:fxpulse 2.4s infinite}
+  @keyframes fxpulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--boost) 55%,transparent)}
+    70%{box-shadow:0 0 0 7px transparent}100%{box-shadow:0 0 0 0 transparent}}
+  @media (prefers-reduced-motion:reduce){ .fxpip{animation:none} }
+  .fxt{display:flex;align-items:center;padding:1px 0;font-size:12.5px;color:var(--steel)}
+  .fxt.won{color:var(--chalk);font-weight:600}
+  .fxt.tbd .fxn{color:var(--faint)}
+  .fxn{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fxt b{flex:0 0 auto;margin-left:8px;font:700 12px "JetBrains Mono",ui-monospace,monospace;
+    font-variant-numeric:tabular-nums;color:var(--chalk)}
+  .fxbox .av{margin-right:8px}
+  /* Which discipline a match is, drawn only when the event plays more than one.
+     The 2026 Worlds runs a 1v1 title alongside the 3v3, and the two share this
+     list in the order they are played rather than sitting in separate sections:
+     "what is on next" does not care which format it is. */
+  .fxf{flex:0 0 auto;padding:1px 4px;border-radius:4px;border:1px solid var(--rule);
+    background:var(--deck-2);color:var(--steel);
+    font:700 9px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.06em}
+  .fxm.live .fxf{border-color:color-mix(in srgb,var(--boost) 45%,var(--rule));color:var(--boost)}
+  /* A stage with no kickoff times yet: its name and the days it runs. Flatter
+     than a match, because it is not one. */
+  .fxs{display:flex;align-items:baseline;justify-content:space-between;gap:8px;padding:2px 1px}
+  .fxs .fxl{font-size:11px;color:var(--chalk)}
+
+  /* A column beside the bracket, and it stays one. The bracket itself scrolls
+     sideways in its own container, so giving the schedule a fixed column costs
+     the diagram nothing.
+
+     A phone is the exception: at 700px there is no second column to have, so
+     the panel goes above the bracket in its short form rather than being
+     squeezed into a strip too narrow to read a team name in. */
+  .work{margin:0}
+  @media (min-width:701px){
+    body.hassched .work{display:grid;
+      /* 20vw rather than 23: at 1280 the wider column left the playoff
+         bracket just under the scale it stays readable at, and a laptop is
+         the common case. */
+      grid-template-columns:minmax(0,1fr) clamp(220px,20vw,300px);
+      column-gap:clamp(14px,2vw,26px);align-items:start}
+    /* Level with the first stage heading rather than floating above it: the
+       same 38px h2.stage opens the bracket column with, so the two columns
+       start on one line. */
+    body.hassched .sched{position:sticky;top:16px;margin-top:38px;
+      /* Taller than the screen and the column stops following, because a
+         sticky box can only travel inside its own grid area: at the playoffs
+         it had already run out and scrolled away. Capped to the viewport and
+         scrolled inside itself instead, so the schedule is there wherever the
+         reader is on the page. */
+      max-height:calc(100vh - 32px);overflow:auto;overscroll-behavior:contain;
+      scrollbar-width:thin}
+  }
+  @media (max-width:700px){
+    .work{display:flex;flex-direction:column}
+    /* Above the bracket, not below it: a schedule read after the diagram is a
+       schedule nobody reached. */
+    .sched{order:-1;margin:16px 0 4px}
+  }
   .years{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
   .yr{appearance:none;cursor:pointer;background:transparent;border:0;border-bottom:2px solid transparent;
       color:var(--steel);font:700 13px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.06em;
       padding:5px 11px 6px;display:inline-flex;align-items:center;gap:6px;transition:color .12s,border-color .12s}
   .yr:hover{color:var(--chalk)}
   .yr.on{color:var(--chalk);border-bottom-color:var(--chalk)}
-  .yr .pip{width:6px;height:6px;border-radius:50%;background:var(--boost)}
-  .yr .pip.soon{background:var(--upper)}
   .yr:focus-visible{outline:2px solid var(--boost);outline-offset:-2px}
 
   .evs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;
@@ -352,49 +465,6 @@
     .seg a{flex:1 1 auto;justify-content:center;padding:8px 12px;font-size:11px}
   }
 
-  /* ---- Hero: the LAN that is on, or the next one ------------------------
-     Always first, whatever bracket is being browsed underneath it. */
-  .hero{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:16px;
-        margin:14px 0 0;padding:9px 14px;background:var(--deck);
-        border:1px solid var(--rule);border-left:4px solid var(--upper)}
-  .hero.onair{border-left-color:var(--boost)}
-  .hero .pill{display:inline-flex;align-items:center;gap:7px;
-              font:700 10.5px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.16em;
-              text-transform:uppercase;color:var(--upper)}
-  .hero.onair .pill{color:var(--boost)}
-  .hero .pill .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
-  @media (prefers-reduced-motion:no-preference){ .hero.onair .pill .dot{animation:pulse 1.8s ease-in-out infinite} }
-  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
-  .hero h2{font-family:"Big Shoulders Display",Impact,sans-serif;font-weight:800;
-           font-size:clamp(17px,2vw,21px);line-height:1;margin:2px 0 0;text-transform:uppercase}
-  .hero p{margin:2px 0 0;color:var(--steel);font-size:12px}
-  .hero .hl > .pill + p{margin-top:3px}
-  .hero .hr{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:1px}
-  .hero .hr .top{display:flex;align-items:baseline;gap:8px}
-  .hero .lab{font:700 10px "JetBrains Mono",ui-monospace,monospace;
-             letter-spacing:.16em;text-transform:uppercase;color:var(--steel)}
-  .hero .clock{display:block;font-family:"Big Shoulders Display",Impact,sans-serif;font-weight:800;
-               font-size:19px;line-height:1.05;font-variant-numeric:tabular-nums}
-  .hero .clock u{text-decoration:none;color:var(--faint);font-size:.5em;margin:0 .3em 0 .05em}
-  .hero .fx{display:flex;align-items:center;justify-content:flex-end;gap:6px;
-            margin-top:4px;font-size:12.5px;font-weight:600;flex-wrap:wrap}
-  .hero .fx + .fx{margin-top:2px}
-  .hero .fx i{font-style:normal;color:var(--faint);font-size:11.5px;font-weight:500}
-  .hero .fx b{font:700 14px "JetBrains Mono",ui-monospace,monospace}
-  .hero .fx u{text-decoration:none;color:var(--faint);font-size:11.5px;font-weight:500;
-              width:100%;text-align:right}
-  .hero .go{appearance:none;cursor:pointer;border:1px solid var(--rule);background:var(--deck-2);
-            color:var(--chalk);font-family:"Big Shoulders Display",Impact,sans-serif;font-weight:700;
-            text-transform:uppercase;letter-spacing:.09em;font-size:13px;padding:9px 15px;
-            transition:background .15s,color .15s,border-color .15s}
-  .hero .go:hover{background:var(--boost);border-color:var(--boost);color:#fff}
-  @media (max-width:820px){
-    .hero{grid-template-columns:1fr;gap:14px}
-    .hero .hr{text-align:left}
-    .hero .fx{justify-content:flex-start}
-    .hero .fx u{text-align:left}
-    .hero .go{justify-self:start}
-  }
 
   /* ---- Result: how a finished LAN ended --------------------------------
      A one-line "champion" label said who won and nothing else. The match
@@ -422,11 +492,6 @@
   }
 
   /* A one-line note for an event that is not the one on screen. */
-  .progress{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:16px 0 0;
-            padding:11px 18px;background:var(--deck);border:1px solid var(--rule)}
-  .progress .lab{font:700 10.5px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.15em;
-                 text-transform:uppercase;color:var(--steel)}
-  .progress .note{color:var(--steel);font-size:12.5px}
 
   /* ---- Group matches ---------------------------------------------------
      Two teams, two scores, and which one won, at a glance. The old row put
@@ -434,10 +499,10 @@
      neither side a crest, so the eye had nothing to anchor on and the
      rounds ran together. */
   .gm{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;
-      padding:6px 11px;min-height:32px}
+      padding:3px 10px;min-height:26px}
   .gm + .gm{border-top:1px solid var(--rule)}
   .gm:hover{background:var(--deck-2)}
-  .gm .t{display:flex;align-items:center;gap:7px;min-width:0;font-size:12.5px;color:var(--steel)}
+  .gm .t{display:flex;align-items:center;gap:6px;min-width:0;font-size:12px;color:var(--steel)}
   .gm .t span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .gm .t.r{flex-direction:row-reverse}
   .gm .t.won{color:var(--chalk);font-weight:700}
@@ -450,8 +515,8 @@
   .gm .sc .vs{font-family:Archivo,sans-serif;font-size:10.5px;font-weight:600;letter-spacing:.08em;
               text-transform:uppercase;color:var(--faint)}
   .gsub{display:flex;align-items:center;gap:9px;color:var(--faint);
-        font:700 9.5px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.15em;
-        text-transform:uppercase;padding:9px 11px 4px}
+        font:700 9px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.15em;
+        text-transform:uppercase;padding:7px 10px 3px}
   .gsub::after{content:"";flex:1;height:1px;background:var(--rule)}
 </style>
 <link rel="stylesheet" href="fonts/fonts.css?v=3395e810">
@@ -470,14 +535,20 @@
       <a href="/brackets" aria-current="page">Brackets</a>
     </nav>
   </header>
-  <div id="hero"></div>
   <header class="mast">
     <h1 id="title">Loading</h1>
     <p class="sub" id="meta"></p>
   </header>
   <nav class="rail" id="rail" aria-label="Events"></nav>
   <div id="count"></div>
-  <div id="out"></div>
+  <!-- The bracket, and beside it the same event read by time. The panel is
+       filled by paintSchedule from the parsed matches; empty and hidden when
+       the event has nothing left to play, and the two-column layout only
+       switches on while it has content. -->
+  <div class="work">
+    <div id="out"></div>
+    <aside class="sched" id="sched" aria-label="Match schedule" hidden></aside>
+  </div>
   <footer class="legal">
     <p class="tip">Hover a match for the time and where to watch. On a keyboard, press Enter on a match to step into that panel and Escape to leave it.</p>
     <p id="attr"></p>
@@ -498,6 +569,6 @@
     </div>
   </footer>
 </div>
-<script type="module" src="brackets.js?v=99df5911"></script>
+<script type="module" src="brackets.js?v=bcd6b868"></script>
 </body>
 </html>

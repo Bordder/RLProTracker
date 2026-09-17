@@ -1,8 +1,18 @@
-import { crest, assignHues } from "/crest.mjs";
+import { crest, assignHues, hasLogo } from "/crest.mjs";
 import { standings, pairGroups } from "/standings.mjs";
+import { panelHTML, ordinal } from "/fixtures.mjs";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const timeOf = (iso) => iso ? new Date(iso).toLocaleString([], { weekday: "short", hour: "2-digit", minute: "2-digit" }) : "TBD";
+// "23:00" today, "17th 23:00" on another day. Same wording as the schedule
+// column, so a time means the same thing wherever it is read on this page.
+const timeOf = (iso) => {
+  if (!iso) return "TBD";
+  const at = new Date(iso);
+  const clock = at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const midnight = new Date(); midnight.setHours(0, 0, 0, 0);
+  const sameDay = new Date(at).setHours(0, 0, 0, 0) === midnight.getTime();
+  return sameDay ? clock : `${ordinal(at.getDate())} ${clock}`;
+};
 const dayOf = (iso) => iso ? new Date(iso).toLocaleDateString([], { month: "long", day: "numeric", year: "numeric" }) : null;
 const shortDay = (d) => d ? new Date(`${d}T12:00:00Z`).toLocaleDateString([], { day: "numeric", month: "short" }) : "";
 const clockOf = (iso) => iso ? new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null;
@@ -29,6 +39,13 @@ let SCHED = [];          // the stage schedule, from the page's Format section
 // Which stage a match belongs to, set while a section is being rendered, so
 // an undated match can still say when its stage runs.
 let STAGE = null;
+// And which discipline, for the same reason the schedule column tracks it: the
+// name in a 1v1 box is a person and in a 2v2 box often a duo name two players
+// made up, and a tinted monogram beside either invents an org. An org that
+// really is entered keeps its crest - Team Falcons in the 2v2 is Team Falcons -
+// so outside the team event the test is whether a logo exists for the name.
+let FORMAT = null;
+const teamMark = (name) => (!FORMAT || FORMAT === "3v3" || hasLogo(name) ? crest(name) : "");
 
 // "18-20 Sept", or "15 Sept" for a single day.
 function windowOf(st) {
@@ -189,6 +206,22 @@ function layoutBracket(matches, edges) {
     .filter((m) => edges?.[slotOf(m)]?.qualifies)
     .map((m) => ({ m, col: colOf(m) + 1, y: y.get(slotOf(m)) }));
 
+  // Nothing may sit above the top of the box.
+  //
+  // The centring pass places a final against its feeders, and in a small
+  // bracket - the 2026 1v1 and 2v2 are two semifinals into one final - that
+  // arithmetic comes out NEGATIVE: the first match landed at -33px and its
+  // round label at -67px, drawn over the section heading above. Shifting the
+  // whole layout down by the overshoot keeps every relationship intact and
+  // puts the top row back where the container starts.
+  const top = Math.min(...[...y.values()]);
+  if (top < TOP) {
+    const shift = TOP - top;
+    for (const [k, v] of y) y.set(k, v + shift);
+    for (const l of links) { l.to += shift; l.from = l.from.map((v) => v + shift); }
+    for (const q of quals) q.y += shift;
+  }
+
   const height = Math.max(...[...y.values()].map((v) => v + BOX_H + CAP_H)) + 12;
   const lastCol = Math.max(...[...cols.values()].map((c) => c.col), ...quals.map((q) => q.col));
   const width = (lastCol + 1) * COL;
@@ -198,7 +231,7 @@ function layoutBracket(matches, edges) {
 function side(team, score, state) {
   const attr = team ? ` data-team="${esc(team.toLowerCase())}" tabindex="0"` : "";
   return `<div class="side ${state}"${attr}>` +
-    `<span class="team${team ? "" : " tbd"}">${crest(team)}${esc(team ?? "TBD")}</span>` +
+    `<span class="team${team ? "" : " tbd"}">${teamMark(team)}${esc(team ?? "TBD")}</span>` +
     `<span class="sc">${score === null ? "&middot;" : score}</span></div>`;
 }
 
@@ -381,13 +414,15 @@ function railEl(current) {
   const year = yearOf(EVENTS.find((e) => e.slug === current) ?? {});
 
   const years = all.map(([y, evs]) => {
-    // A season with something live or upcoming in it is worth marking, so
-    // the reader can see where the action is without opening it.
+    // A season with something live or upcoming in it still gets its own class,
+    // which colours the label. The dot that used to sit after the year is
+    // gone: the event tabs underneath already say "On now" against the event
+    // it belongs to, in words, and a mark on the year said the same thing one
+    // level too far away to be useful.
     const live = evs.some((e) => stateOf(e) === "running");
     const soon = evs.some((e) => stateOf(e) === "future");
     return `<button class="yr${y === year ? " on" : ""}${live ? " islive" : soon ? " isnext" : ""}" ` +
-      `data-year="${esc(y)}" aria-pressed="${y === year ? "true" : "false"}">${esc(y)}` +
-      `${live ? `<i class="pip" title="Event on now"></i>` : soon ? `<i class="pip soon" title="Event still to come"></i>` : ""}</button>`;
+      `data-year="${esc(y)}" aria-pressed="${y === year ? "true" : "false"}">${esc(y)}</button>`;
   }).join("");
 
   const evs = (all.find(([y]) => y === year) ?? [null, []])[1];
@@ -410,71 +445,12 @@ function railEl(current) {
     `<div class="evs" role="group" aria-label="Events this season">${tabs}</div>`;
 }
 
-// ---- the hero, and each event's own banner -------------------------------
+// ---- each event's own banner ---------------------------------------------
 //
-// The first thing on the page is the LAN that is on now, or the next one.
-// That is the question someone opens this page with, and it stays true while
-// they browse a 2024 bracket underneath it.
-
-let tick = null;
-const DOT = '<span class="dot"></span>';
-
-// The event the hero is about: whatever is running, else the soonest one
-// still to come, else nothing.
-function heroEvent() {
-  const running = EVENTS.filter((e) => stateOf(e) === "running");
-  if (running.length) return running[0];
-  return EVENTS.filter((e) => stateOf(e) === "future").sort((a, b) => startMs(a) - startMs(b))[0] ?? null;
-}
-
-// Every match of an event, whether or not it is the one being shown.
-const allOf = (ev) => ev.stages.flatMap((s) =>
-  [...s.brackets.flatMap((b) => b.matches), ...s.matchlists.flatMap((l) => l.matches)]);
-
-function heroEl(self) {
-  const ev = heroEvent();
-  if (!ev) return "";
-  const matches = allOf(ev);
-  const live = matches.filter(isLive);
-  const next = matches
-    .filter((m) => m.startsAt && m.upcoming && Date.parse(m.startsAt) > Date.now())
-    .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt))[0];
-
-  const running = stateOf(ev) === "running";
-  const target = live.length ? endMs(ev) : next ? Date.parse(next.startsAt) : running ? endMs(ev) : startMs(ev);
-  const lab = live.length ? "Ends in" : next ? (running ? "Next match in" : "First match in") : running ? "Ends in" : "Starts in";
-
-  // Two courts can run at once at a LAN, so both get a line rather than one
-  // fixture and a "+1 more" that names neither team.
-  const liveLine = (m) =>
-    `<span class="fx live">${crest(m.teams[0])}${esc(m.teams[0] ?? "TBD")}` +
-    `<b>${m.scores[0] ?? 0}</b><i>&ndash;</i><b>${m.scores[1] ?? 0}</b>` +
-    `${crest(m.teams[1])}${esc(m.teams[1] ?? "TBD")}</span>`;
-  const fixture = live.length
-    ? live.slice(0, 2).map(liveLine).join("") +
-      (live.length > 2 ? `<span class="fx"><u>+${live.length - 2} more on now</u></span>` : "")
-    : next
-      ? `<span class="fx">${crest(next.teams[0])}${esc(next.teams[0] ?? "TBD")}<i>vs</i>` +
-        `${crest(next.teams[1])}${esc(next.teams[1] ?? "TBD")}<u>${esc(next.label ?? "")}</u></span>`
-      : "";
-
-  const where = [cityOf(ev), ev.venue].filter(Boolean).join(", ");
-  const dates = ev.starts && ev.ends ? `${shortDay(ev.starts)} &ndash; ${shortDay(ev.ends)}` : "";
-
-  return `<section class="hero${live.length ? " onair" : ""}" aria-label="Current event">
-    <div class="hl">
-      <span class="pill">${live.length ? `${DOT}Live now` : running ? `${DOT}Under way` : self ? "Next up" : "Next LAN"}</span>
-      ${self ? "" : `<h2>${esc(ev.name ?? ev.slug)}</h2>`}
-      <p>${esc(where)}${dates ? ` &middot; ${dates}` : ""}${ev.teamCount ? ` &middot; ${ev.teamCount} teams` : ""}</p>
-    </div>
-    <div class="hr">
-      <span class="top"><span class="lab">${lab}</span>
-        <span class="clock" id="clock" data-target="${target}"></span></span>
-      ${fixture}
-    </div>
-    ${self ? "" : `<button class="go" data-slug="${esc(ev.slug)}">Open bracket</button>`}
-  </section>`;
-}
+// The card that used to sit above every bracket - a pill, a countdown and the
+// next fixture - is gone. The schedule column beside the bracket says all of
+// it, against the matches it is about, and two things counting down to the
+// same event on one screen is one too many.
 
 // The banner for the event actually on screen. A finished LAN gets its
 // result, a running one its hero card. The hero above already carries the
@@ -507,12 +483,11 @@ function countEl(ev) {
 
   if (st === "tbd") return `<div class="count"><span class="lab">Dates</span><span class="note">Not announced yet.</span></div>`;
 
-  // The event on screen IS the one the hero is about: show the hero card
-  // here, under its own masthead, rather than the same thing twice.
-  if (heroEvent()?.slug === ev.slug) return heroEl(true);
-  const when = ev.starts ? `${shortDay(ev.starts)} &ndash; ${shortDay(ev.ends)}` : "dates to be confirmed";
-  return `<section class="progress"><span class="lab">${st === "running" ? "Under way" : "Upcoming"}</span>` +
-    `<span class="note">${when}</span></section>`;
+  // A running or upcoming event gets nothing here. It used to get a strip
+  // saying "Under way" and the date range, which the masthead's own subtitle
+  // and the schedule column both already carry, and which was the last piece
+  // of the banner that sat between the event tabs and the first bracket.
+  return "";
 }
 
 // The grand final: the last played match of the last bracket on the page.
@@ -524,20 +499,22 @@ function finalOf(ev) {
   return played.sort((a, b) => a.round - b.round || a.position - b.position).pop() ?? null;
 }
 
-function paintClock() {
-  const el = document.getElementById("clock");
-  if (!el) return;
-  let left = Number(el.dataset.target) - Date.now();
-  if (left <= 0) { el.textContent = "now"; return; }
-  const d = Math.floor(left / 86400e3); left -= d * 86400e3;
-  const h = Math.floor(left / 3600e3); left -= h * 3600e3;
-  const m = Math.floor(left / 60e3);
-  const s = Math.floor((left - m * 60e3) / 1000);
-  // Seconds only inside the last hour: a six-day counter ticking every second
-  // is noise, and the last hour is when it is worth watching.
-  const parts = d ? [[d, "d"], [h, "h"], [m, "m"]] : h ? [[h, "h"], [m, "m"], [s, "s"]] : [[m, "m"], [s, "s"]];
-  el.innerHTML = parts.map(([n, u]) => `${n}<u>${u}</u>`).join("");
+// The schedule column, for the event on screen.
+//
+// Drawn from the same parsed matches as the bracket beside it, so the two can
+// never disagree. Repainted on its own slow timer as well as on every render:
+// "in 4 min" goes stale between polls even when the feed has not changed.
+function paintSchedule() {
+  const box = document.getElementById("sched");
+  if (!box) return;
+  const ev = EVENTS.find((e) => e.slug === CURRENT);
+  const compact = window.matchMedia("(max-width:700px)").matches;
+  const html = ev ? panelHTML(ev, Date.now(), { compact }) : "";
+  box.innerHTML = html;
+  box.hidden = !html;
+  document.body.classList.toggle("hassched", Boolean(html));
 }
+setInterval(paintSchedule, 15e3);
 
 // ---- hover card -----------------------------------------------------------
 
@@ -711,8 +688,8 @@ function render(slug) {
   // The current or next LAN comes first whatever is being browsed. When it
   // IS what is being browsed, its card sits under its own masthead instead
   // of naming the same event twice, one above the other.
-  document.getElementById("hero").innerHTML = heroEvent()?.slug === ev.slug ? "" : heroEl(false);
   document.getElementById("rail").innerHTML = railEl(ev.slug);
+  paintSchedule();
   document.getElementById("count").innerHTML = countEl(ev);
 
   // Sections in the order they are PLAYED, from the page's own Format
@@ -727,35 +704,45 @@ function render(slug) {
       sections.push({
         name,
         stage: stageFor(name),
+        format: stage.format ?? null,
         draw: () => {
           const paired = pairGroups(stage.tables, stage.matchlists);
-          return `<div class="groups">${paired.map(({ list, table }) => groupEl(list, table)).join("")}</div>`;
+          // The count rides on the element so the CSS can keep the rows even.
+          // Four groups in a three-wide grid leaves one alone on a second row,
+          // which reads as an afterthought rather than as Group D.
+          return `<div class="groups g${paired.length}">${paired.map(({ list, table }) => groupEl(list, table)).join("")}</div>`;
         },
       });
     }
     stage.brackets.forEach((b, i) => {
-      const name = bracketName(b, i, stage.brackets);
-      sections.push({ name, stage: stageFor(name), draw: () => bracketEl(b) });
+      // A side discipline gets named by what it is. The 2026 1v1 page heads its
+      // only bracket "Results", which as a section title on a page of brackets
+      // says nothing; "1v1" says the thing that actually separates it from
+      // everything above it.
+      const solo = stage.format && stage.format !== "3v3";
+      const name = solo ? stage.format : bracketName(b, i, stage.brackets);
+      sections.push({ name, stage: stageFor(name), format: stage.format ?? null, draw: () => bracketEl(b) });
     });
   }
   sections.sort((a, b) => (a.stage?.from ?? "9999").localeCompare(b.stage?.from ?? "9999"));
 
   const out = [];
   for (const sec of sections) {
-    // Set before drawing: an undated match reads its stage window from here.
+    // Set before drawing: an undated match reads its stage window from here,
+    // and a match box reads its discipline.
     STAGE = sec.stage;
+    FORMAT = sec.format ?? null;
     const win = windowOf(sec.stage);
     out.push(`<h2 class="stage">${esc(sec.name)}${win ? `<span>${win}</span>` : ""}</h2>`);
     out.push(sec.draw());
   }
   STAGE = null;
+  FORMAT = null;
   document.getElementById("out").innerHTML = out.join("");
 
   hideCard();
   wire();
-  paintClock();
-  clearInterval(tick);
-  tick = setInterval(paintClock, 1000);
+  fitBrackets();
   markScrollable();
   history.replaceState(null, "", `#${ev.slug}`);
 }
@@ -827,6 +814,50 @@ card.addEventListener("keydown", (e) => {
   if (back) back.focus();
 });
 
+// Shrink a bracket that is close to fitting, rather than cutting it.
+//
+// The geometry is fixed pixels (200px boxes, 44px gutters), so a five-round
+// playoff bracket is 1220px wide whatever it is shown in. That fitted the old
+// full-width page and does not fit beside a schedule column, and the result
+// was the last round sitting off the right edge behind a scrollbar - the round
+// that decides the tournament.
+//
+// So it is scaled down to the width available. Only down to MIN_FIT: past that
+// the team names stop being readable, and a bracket nobody can read is worse
+// than one that scrolls, so below it the scroll stays.
+//
+// Layout size is left alone and the space the transform no longer uses is
+// taken back with a negative margin, which keeps the section underneath tight
+// against it.
+// 0.72 is where the 11px team names in a match box land at 8px, which is
+// small but still a name. Measured against the case that matters: the five
+// round playoff bracket at 1280, the commonest laptop width.
+const MIN_FIT = 0.72;
+
+function fitBrackets() {
+  for (const bk of document.querySelectorAll(".scroll > .bk")) {
+    const box = bk.parentElement;
+    // Measured once: after the first scale, the rendered width is the scaled
+    // one, and re-reading it would shrink the bracket again on every resize.
+    const w = Number(bk.dataset.w ?? (bk.dataset.w = parseFloat(bk.style.width) || bk.offsetWidth));
+    const h = Number(bk.dataset.h ?? (bk.dataset.h = parseFloat(bk.style.height) || bk.offsetHeight));
+    if (!w || !h) continue;
+    // Measure with any previous zoom removed, so one pass cannot feed the next.
+    bk.style.zoom = "";
+    const avail = box.clientWidth;
+    const k = avail / w;
+    const use = k < 1 && k >= MIN_FIT ? k : 1;
+    if (use === 1) continue;
+    // zoom rather than transform: zoom shrinks the LAYOUT box, so the
+    // container stops offering a scrollbar for space the bracket no longer
+    // occupies and the section below sits straight underneath it. A transform
+    // leaves the old box behind, which needed a negative margin and an
+    // overflow override to hide, and those two between them were what covered
+    // the top of the next section.
+    bk.style.zoom = String(use);
+  }
+}
+
 // A lane whose bracket is wider than the screen gets a fade and a "scroll"
 // note, removed once it is scrolled to the end. The board is mobile-first and
 // this page was not: at 375px the second column was cut with nothing saying so.
@@ -834,12 +865,17 @@ function markScrollable() {
   for (const wrap of document.querySelectorAll(".scrollwrap")) {
     const sc = wrap.querySelector(".scroll");
     if (!sc) continue;
-    const update = () => wrap.classList.toggle("more", sc.scrollWidth - sc.clientWidth - sc.scrollLeft > 8);
+    // Rendered width, not layout width: a scaled bracket fits even though its
+    // layout box is still the full size, and the fade has to agree with what
+    // the reader can actually see.
+    const bk = sc.querySelector(".bk");
+    const shown = () => (bk ? bk.getBoundingClientRect().width : sc.scrollWidth);
+    const update = () => wrap.classList.toggle("more", shown() - sc.clientWidth - sc.scrollLeft > 8);
     update();
     sc.addEventListener("scroll", update, { passive: true });
   }
 }
-addEventListener("resize", () => { markScrollable(); if (cardFor) place(cardFor); });
+addEventListener("resize", () => { fitBrackets(); markScrollable(); if (cardFor) place(cardFor); });
 addEventListener("scroll", () => { if (cardFor) place(cardFor); }, { passive: true });
 
 document.getElementById("rail").addEventListener("click", (e) => {
@@ -852,12 +888,6 @@ document.getElementById("rail").addEventListener("click", (e) => {
     const first = EVENTS.filter((x) => String(x.starts ?? "").startsWith(y.dataset.year))[0];
     if (first) { held = null; render(first.slug); }
   }
-});
-// The hero's own button, for when the reader is looking at a 2024 bracket and
-// wants the one that is actually on.
-document.getElementById("hero").addEventListener("click", (e) => {
-  const b = e.target.closest(".go");
-  if (b) { held = null; render(b.dataset.slug); }
 });
 // Anywhere else clears a held trace, so it never gets stuck on, and closes
 // the series card - the card is opened by a click now, so it has to be
@@ -892,10 +922,12 @@ const IDLE_MS = 5 * 60_000;
 let polling = null;
 let pollMs = 0;
 
+// Poll fast while the event on screen is being played, or while any event is:
+// somebody watching the 2024 bracket during Worlds still wants the schedule
+// column to keep up.
 const liveNow = () => {
   const ev = EVENTS.find((e) => e.slug === CURRENT);
-  const hero = heroEvent();
-  return stateOf(ev ?? {}) === "running" || stateOf(hero ?? {}) === "running";
+  return stateOf(ev ?? {}) === "running" || EVENTS.some((e) => stateOf(e) === "running");
 };
 
 // Redraw without throwing away what the reader was doing. render() rebuilds

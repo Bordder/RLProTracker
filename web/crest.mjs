@@ -48,6 +48,14 @@ const LOGO_ALIAS = {
   "vitality": "team-vitality",
   "quiktrip-pioneers-gaming": "pioneers",
   "virtus-pro": "virtuspro",
+  // The side disciplines enter under the short code an org is known by, and
+  // those pages are not run through the team alias map (it is built for the
+  // 3v3 field, where a short code is an unresolved name rather than a choice).
+  // So the codes that really are an org belong here.
+  "ssg": "spacestation-gaming",
+  "kc": "karmine-corp",
+  "nrg": "nrg",
+  "tm": "twisted-minds",
 };
 
 // Initials people actually use, where the first two letters are not it.
@@ -87,6 +95,19 @@ export function assignHues(names) {
 }
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/**
+ * Is there a logo file for this name?
+ *
+ * For the side disciplines: a 1v1 opponent is a person and a 2v2 duo is a name
+ * two players made up, so neither gets a tinted monogram standing in for an
+ * org that does not exist. But "Team Falcons" entering the 2v2 IS Team
+ * Falcons, and their crest belongs on that row.
+ */
+export const hasLogo = (name) => {
+  const raw = teamSlug(name);
+  return Boolean(TEAM_LOGO[LOGO_ALIAS[raw] ?? raw]);
+};
 
 /** The mark for one team. `size` is a CSS length. */
 export function crest(name, cls = "") {
