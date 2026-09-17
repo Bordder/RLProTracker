@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T22:01:02.451Z",
+  "generatedAt": "2026-09-17T22:02:58.713Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -2217,10 +2217,10 @@
                   ],
                   "scores": [
                     1,
-                    2
+                    3
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": "2026-09-17T21:30:00.000Z",
                   "maps": [
@@ -2241,13 +2241,8 @@
                     },
                     {
                       "name": "Utopia Coliseum (Dusk)",
-                      "score1": null,
-                      "score2": null
-                    },
-                    {
-                      "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score1": 1,
+                      "score2": 2
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/cb91eede/m8-vitality"
@@ -2408,8 +2403,8 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 33,
-            "live": 1,
+            "played": 34,
+            "live": 0,
             "upcoming": 13
           }
         },
@@ -2813,8 +2808,8 @@
       ],
       "counts": {
         "matches": 53,
-        "played": 35,
-        "live": 1,
+        "played": 36,
+        "live": 0,
         "upcoming": 17
       },
       "unresolved": [],
