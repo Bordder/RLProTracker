@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T21:04:57.126Z",
+  "generatedAt": "2026-09-17T21:07:00.145Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -608,7 +608,7 @@
                   "section": "lower",
                   "teams": [
                     "Man City Esports",
-                    null
+                    "Spacestation Gaming"
                   ],
                   "scores": [
                     null,
@@ -664,7 +664,7 @@
                   "label": "Lower Bracket Round 1",
                   "section": "lower",
                   "teams": [
-                    null,
+                    "Team Falcons",
                     "Shopify Rebellion"
                   ],
                   "scores": [
@@ -892,7 +892,7 @@
                   "label": "Upper Bracket Semifinals",
                   "section": "upper",
                   "teams": [
-                    null,
+                    "Karmine Corp",
                     "Virtus.pro"
                   ],
                   "scores": [
@@ -1563,10 +1563,10 @@
                   ],
                   "scores": [
                     1,
-                    2
+                    3
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": "2026-09-17T20:25:00.000Z",
                   "maps": [
@@ -1588,12 +1588,7 @@
                     {
                       "name": "Utopia Coliseum (Dusk)",
                       "score1": 1,
-                      "score2": 1
-                    },
-                    {
-                      "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score2": 2
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/1d77f5b9/mibr-spacestation"
@@ -2316,13 +2311,13 @@
                 {
                   "rank": 2,
                   "team": "MIBR",
-                  "outcome": null,
+                  "outcome": "down",
                   "meansIfHere": "stay"
                 },
                 {
                   "rank": 3,
                   "team": "Spacestation Gaming",
-                  "outcome": null,
+                  "outcome": "stay",
                   "meansIfHere": "stay"
                 },
                 {
@@ -2423,8 +2418,8 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 31,
-            "live": 1,
+            "played": 32,
+            "live": 0,
             "upcoming": 15
           }
         },
@@ -2828,8 +2823,8 @@
       ],
       "counts": {
         "matches": 53,
-        "played": 33,
-        "live": 1,
+        "played": 34,
+        "live": 0,
         "upcoming": 19
       },
       "unresolved": [],

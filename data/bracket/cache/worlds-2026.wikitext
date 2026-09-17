@@ -487,8 +487,8 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 |tiebreaker1=series|tiebreaker2=h2h series|tiebreaker3=diff
 |edate=
 |bg1=up|team1=Karmine Corp|temp_tie1=4
-|bg2=|team2=MIBR|temp_tie2=3
-|bg3=|team3=Spacestation Gaming|temp_tie3=2
+|bg2=down|team2=MIBR|temp_tie2=3
+|bg3=stay|team3=Spacestation Gaming|temp_tie3=2
 |bg4=stay|team4=Team Falcons|temp_tie4=1
 }}
 <section end="Group A" />
@@ -588,7 +588,7 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 
 |M6={{Match
 	|opponent1={{TeamOpponent|mibr|score=1}}
-	|opponent2={{TeamOpponent|spacestation gaming|score=2}}
+	|opponent2={{TeamOpponent|spacestation gaming|score=3}}
 	|map1={{Map
 		|map=Mannfield (Dusk)
 		|score1=0|score2=3
@@ -607,17 +607,11 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 	}}
 	|map4={{Map
 		|map=Utopia Coliseum (Dusk)
-		|score1=1|score2=1
-		|ot=true|otlength=
+		|score1=1|score2=2
+		|ot=true|otlength=+5:07
 		|vod=
 	}}
-	|map5={{Map
-		|map=Champions Field
-		|score1=|score2=
-		|ot=|otlength=
-		|vod=
-	}}
-	|finished=
+	|finished=true
 	|ballchasing=mibr-vs-ssg-u7ts1odfhm
 	|blasttv=rl/tournaments/rlcs-world-championship-2026/series/1d77f5b9/mibr-spacestation
 	|twitch=RLEsports|youtube=Rocket League
@@ -1002,7 +996,7 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 <!-- Upper Bracket Semifinals -->
 |R3M1header=Upper Bracket Quarterfinals
 |R3M1={{Match
-	|opponent1={{LiteralOpponent|Group A #1|score=}}
+	|opponent1={{TeamOpponent|Karmine Corp|score=}}
 	|opponent2={{TeamOpponent|Virtus.pro|score=}}
 	|map1={{Map
 		|map=Mannfield (Dusk)
@@ -1163,7 +1157,7 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 
 |R1M2={{Match
 	|opponent1={{TeamOpponent|Man City Esports|score=}}
-	|opponent2={{LiteralOpponent|Group A #3|score=}}
+	|opponent2={{TeamOpponent|Spacestation Gaming|score=}}
 	|map1={{Map
 		|map=Mannfield (Dusk)
 		|score1=|score2=
@@ -1215,7 +1209,7 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 }}
 
 |R1M3={{Match
-	|opponent1={{LiteralOpponent|Group A #2|score=}}
+	|opponent1={{TeamOpponent|Team Falcons|score=}}
 	|opponent2={{TeamOpponent|Shopify Rebellion|score=}}
 	|map1={{Map
 		|map=Mannfield (Dusk)
