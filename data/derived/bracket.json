@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T21:03:01.955Z",
+  "generatedAt": "2026-09-17T21:04:57.126Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -1524,11 +1524,11 @@
                     "Team Falcons"
                   ],
                   "scores": [
-                    2,
+                    3,
                     1
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": "2026-09-17T20:30:00.000Z",
                   "maps": [
@@ -1549,13 +1549,8 @@
                     },
                     {
                       "name": "Utopia Coliseum (Dusk)",
-                      "score1": null,
-                      "score2": null
-                    },
-                    {
-                      "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score1": 4,
+                      "score2": 0
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/4372103c/kc-falcons"
@@ -1592,8 +1587,8 @@
                     },
                     {
                       "name": "Utopia Coliseum (Dusk)",
-                      "score1": null,
-                      "score2": null
+                      "score1": 1,
+                      "score2": 1
                     },
                     {
                       "name": "Champions Field",
@@ -2315,7 +2310,7 @@
                 {
                   "rank": 1,
                   "team": "Karmine Corp",
-                  "outcome": "stay",
+                  "outcome": "up",
                   "meansIfHere": "up"
                 },
                 {
@@ -2428,8 +2423,8 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 30,
-            "live": 2,
+            "played": 31,
+            "live": 1,
             "upcoming": 15
           }
         },
@@ -2833,8 +2828,8 @@
       ],
       "counts": {
         "matches": 53,
-        "played": 32,
-        "live": 2,
+        "played": 33,
+        "live": 1,
         "upcoming": 19
       },
       "unresolved": [],

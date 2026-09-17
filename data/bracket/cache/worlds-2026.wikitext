@@ -486,7 +486,7 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 |pbg1=up|pbg2=stay|pbg3=stay|pbg4=down
 |tiebreaker1=series|tiebreaker2=h2h series|tiebreaker3=diff
 |edate=
-|bg1=stay|team1=Karmine Corp|temp_tie1=4
+|bg1=up|team1=Karmine Corp|temp_tie1=4
 |bg2=|team2=MIBR|temp_tie2=3
 |bg3=|team3=Spacestation Gaming|temp_tie3=2
 |bg4=stay|team4=Team Falcons|temp_tie4=1
@@ -554,7 +554,7 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 }}
 
 |M5header=Round 3|M5={{Match
-	|opponent1={{TeamOpponent|Karmine Corp|score=2}}
+	|opponent1={{TeamOpponent|Karmine Corp|score=3}}
 	|opponent2={{TeamOpponent|team falcons|score=1}}
 	|map1={{Map
 		|map=Mannfield (Dusk)
@@ -575,17 +575,10 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 	}}
 	|map4={{Map
 		|map=Utopia Coliseum (Dusk)
-		|score1=|score2=
-		|ot=|otlength=
+		|score1=4|score2=0
 		|vod=
 	}}
-	|map5={{Map
-		|map=Champions Field
-		|score1=|score2=
-		|ot=|otlength=
-		|vod=
-	}}
-	|finished=
+	|finished=true
 	|ballchasing=kc-vs-flcn-730w8zze4m
 	|blasttv=rl/tournaments/rlcs-world-championship-2026/series/4372103c/kc-falcons
 	|twitch=Rocket League|youtube=Rocket League
@@ -614,8 +607,8 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 	}}
 	|map4={{Map
 		|map=Utopia Coliseum (Dusk)
-		|score1=|score2=
-		|ot=|otlength=
+		|score1=1|score2=1
+		|ot=true|otlength=
 		|vod=
 	}}
 	|map5={{Map
