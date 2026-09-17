@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T17:31:04.428Z",
+  "generatedAt": "2026-09-17T17:33:02.943Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -2208,11 +2208,11 @@
                     "Wildcard"
                   ],
                   "scores": [
-                    2,
+                    3,
                     0
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": "2026-09-17T17:00:00.000Z",
                   "maps": [
@@ -2228,18 +2228,8 @@
                     },
                     {
                       "name": "Futura Garden (Night)",
-                      "score1": null,
-                      "score2": null
-                    },
-                    {
-                      "name": "Utopia Coliseum (Dusk)",
-                      "score1": null,
-                      "score2": null
-                    },
-                    {
-                      "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score1": 1,
+                      "score2": 0
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/54507feb/vitality-wildcard"
@@ -2453,8 +2443,8 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 24,
-            "live": 2,
+            "played": 25,
+            "live": 1,
             "upcoming": 21
           }
         },
@@ -2858,8 +2848,8 @@
       ],
       "counts": {
         "matches": 53,
-        "played": 26,
-        "live": 2,
+        "played": 27,
+        "live": 1,
         "upcoming": 25
       },
       "unresolved": [],
