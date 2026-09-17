@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T15:59:02.983Z",
+  "generatedAt": "2026-09-17T16:01:23.259Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -1491,12 +1491,12 @@
                     "MIBR"
                   ],
                   "scores": [
-                    null,
-                    null
+                    0,
+                    0
                   ],
                   "finished": false,
-                  "live": false,
-                  "upcoming": true,
+                  "live": true,
+                  "upcoming": false,
                   "startsAt": "2026-09-17T16:00:00.000Z",
                   "maps": [
                     {
@@ -2464,8 +2464,8 @@
           "counts": {
             "matches": 47,
             "played": 22,
-            "live": 0,
-            "upcoming": 25
+            "live": 1,
+            "upcoming": 24
           }
         },
         {
@@ -2869,8 +2869,8 @@
       "counts": {
         "matches": 53,
         "played": 24,
-        "live": 0,
-        "upcoming": 29
+        "live": 1,
+        "upcoming": 28
       },
       "unresolved": [],
       "resolvedAt": "2026-09-17T03:05:06.824Z"
