@@ -488,7 +488,7 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 |bg1=|team1=Karmine Corp|temp_tie1=4
 |bg2=|team2=MIBR|temp_tie2=3
 |bg3=|team3=Spacestation Gaming|temp_tie3=2
-|bg4=|team4=Team Falcons|temp_tie4=1
+|bg4=stay|team4=Team Falcons|temp_tie4=1
 }}
 <section end="Group A" />
 {{matchlist|id=lYT2xogM3f|title=Group A Matches|width=400px|matchsection=Group A
@@ -539,7 +539,7 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 	}}
 	|map3={{Map
 		|map=Futura Garden (Night)
-		|score1=1|score2=4
+		|score1=1|score2=4|timeout=1
 		|ot=|otlength=
 		|vod=
 	}}
@@ -564,7 +564,7 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 }}
 
 |M4={{Match
-	|opponent1={{TeamOpponent|team falcons|score=2}}
+	|opponent1={{TeamOpponent|team falcons|score=3}}
 	|opponent2={{TeamOpponent|mibr|score=0}}
 	|map1={{Map
 		|map=Mannfield (Dusk)
@@ -580,23 +580,11 @@ The '''RLCS 2026 World Championship''' {{IsTournamentFinished|took|will take|is 
 	}}
 	|map3={{Map
 		|map=Futura Garden (Night)
-		|score1=|score2=
+		|score1=3|score2=2
 		|ot=|otlength=
 		|vod=
 	}}
-	|map4={{Map
-		|map=Utopia Coliseum (Dusk)
-		|score1=|score2=
-		|ot=|otlength=
-		|vod=
-	}}
-	|map5={{Map
-		|map=Champions Field
-		|score1=|score2=
-		|ot=|otlength=
-		|vod=
-	}}
-	|finished=
+	|finished=true
 	|ballchasing=mibr-vs-flcn-3xfcjg848r
 	|blasttv=rl/tournaments/rlcs-world-championship-2026/series/69f805a5/falcons-mibr
 	|twitch=RLEsports|youtube=Rocket League
