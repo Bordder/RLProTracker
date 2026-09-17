@@ -16,11 +16,11 @@
 
 RL Pro Tracker collects publicly available Rocket League statistics for professional players and presents them by player and by team. It reports ranked playtime and ladder performance over rolling 24 hour, 7 day, and 2 week windows.
 
-All data comes from public sources (Steam Web API, Liquipedia, and tracker.gg). The project stores only game statistics for the configured list of professional players. It does not collect data about site visitors.
+All data comes from public sources (Steam Web API, Liquipedia, and tracker.gg). The project stores only game statistics for the configured list of professional players. It keeps no visitor data of its own; page views are counted by Cloudflare Web Analytics, which sets no cookies.
 
 > [!WARNING]
 > **In development, and not finished.** The site is live and collecting real data, but it is
-> actively being built Treat everything here as an indication rather than a record.
+> actively being built. Treat everything here as an indication rather than a record.
 
 ## Features
 
@@ -28,6 +28,8 @@ All data comes from public sources (Steam Web API, Liquipedia, and tracker.gg). 
 - Per team: total playtime across the roster, individual statistics.
 - Each player's ranked games and MMR, broken down by playlist (1v1, 2v2, 3v3).
 - Coverage for the full roster: public playtime where available, live status polling for profiles that hides its game history, and estimates for fully private profiles.
+- RLCS brackets back to 2024, drawn from Liquipedia, with a schedule column beside each one: what is live, what is next, and when, in the reader's own timezone.
+- Side events alongside the team bracket. The 2026 World Championship runs a 1v1 and a 2v2 title on their own pages, and all three share one schedule in the order they are played.
 - Fully automated collection through scheduled jobs, with a static frontend that always shows the latest data.
 
 ## How it works
@@ -196,11 +198,15 @@ would need replacing.
 
 | Data | Source |
 | --- | --- |
-| Rosters and Steam IDs | Liquipedia |
+| Rosters, Steam IDs, nationality and Twitch channels | Liquipedia |
+| Brackets, match times and side events | Liquipedia, under [CC BY-SA 3.0](https://creativecommons.org/licenses/by-sa/3.0/) |
 | Playtime | Steam Web API |
 | Ranked games and rating | tracker.gg |
+| Live stream status | Twitch Helix API |
 
-Please respect each source's terms of use and rate limits.
+Please respect each source's terms of use and rate limits. Liquipedia asks for one request
+every two seconds on the query API and one every thirty on the parse API; the bracket
+collector holds to both, and its output carries the attribution CC BY-SA requires.
 
 ## License
 

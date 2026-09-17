@@ -67,15 +67,17 @@
     <a href="/">homepage</a> <span aria-hidden="true">/</span> <span aria-current="page">how it works</span>
   </nav>
   <h1>How it works</h1>
-  <p class="updated">Last updated 4 September 2026</p>
+  <p class="updated">Last updated 17 September 2026</p>
 
   <p class="preamble">Every figure on the board comes from a public source, collected automatically every few minutes. This page explains what each column means, and where it stops being reliable.</p>
 
-  <h2><span class="n">1.</span> Three sources</h2>
+  <h2><span class="n">1.</span> Where it comes from</h2>
   <ul>
     <li><b>Ranks and games played</b>: each player&rsquo;s public Rocket League Tracker profile.</li>
     <li><b>Playtime hours</b>: the Steam Web API.</li>
     <li><b>Rosters, nationality and Twitch channels</b>: Liquipedia.</li>
+    <li><b>Brackets, schedules and results</b>: Liquipedia, used under CC BY-SA 3.0.</li>
+    <li><b>Who is streaming right now</b>: the Twitch API, asked only about the channels above.</li>
   </ul>
   <p>Nothing is collected by logging into anything, and no private data is touched.</p>
 
@@ -113,10 +115,24 @@
   The fortnight column is deliberately never carried over, because it covers a rolling two weeks
   and an old value would look like recent activity.</p>
 
-  <h2><span class="n">5.</span> How current it is</h2>
+  <h2><span class="n">5.</span> The bracket page</h2>
+  <p>The brackets come from each event&rsquo;s own Liquipedia page, redrawn here rather than
+  embedded, and the column beside them is the same event ordered by time: what is being played,
+  what is next, and when. Where an event runs more than one title, they share that column rather
+  than sitting in separate lists &mdash; the 2026 World Championship plays a 1v1 and a 2v2
+  alongside the team event, and at a LAN they follow each other on the same stream.</p>
+  <p>Kickoff times are shown in <b>your</b> timezone, converted by your browser, with the zone
+  named at the top of the column. Nothing is stored to do that and nothing is sent anywhere.</p>
+  <p>A time only appears once Liquipedia has published it. Rounds are usually scheduled a few
+  days before they are played, so a later stage often has the teams and no clock, or a clock and
+  no teams. In those cases the column says <b>TBD</b>, or names the days the stage runs, rather
+  than guessing: a wrong kickoff is worse than an honest blank. Scores follow the same rule and
+  a series is only called finished when the page says it is.</p>
+
+  <h2><span class="n">6.</span> How current it is</h2>
   <p>Every player is re-checked on the same few-minute cycle, so no row is fresher than another. The timestamp at the top of the board is the last collection. Ranked stats only move when a match ends, and a match plus queue is around seven minutes, so a few minutes old is as live as this gets.</p>
 
-  <h2><span class="n">6.</span> Rough edges</h2>
+  <h2><span class="n">7.</span> Rough edges</h2>
   <p>This is a new project and still being built, so expect the odd number that looks off. Regions follow each team&rsquo;s competitive region rather than nationality, so a player living elsewhere still shows their team&rsquo;s region.</p>
   <p>If something looks wrong, the feedback form on the tracker is the fastest way to tell me. Email <a href="mailto:contact@198x.online">contact@198x.online</a> works too.</p>
 
