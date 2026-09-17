@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T20:03:02.075Z",
+  "generatedAt": "2026-09-17T20:05:02.878Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -1993,10 +1993,10 @@
                   ],
                   "scores": [
                     2,
-                    2
+                    3
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": "2026-09-17T19:20:00.000Z",
                   "maps": [
@@ -2022,8 +2022,8 @@
                     },
                     {
                       "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score1": 1,
+                      "score2": 3
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/0be611cc/nrg-shopify"
@@ -2428,8 +2428,8 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 29,
-            "live": 1,
+            "played": 30,
+            "live": 0,
             "upcoming": 17
           }
         },
@@ -2833,8 +2833,8 @@
       ],
       "counts": {
         "matches": 53,
-        "played": 31,
-        "live": 1,
+        "played": 32,
+        "live": 0,
         "upcoming": 21
       },
       "unresolved": [],
