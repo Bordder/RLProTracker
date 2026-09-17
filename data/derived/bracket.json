@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T18:39:23.283Z",
+  "generatedAt": "2026-09-17T18:41:02.798Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -1812,10 +1812,10 @@
                   ],
                   "scores": [
                     0,
-                    2
+                    3
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": "2026-09-17T18:10:00.000Z",
                   "maps": [
@@ -1831,18 +1831,8 @@
                     },
                     {
                       "name": "Futura Garden (Night)",
-                      "score1": null,
-                      "score2": null
-                    },
-                    {
-                      "name": "Utopia Coliseum (Dusk)",
-                      "score1": null,
-                      "score2": null
-                    },
-                    {
-                      "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score1": 2,
+                      "score2": 3
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/50a21bdc/furia-fut"
@@ -2377,7 +2367,7 @@
                 {
                   "rank": 4,
                   "team": "FUT Esports",
-                  "outcome": "stay",
+                  "outcome": "up",
                   "meansIfHere": "down"
                 }
               ]
@@ -2443,8 +2433,8 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 26,
-            "live": 2,
+            "played": 27,
+            "live": 1,
             "upcoming": 19
           }
         },
@@ -2848,8 +2838,8 @@
       ],
       "counts": {
         "matches": 53,
-        "played": 28,
-        "live": 2,
+        "played": 29,
+        "live": 1,
         "upcoming": 23
       },
       "unresolved": [],
