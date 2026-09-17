@@ -141,7 +141,17 @@ function parseOpponent(raw) {
   // {{SoloOpponent|Nwpo|score=}} throughout. Reading only TeamOpponent left
   // that whole bracket as TBD against TBD while the draw was actually made.
   const t = findTemplates(raw, "TeamOpponent")[0] ?? findTemplates(raw, "SoloOpponent")[0];
-  if (!t) return { team: null, score: null };
+  // A slot nobody has qualified for yet is not always empty: Liquipedia seeds
+  // the playoff bracket with {{LiteralOpponent|Group A #1}}, which says where
+  // the team will come from. Dropping it left twelve boxes reading TBD against
+  // TBD when the page could say which group decides each one.
+  const lit = t ? null : findTemplates(raw, "LiteralOpponent")[0];
+  if (!t && !lit) return { team: null, score: null };
+  if (lit) {
+    const { positional } = templateArgs(lit.body);
+    const name = (positional[0] || "").trim();
+    return name ? { team: name, score: null, literal: true } : { team: null, score: null };
+  }
   const { positional, named } = templateArgs(t.body);
   const score = (named.score ?? "").trim();
   return {
@@ -178,8 +188,12 @@ export function parseMatch(body) {
   // flag is what decides a series, and a score without it means in progress.
   const finished = /^(t|true|1)$/i.test(named.finished ?? "");
   const startsAt = parseDate(named.date);
+  // Which of the two names are seeds rather than teams, so nothing downstream
+  // draws a crest for "Group A #1" or counts it as a participant.
+  const seeds = [Boolean(a.literal), Boolean(b.literal)];
   return {
     teams: [a.team, b.team],
+    ...(seeds.some(Boolean) ? { seeds } : null),
     scores: [a.score, b.score],
     finished,
     live: hasScore && !finished,
@@ -335,28 +349,30 @@ export function parseInfobox(wikitext) {
   // forbids inline script on top of that. This is the layer below both, and it
   // matters because the input is a wiki: anyone with a Liquipedia account can
   // put anything in an event name.
-  const stripOnce = (t) => t
-    .replace(/\[(?:https?:)?\/\/\S+\s+([^\]]+)\]/g, "$1")   // [url label] -> label
-    .replace(/\[\[(?:[^|\]]*\|)?([^\]]+)\]\]/g, "$1")        // [[page|label]] -> label
-    // Whole tags, not their brackets. Copilot Autofix closed the alert with
-    // .replace(/[<>]/g, ""), which is safe and keeps what was INSIDE the tag:
-    // "RLCS <b>2026</b>" came out as "RLCS b2026/b". Removing the tag and
-    // looping is the same security property with the name left readable.
-    .replace(/'{2,}|<[^>]+>/g, "")
-    // Innermost first: [^{}] cannot cross another template's braces, so one
-    // pass takes the deepest one and the loop below peels outwards. The old
-    // [^}]* matched from the OUTER "{{" to the INNER "}}", which on a nested
-    // template deleted the wrong span and left "lag|de}}" sitting in the name.
-    .replace(/\{\{[^{}]*\}\}/g, "");
-
+  // The loop lives INSIDE this function on purpose. It ran in the caller
+  // before, which is the same behaviour, but a scanner reading one function at
+  // a time sees only a chain of single replacements and calls it an incomplete
+  // sanitizer. Repeating here, until the text stops changing, states it where
+  // the replacements are.
   const strip = (t) => {
-    let cur = String(t ?? "");
     let prev;
     do {
-      prev = cur;
-      cur = stripOnce(cur);
-    } while (cur !== prev);
-    return cur;
+      prev = t;
+      t = t
+        .replace(/\[(?:https?:)?\/\/\S+\s+([^\]]+)\]/g, "$1")   // [url label] -> label
+        .replace(/\[\[(?:[^|\]]*\|)?([^\]]+)\]\]/g, "$1")        // [[page|label]] -> label
+        // Whole tags, not their brackets. Copilot Autofix closed the alert with
+        // .replace(/[<>]/g, ""), which is safe and keeps what was INSIDE the tag:
+        // "RLCS <b>2026</b>" came out as "RLCS b2026/b". Removing the tag and
+        // looping is the same security property with the name left readable.
+        .replace(/'{2,}|<[^>]+>/g, "")
+        // Innermost first: [^{}] cannot cross another template's braces, so one
+        // pass takes the deepest one and the loop peels outwards. The old
+        // [^}]* matched from the OUTER "{{" to the INNER "}}", which on a nested
+        // template deleted the wrong span and left "lag|de}}" sitting in the name.
+        .replace(/\{\{[^{}]*\}\}/g, "");
+    } while (t !== prev);
+    return t;
   };
 
   const plain = (v) => {
@@ -364,7 +380,7 @@ export function parseInfobox(wikitext) {
     let t = String(v);
     // A field can carry the NEXT field after an unescaped pipe.
     t = t.split(/\|\w+\s*=/)[0];
-    for (let prev = null; prev !== t; ) { prev = t; t = strip(t); }
+    t = strip(t);
     // Whatever survives the loop, no angle bracket may reach a consumer: the
     // rules above only match BALANCED markup, and an unclosed "<b" is left
     // untouched by design so a stray "<" in a name is not silently eaten.
@@ -474,6 +490,30 @@ export function parseSchedule(wikitext, year) {
   return out;
 }
 
+/**
+ * The prize pool, place by place.
+ *
+ * {{TeamPrizePool}} holds one {{Slot}} per placement, and a slot's place is a
+ * single number or a range ("3-4"). Published as written, because "3-4" is the
+ * fact: two teams are knocked out at that stage and both are paid the same.
+ *
+ * Money only. The same template can carry qualification and points columns,
+ * which belong to a different question than "what is this worth".
+ */
+export function parsePrizePool(wikitext) {
+  const pool = findTemplates(wikitext, "TeamPrizePool")[0];
+  if (!pool) return [];
+  const out = [];
+  for (const slot of findTemplates(pool.body, "Slot")) {
+    const { named } = templateArgs(slot.body);
+    const place = (named.place ?? "").trim();
+    const usd = (named.usdprize ?? "").replace(/,/g, "").trim();
+    if (!place || !/^\d+(\.\d+)?$/.test(usd)) continue;
+    out.push({ place, usd: Number(usd) });
+  }
+  return out;
+}
+
 export function parsePage(wikitext, meta = {}) {
   const brackets = parseBrackets(wikitext);
   const matchlists = parseMatchlists(wikitext);
@@ -484,6 +524,7 @@ export function parsePage(wikitext, meta = {}) {
     ...meta,
     info,
     schedule: parseSchedule(wikitext, info.starts?.slice(0, 4)),
+    prizes: parsePrizePool(wikitext),
     brackets,
     matchlists,
     tables,
