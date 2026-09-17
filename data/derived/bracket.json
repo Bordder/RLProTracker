@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-17T17:49:16.900Z",
+  "generatedAt": "2026-09-17T17:51:03.444Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -893,7 +893,7 @@
                   "section": "upper",
                   "teams": [
                     null,
-                    null
+                    "Virtus.pro"
                   ],
                   "scores": [
                     null,
@@ -2166,10 +2166,10 @@
                   ],
                   "scores": [
                     2,
-                    2
+                    3
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": "2026-09-17T17:00:00.000Z",
                   "maps": [
@@ -2195,8 +2195,8 @@
                     },
                     {
                       "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score1": 0,
+                      "score2": 3
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/3c800366/m8-vp"
@@ -2417,7 +2417,7 @@
                 {
                   "rank": 1,
                   "team": "Gentle Mates",
-                  "outcome": null,
+                  "outcome": "stay",
                   "meansIfHere": "up"
                 },
                 {
@@ -2429,13 +2429,13 @@
                 {
                   "rank": 3,
                   "team": "Wildcard",
-                  "outcome": null,
+                  "outcome": "down",
                   "meansIfHere": "stay"
                 },
                 {
                   "rank": 4,
                   "team": "Virtus.pro",
-                  "outcome": null,
+                  "outcome": "up",
                   "meansIfHere": "down"
                 }
               ]
@@ -2443,8 +2443,8 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 25,
-            "live": 1,
+            "played": 26,
+            "live": 0,
             "upcoming": 21
           }
         },
@@ -2848,8 +2848,8 @@
       ],
       "counts": {
         "matches": 53,
-        "played": 27,
-        "live": 1,
+        "played": 28,
+        "live": 0,
         "upcoming": 25
       },
       "unresolved": [],
