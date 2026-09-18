@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-18T16:57:14.522Z",
+  "generatedAt": "2026-09-18T16:58:59.060Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -704,11 +704,11 @@
                     "FURIA"
                   ],
                   "scores": [
-                    3,
+                    4,
                     1
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": "2026-09-18T16:10:00.000Z",
                   "maps": [
@@ -734,18 +734,8 @@
                     },
                     {
                       "name": "Sovereign Heights",
-                      "score1": null,
-                      "score2": null
-                    },
-                    {
-                      "name": "Neo Tokyo",
-                      "score1": null,
-                      "score2": null
-                    },
-                    {
-                      "name": "Champions Field",
-                      "score1": null,
-                      "score2": null
+                      "score1": 1,
+                      "score2": 0
                     }
                   ],
                   "blasttv": "rl/tournaments/rlcs-world-championship-2026/series/ce518c9c/falcons-furia"
@@ -869,7 +859,7 @@
                   "label": "Lower Bracket Round 2",
                   "section": "lower",
                   "teams": [
-                    null,
+                    "Team Falcons",
                     null
                   ],
                   "scores": [
@@ -2437,8 +2427,8 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 34,
-            "live": 1,
+            "played": 35,
+            "live": 0,
             "upcoming": 12
           }
         },
@@ -2856,8 +2846,8 @@
       ],
       "counts": {
         "matches": 53,
-        "played": 38,
-        "live": 1,
+        "played": 39,
+        "live": 0,
         "upcoming": 14
       },
       "unresolved": [],
