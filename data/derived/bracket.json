@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-18T19:59:01.542Z",
+  "generatedAt": "2026-09-18T20:01:06.062Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -593,10 +593,10 @@
                   ],
                   "scores": [
                     2,
-                    3
+                    4
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": "2026-09-18T19:00:00.000Z",
                   "maps": [
@@ -627,11 +627,11 @@
                     },
                     {
                       "name": "Neo Tokyo",
-                      "score1": null,
-                      "score2": null
+                      "score1": 1,
+                      "score2": 2
                     },
                     {
-                      "name": "Champions Field",
+                      "name": "<!--Champions Field-->",
                       "score1": null,
                       "score2": null
                     }
@@ -802,7 +802,7 @@
                   "label": "Lower Bracket Round 2",
                   "section": "lower",
                   "teams": [
-                    null,
+                    "Spacestation Gaming",
                     "Gentle Mates"
                   ],
                   "scores": [
@@ -2427,8 +2427,8 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 36,
-            "live": 1,
+            "played": 37,
+            "live": 0,
             "upcoming": 10
           }
         },
@@ -2846,8 +2846,8 @@
       ],
       "counts": {
         "matches": 53,
-        "played": 40,
-        "live": 1,
+        "played": 41,
+        "live": 0,
         "upcoming": 12
       },
       "unresolved": [],
