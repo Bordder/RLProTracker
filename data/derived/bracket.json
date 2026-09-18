@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-18T21:37:01.323Z",
+  "generatedAt": "2026-09-18T21:39:02.926Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -2554,12 +2554,12 @@
                     "nass"
                   ],
                   "scores": [
-                    null,
-                    null
+                    0,
+                    0
                   ],
                   "finished": false,
-                  "live": false,
-                  "upcoming": true,
+                  "live": true,
+                  "upcoming": false,
                   "startsAt": "2026-09-18T22:00:00.000Z",
                   "maps": [
                     {
@@ -2609,8 +2609,8 @@
           "counts": {
             "matches": 3,
             "played": 2,
-            "live": 0,
-            "upcoming": 1
+            "live": 1,
+            "upcoming": 0
           }
         },
         {
@@ -2837,8 +2837,8 @@
       "counts": {
         "matches": 53,
         "played": 42,
-        "live": 0,
-        "upcoming": 11
+        "live": 1,
+        "upcoming": 10
       },
       "unresolved": [],
       "resolvedAt": "2026-09-17T03:05:06.824Z"
