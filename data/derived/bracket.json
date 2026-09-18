@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-18T16:09:00.348Z",
+  "generatedAt": "2026-09-18T16:11:09.389Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -704,13 +704,13 @@
                     "FURIA"
                   ],
                   "scores": [
-                    null,
-                    null
+                    0,
+                    0
                   ],
                   "finished": false,
-                  "live": false,
-                  "upcoming": true,
-                  "startsAt": "2026-09-18T16:00:00.000Z",
+                  "live": true,
+                  "upcoming": false,
+                  "startsAt": "2026-09-18T16:10:00.000Z",
                   "maps": [
                     {
                       "name": "Mannfield (Dusk)",
@@ -2438,8 +2438,8 @@
           "counts": {
             "matches": 47,
             "played": 34,
-            "live": 0,
-            "upcoming": 13
+            "live": 1,
+            "upcoming": 12
           }
         },
         {
@@ -2857,8 +2857,8 @@
       "counts": {
         "matches": 53,
         "played": 38,
-        "live": 0,
-        "upcoming": 15
+        "live": 1,
+        "upcoming": 14
       },
       "unresolved": [],
       "resolvedAt": "2026-09-17T03:05:06.824Z"
