@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-18T18:24:59.116Z",
+  "generatedAt": "2026-09-18T18:27:01.102Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -649,10 +649,10 @@
                   ],
                   "scores": [
                     2,
-                    3
+                    4
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": "2026-09-18T17:30:00.000Z",
                   "maps": [
@@ -683,11 +683,11 @@
                     },
                     {
                       "name": "Neo Tokyo",
-                      "score1": null,
-                      "score2": null
+                      "score1": 1,
+                      "score2": 2
                     },
                     {
-                      "name": "Champions Field",
+                      "name": "<!--Champions Field-->",
                       "score1": null,
                       "score2": null
                     }
@@ -803,7 +803,7 @@
                   "section": "lower",
                   "teams": [
                     null,
-                    null
+                    "Gentle Mates"
                   ],
                   "scores": [
                     null,
@@ -2427,8 +2427,8 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 35,
-            "live": 1,
+            "played": 36,
+            "live": 0,
             "upcoming": 11
           }
         },
@@ -2846,8 +2846,8 @@
       ],
       "counts": {
         "matches": 53,
-        "played": 39,
-        "live": 1,
+        "played": 40,
+        "live": 0,
         "upcoming": 13
       },
       "unresolved": [],
