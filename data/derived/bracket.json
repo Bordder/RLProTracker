@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-18T18:53:13.864Z",
+  "generatedAt": "2026-09-18T18:55:03.488Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -592,12 +592,12 @@
                     "Spacestation Gaming"
                   ],
                   "scores": [
-                    null,
-                    null
+                    0,
+                    0
                   ],
                   "finished": false,
-                  "live": false,
-                  "upcoming": true,
+                  "live": true,
+                  "upcoming": false,
                   "startsAt": "2026-09-18T19:00:00.000Z",
                   "maps": [
                     {
@@ -2428,8 +2428,8 @@
           "counts": {
             "matches": 47,
             "played": 36,
-            "live": 0,
-            "upcoming": 11
+            "live": 1,
+            "upcoming": 10
           }
         },
         {
@@ -2847,8 +2847,8 @@
       "counts": {
         "matches": 53,
         "played": 40,
-        "live": 0,
-        "upcoming": 13
+        "live": 1,
+        "upcoming": 12
       },
       "unresolved": [],
       "resolvedAt": "2026-09-17T03:05:06.824Z"
