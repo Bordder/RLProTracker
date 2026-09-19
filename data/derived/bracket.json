@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-19T15:08:59.331Z",
+  "generatedAt": "2026-09-19T15:11:00.958Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -796,12 +796,12 @@
                     "Gentle Mates"
                   ],
                   "scores": [
-                    null,
-                    null
+                    0,
+                    0
                   ],
                   "finished": false,
-                  "live": false,
-                  "upcoming": true,
+                  "live": true,
+                  "upcoming": false,
                   "startsAt": "2026-09-19T16:00:00.000Z",
                   "maps": [
                     {
@@ -2414,8 +2414,8 @@
           "counts": {
             "matches": 47,
             "played": 38,
-            "live": 0,
-            "upcoming": 9
+            "live": 1,
+            "upcoming": 8
           }
         },
         {
@@ -2832,8 +2832,8 @@
       "counts": {
         "matches": 53,
         "played": 43,
-        "live": 0,
-        "upcoming": 10
+        "live": 1,
+        "upcoming": 9
       },
       "unresolved": [],
       "resolvedAt": "2026-09-17T03:05:06.824Z"
