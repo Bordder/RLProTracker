@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-19T16:53:14.519Z",
+  "generatedAt": "2026-09-19T16:54:58.961Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -796,11 +796,11 @@
                     "Gentle Mates"
                   ],
                   "scores": [
-                    3,
+                    4,
                     2
                   ],
-                  "finished": false,
-                  "live": true,
+                  "finished": true,
+                  "live": false,
                   "upcoming": false,
                   "startsAt": "2026-09-19T16:00:00.000Z",
                   "maps": [
@@ -831,11 +831,11 @@
                     },
                     {
                       "name": "Neo Tokyo",
-                      "score1": null,
-                      "score2": null
+                      "score1": 3,
+                      "score2": 0
                     },
                     {
-                      "name": "Champions Field",
+                      "name": "<!--Champions Field-->",
                       "score1": null,
                       "score2": null
                     }
@@ -852,12 +852,12 @@
                     "Shopify Rebellion"
                   ],
                   "scores": [
-                    null,
-                    null
+                    0,
+                    0
                   ],
                   "finished": false,
-                  "live": false,
-                  "upcoming": true,
+                  "live": true,
+                  "upcoming": false,
                   "startsAt": "2026-09-19T17:30:00.000Z",
                   "maps": [
                     {
@@ -881,17 +881,17 @@
                       "score2": null
                     },
                     {
-                      "name": "Sovereign Heights",
+                      "name": "<!--Sovereign Heights-->",
                       "score1": null,
                       "score2": null
                     },
                     {
-                      "name": "Neo Tokyo",
+                      "name": "<!--Neo Tokyo-->",
                       "score1": null,
                       "score2": null
                     },
                     {
-                      "name": "Champions Field",
+                      "name": "<!--Champions Field-->",
                       "score1": null,
                       "score2": null
                     }
@@ -1017,7 +1017,7 @@
                   "section": "lower",
                   "teams": [
                     null,
-                    null
+                    "Spacestation Gaming"
                   ],
                   "scores": [
                     null,
@@ -1050,17 +1050,17 @@
                       "score2": null
                     },
                     {
-                      "name": "Sovereign Heights",
+                      "name": "<!--Sovereign Heights-->",
                       "score1": null,
                       "score2": null
                     },
                     {
-                      "name": "Neo Tokyo",
+                      "name": "<!--Neo Tokyo-->",
                       "score1": null,
                       "score2": null
                     },
                     {
-                      "name": "Champions Field",
+                      "name": "<!--Champions Field-->",
                       "score1": null,
                       "score2": null
                     }
@@ -1107,17 +1107,17 @@
                       "score2": null
                     },
                     {
-                      "name": "Sovereign Heights",
+                      "name": "<!--Sovereign Heights-->",
                       "score1": null,
                       "score2": null
                     },
                     {
-                      "name": "Neo Tokyo",
+                      "name": "<!--Neo Tokyo-->",
                       "score1": null,
                       "score2": null
                     },
                     {
-                      "name": "Champions Field",
+                      "name": "<!--Champions Field-->",
                       "score1": null,
                       "score2": null
                     }
@@ -1164,17 +1164,17 @@
                       "score2": null
                     },
                     {
-                      "name": "Sovereign Heights",
+                      "name": "<!--Sovereign Heights-->",
                       "score1": null,
                       "score2": null
                     },
                     {
-                      "name": "Neo Tokyo",
+                      "name": "<!--Neo Tokyo-->",
                       "score1": null,
                       "score2": null
                     },
                     {
-                      "name": "Champions Field",
+                      "name": "<!--Champions Field-->",
                       "score1": null,
                       "score2": null
                     }
@@ -1221,17 +1221,17 @@
                       "score2": null
                     },
                     {
-                      "name": "Sovereign Heights",
+                      "name": "<!--Sovereign Heights-->",
                       "score1": null,
                       "score2": null
                     },
                     {
-                      "name": "Neo Tokyo",
+                      "name": "<!--Neo Tokyo-->",
                       "score1": null,
                       "score2": null
                     },
                     {
-                      "name": "Champions Field",
+                      "name": "<!--Champions Field-->",
                       "score1": null,
                       "score2": null
                     }
@@ -1278,17 +1278,17 @@
                       "score2": null
                     },
                     {
-                      "name": "Sovereign Heights",
+                      "name": "<!--Sovereign Heights-->",
                       "score1": null,
                       "score2": null
                     },
                     {
-                      "name": "Neo Tokyo",
+                      "name": "<!--Neo Tokyo-->",
                       "score1": null,
                       "score2": null
                     },
                     {
-                      "name": "Champions Field",
+                      "name": "<!--Champions Field-->",
                       "score1": null,
                       "score2": null
                     }
@@ -2413,9 +2413,9 @@
           ],
           "counts": {
             "matches": 47,
-            "played": 38,
+            "played": 39,
             "live": 1,
-            "upcoming": 8
+            "upcoming": 7
           }
         },
         {
@@ -2831,9 +2831,9 @@
       ],
       "counts": {
         "matches": 53,
-        "played": 43,
+        "played": 44,
         "live": 1,
-        "upcoming": 9
+        "upcoming": 8
       },
       "unresolved": [],
       "resolvedAt": "2026-09-17T03:05:06.824Z"
