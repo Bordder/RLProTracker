@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-09-19T18:54:59.337Z",
+  "generatedAt": "2026-09-19T18:56:56.106Z",
   "source": "liquipedia",
   "attribution": "Bracket data from Liquipedia, CC-BY-SA 3.0",
   "events": [
@@ -908,12 +908,12 @@
                     "Virtus.pro"
                   ],
                   "scores": [
-                    null,
-                    null
+                    0,
+                    0
                   ],
                   "finished": false,
-                  "live": false,
-                  "upcoming": true,
+                  "live": true,
+                  "upcoming": false,
                   "startsAt": "2026-09-19T19:00:00.000Z",
                   "maps": [
                     {
@@ -2414,8 +2414,8 @@
           "counts": {
             "matches": 47,
             "played": 40,
-            "live": 0,
-            "upcoming": 7
+            "live": 1,
+            "upcoming": 6
           }
         },
         {
@@ -2832,8 +2832,8 @@
       "counts": {
         "matches": 53,
         "played": 45,
-        "live": 0,
-        "upcoming": 8
+        "live": 1,
+        "upcoming": 7
       },
       "unresolved": [],
       "resolvedAt": "2026-09-17T03:05:06.824Z"
