@@ -9,9 +9,9 @@
 // Everything here comes from the same parsed event the diagram is drawn from,
 // so the two can never disagree, and it says TBD wherever Liquipedia has not
 // published something rather than filling the gap.
-import { crest, hasLogo, teamSlug, teamName } from "/crest.mjs";
-import { flagSVG } from "/flags.mjs";
-import { matchesOf, whenWords, zoneLabel, ordinal, isLive } from "/fixtures.mjs";
+import { crest, hasLogo, teamSlug, teamName } from "/crest.mjs?v=3d51b913";
+import { flagSVG } from "/flags.mjs?v=d67b29cc";
+import { matchesOf, whenWords, zoneLabel, ordinal, isLive } from "/fixtures.mjs?v=94128e9f";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 

@@ -18,7 +18,7 @@
 // Relative, not "/crest.mjs": this module sits at the site root beside it, so
 // both resolve the same in the browser, and the relative form also loads under
 // node, where the tests import this file directly.
-import { crest, assignHues, hasLogo, teamName } from "./crest.mjs";
+import { crest, assignHues, hasLogo, teamName } from "./crest.mjs?v=3d51b913";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 

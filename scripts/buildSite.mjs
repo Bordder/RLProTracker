@@ -111,6 +111,58 @@ await writeFile(join(ROOT, "web", "_headers"), [
 ].join("\n"));
 console.log("web/_headers -> CSP written");
 
+// ---- cache-bust the modules the page script imports ----------------------
+//
+// brackets.js is stamped below, and that is not enough on its own: it imports
+// crest.mjs, fixtures.mjs and the rest by bare path, and Pages serves those
+// with the same four-hour cache as everything else. A returning visitor can
+// therefore get the NEW brackets.js against a four-hour-old crest.mjs, and an
+// import of a name that copy does not export yet does not degrade - the
+// module graph fails to link and the page renders nothing at all.
+//
+// So every .mjs import inside web/ carries a hash of the file it points at.
+// One URL per version of a module, which also keeps a module a SINGLE
+// instance in the browser: crest.mjs holds the team hue map, and two copies
+// of it under two URLs would mean the half of the page drawn through one
+// never sees the hues assigned on the other.
+//
+// It runs to a fixed point. Stamping fixtures.mjs changes fixtures.mjs, which
+// changes its own hash, which changes what brackets.js has to say about it.
+// The graph is shallow, so this settles in a pass or two; the cap is there so
+// a cycle cannot spin forever.
+{
+  const files = (await readdir(join(ROOT, "web")))
+    .filter((f) => f.endsWith(".mjs") || f.endsWith(".js"));
+  const modules = files.filter((f) => f.endsWith(".mjs"));
+  const text = new Map();
+  for (const f of files) text.set(f, (await readFile(join(ROOT, "web", f), "utf8")).replace(/\r\n/g, "\n"));
+
+  let passes = 0, moved = true;
+  while (moved && passes++ < 8) {
+    moved = false;
+    for (const mod of modules) {
+      const hash = createHash("sha256").update(text.get(mod)).digest("hex").slice(0, 8);
+      // Both spellings: brackets.js imports "/crest.mjs" from the site root,
+      // fixtures.mjs imports "./crest.mjs" because node's test runner loads it
+      // straight off disk.
+      const name = mod.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const pattern = new RegExp(`(from\\s*"(?:\\.)?/${name})(?:\\?v=[0-9a-f]+)?"`, "g");
+      for (const f of files) {
+        const out = text.get(f).replace(pattern, `$1?v=${hash}"`);
+        if (out !== text.get(f)) { text.set(f, out); moved = true; }
+      }
+    }
+  }
+  let written = 0;
+  for (const f of files) {
+    const onDisk = (await readFile(join(ROOT, "web", f), "utf8")).replace(/\r\n/g, "\n");
+    if (onDisk === text.get(f)) continue;
+    await writeFile(join(ROOT, "web", f), text.get(f));
+    written++;
+  }
+  console.log(`module imports stamped -> ${written} file(s) rewritten in ${passes} pass(es)`);
+}
+
 // ---- cache-bust the page script -----------------------------------------
 //
 // Pages serves static assets with a four-hour Cache-Control and ignores any
