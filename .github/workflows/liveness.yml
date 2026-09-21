@@ -70,8 +70,41 @@ jobs:
           # time this checks, so there is a wide margin before a false alarm.
           STALE_MINUTES=10
 
-          status=$(curl -sS --max-time 20 https://198x.online/api/status || echo '{}')
-          computed=$(printf '%s' "$status" | sed -n 's/.*"computedAt":"\([^"]*\)".*/\1/p')
+          # Read the freshness probe, and do not believe one failure.
+          #
+          # This alarm fired a few times a day on a site that was fine. The
+          # cause is that /api/status answers 502 {"error":"upstream"} whenever
+          # its own read of the GitHub contents API blips - a rate limit, a
+          # transient 5xx, a slow response - and a body with no computedAt in
+          # it is indistinguishable here from an unreachable site. A single
+          # sample of a probe that has its own upstream is not evidence of
+          # anything, so take three, spaced far enough apart to outlast a blip.
+          # A genuine outage still fails all three and still reports.
+          #
+          # Parsed with python3 rather than sed. The old expression could not
+          # tell "computedAt": null from a missing key, and both arrive here as
+          # a healthy 200.
+          TRIES=3
+          GAP=15
+
+          computed=""
+          code=""
+          body=""
+          for attempt in $(seq 1 "$TRIES"); do
+            code=$(curl -sS -o /tmp/status.json -w '%{http_code}' --max-time 20 \
+              -H 'accept: application/json' \
+              -A 'rlprotracker-liveness (+https://198x.online/)' \
+              https://198x.online/api/status || echo 000)
+            # One line on purpose: this is inside a YAML block scalar, and a
+            # script whose lines start at column 0 ends the block.
+            # A malformed or missing body raises, which exits non-zero and
+            # leaves computed empty - the same answer as a body without the key.
+            computed=$(python3 -c 'import json;v=json.load(open("/tmp/status.json")).get("computedAt");print(v if isinstance(v,str) else "")' 2>/dev/null)
+            body=$(head -c 160 /tmp/status.json 2>/dev/null | tr -d '\n')
+            echo "attempt ${attempt}/${TRIES}: HTTP ${code} ${body}"
+            [ -n "$computed" ] && break
+            [ "$attempt" -lt "$TRIES" ] && sleep "$GAP"
+          done
 
           # Two separate faults that used to share one number. An unreadable
           # /api/status was reported as "9999 minutes old", which reads on
@@ -80,11 +113,12 @@ jobs:
           # turning away an Actions IP, is indistinguishable from a genuine
           # freeze once it has been flattened into an age. So keep them apart:
           # age_min stays empty when there is no timestamp to measure, and the
-          # message says which of the two it is.
+          # message says which of the two it is, with the evidence attached so
+          # the next one does not have to be reproduced to be understood.
           if [ -z "$computed" ]; then
-            echo "could not read /api/status: $status"
+            echo "could not read /api/status after ${TRIES} tries"
             age_min=""
-            situation="**RL Pro Tracker: cannot read the site.** \`/api/status\` returned no \`computedAt\`, so the age of the published data is unknown."
+            situation="**RL Pro Tracker: cannot read the site.** \`/api/status\` gave no \`computedAt\` on ${TRIES} tries over $(( (TRIES - 1) * GAP ))s, so the age of the published data is unknown. Last reply: HTTP ${code} \`${body}\`."
           else
             now=$(date -u +%s)
             then=$(date -u -d "$computed" +%s)
