@@ -58,6 +58,37 @@ const LOGO_ALIAS = {
   "tm": "twisted-minds",
 };
 
+// The org a short code stands for, for display.
+//
+// The side disciplines enter under the code the org is known by - the 2026 2v2
+// field has "ssg" in it, lowercase, exactly as Liquipedia writes the entry -
+// and those pages deliberately skip the 3v3 team alias map. A code is not a
+// name, so the code is resolved here and the full name is what gets drawn.
+const TEAM_NAME = {
+  "ssg": "Spacestation Gaming",
+  "kc": "Karmine Corp",
+  "tm": "Twisted Minds",
+  "nrg": "NRG",
+  "vp": "Virtus.pro",
+  "flcn": "Team Falcons",
+  "m8": "Gentle Mates",
+  "g2": "G2 Stride",
+  "bds": "Team BDS",
+  "sr": "Shopify Rebellion",
+};
+
+/**
+ * The name to draw for an entry.
+ *
+ * Only a known short code is expanded. Anything else is returned exactly as
+ * the source wrote it, because a name this map has never heard of is a real
+ * name and guessing at it would invent an org.
+ */
+export const teamName = (name) => {
+  if (!name) return name;
+  return TEAM_NAME[teamSlug(name)] ?? name;
+};
+
 // Initials people actually use, where the first two letters are not it.
 const TEAM_INITIALS = {
   "gentle-mates": "M8", "team-vitality": "VIT", "ninjas-in-pyjamas": "NIP",

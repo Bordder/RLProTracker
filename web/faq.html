@@ -48,12 +48,18 @@
      line a reader might actually be looking for - how to get a team's mark
      taken down - was the hardest of the three to find. */
   footer.legal .copyright{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);
-    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 28px;
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 28px;
     font-size:11.5px;line-height:1.6}
   footer.legal .copyright h4{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;
     font-size:10px;font-weight:700;color:var(--slate);margin:0 0 5px}
   footer.legal .copyright p{margin:0}
   footer.legal .copyright b{color:var(--slate);font-weight:600}
+  /* The byline, at the very bottom and on its own line: it is who made
+     the thing, not one of the two notices above it about what the thing
+     is. */
+  footer.legal .byline{margin:16px 0 0;padding-top:12px;border-top:1px solid var(--line);
+    font-size:11.5px;color:var(--dim);line-height:1.6}
+  footer.legal .byline b{color:var(--slate);font-weight:600}
   @media (max-width:860px){ footer.legal .copyright{grid-template-columns:1fr;gap:14px} }
   .handle{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;color:var(--slate)}
 </style>
@@ -155,10 +161,6 @@
     <div class="links"><a href="/">Back to the tracker</a><a href="/how-it-works">How it works</a><a href="/faq">FAQ</a><a href="/status">Status</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div>
     <div class="copyright">
       <section>
-        <h4>The site</h4>
-        <p>Built and maintained by <b>Bordder</b>. &copy; 2026. <a href="https://github.com/Bordder/RLProTracker" target="_blank" rel="noopener noreferrer">Source on GitHub</a>.</p>
-      </section>
-      <section>
         <h4>Not affiliated</h4>
         <p>A fan-made project, with no connection to Psyonix, Epic Games or RLCS. Rocket League is a trademark of Psyonix LLC. Player and team names belong to their respective owners.</p>
       </section>
@@ -167,6 +169,7 @@
         <p>Each mark is the property of its organisation and appears only to identify the team a player competes for. No endorsement is implied. If you represent an org and want your mark removed, email <a href="mailto:contact@198x.online">contact@198x.online</a> and it will be taken down.</p>
       </section>
     </div>
+    <p class="byline">Built and maintained by <b>Bordder</b>. &copy; 2026. <a href="https://github.com/Bordder/RLProTracker" target="_blank" rel="noopener noreferrer">Source on GitHub</a>.</p>
   </footer>
 </div>
 </body>

@@ -1,6 +1,7 @@
-import { crest, assignHues, hasLogo } from "/crest.mjs";
+import { crest, assignHues, hasLogo, teamName } from "/crest.mjs";
 import { standings, pairGroups } from "/standings.mjs";
 import { panelHTML, ordinal } from "/fixtures.mjs";
+import { headerHTML, scheduleHTML, prizesHTML, teamsHTML } from "/eventview.mjs";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 // "23:00" today, "17th 23:00" on another day. Same wording as the schedule
@@ -19,6 +20,30 @@ const clockOf = (iso) => iso ? new Date(iso).toLocaleTimeString([], { hour: "2-d
 
 const BOX_W = 200, GUTTER = 44, ROW_H = 26, BOX_H = ROW_H * 2 + 2;
 const SLOT = BOX_H + 30, HEAD_H = 26, TOP = HEAD_H + 10, COL = BOX_W + GUTTER;
+// Between the upper band and the lower one. It has to clear the kickoff
+// caption that hangs under the last box as well as the box itself, or the
+// lower band's round heading lands on top of it - which it did at exactly
+// 34, with the caption at y346 and the heading at y342.
+const BAND_GAP = 44;
+const CAP_H = 18;         // the caption under a box
+
+// The desktop diagram's geometry, and the shape every other one is described
+// in. The layout is the same arithmetic at any size, so the phone gets a real
+// bracket - feeders, wires, qualified slots - rather than a second layout
+// engine that has to be kept in step with this one.
+const DESK = { BOX_W, GUTTER, BOX_H, SLOT, HEAD_H, TOP, COL, BAND_GAP, CAP_H };
+
+// The phone's geometry: exactly two round columns per screen, whatever the
+// screen is. Measured rather than guessed, because "two columns" is the
+// requirement and a fixed width only satisfies it at one device size.
+function phoneGeo() {
+  const vw = Math.max(280, (document.documentElement.clientWidth || 360) - 40);
+  const GUT = 24;
+  const W = Math.max(132, Math.floor((vw - GUT) / 2));
+  const H = 92;           // the date line, then two team rows
+  return { BOX_W: W, GUTTER: GUT, BOX_H: H, SLOT: H + 14, HEAD_H: 24,
+           TOP: 30, COL: W + GUT, BAND_GAP: 34, CAP_H: 0, pack: true };
+}
 const LIVE_FOR = 2 * 3600e3;   // a started match counts as live for this long
 
 // The R<n>M<n> key, which is how the edge list names a match.
@@ -104,17 +129,35 @@ function columns(matches) {
 // them and could only do it when a round was exactly half the one before:
 // true of a single-elimination tree, false of every double-elimination
 // bracket RLCS runs.
-// Between the upper band and the lower one. It has to clear the kickoff
-// caption that hangs under the last box as well as the box itself, or the
-// lower band's round heading lands on top of it - which it did at exactly
-// 34, with the caption at y346 and the heading at y342.
-const BAND_GAP = 44;
-const CAP_H = 18;         // the caption under a box
-
-function layoutBracket(matches, edges) {
+function layoutBracket(matches, edges, G = DESK) {
   const rounds = matches.map((m) => m.round);
   const minRound = Math.min(...rounds);
-  const colOf = (m) => m.round - minRound;
+  const sectionOf = (m) => m.section ?? "final";
+
+  // Two ways to turn a round into a column.
+  //
+  // The diagram uses the round number, so the upper bracket's semifinal and
+  // the lower bracket's sit in the same column and the whole page reads as
+  // one timeline. That only works when every column is on screen at once.
+  //
+  // On a phone two columns are, and the 2026 playoffs upper bracket starts at
+  // round 3: keeping the round number left the top of the bracket as 600px of
+  // empty page, with the band that belongs in it sitting off the right edge.
+  // So there each band's columns start at its own first round instead, which
+  // is the shape the Liquipedia app draws - the UB pair, then the LB pair
+  // under it.
+  const packed = new Map();
+  if (G.pack) {
+    for (const m of matches) {
+      const k = sectionOf(m);
+      if (!packed.has(k)) packed.set(k, new Set());
+      packed.get(k).add(m.round);
+    }
+    for (const [k, set] of packed) packed.set(k, [...set].sort((a, b) => a - b));
+  }
+  const colOf = (m) => G.pack
+    ? packed.get(sectionOf(m)).indexOf(m.round)
+    : m.round - minRound;
 
   // Columns, keyed by round and section: two sections can share a round and
   // must not share a column heading.
@@ -128,11 +171,18 @@ function layoutBracket(matches, edges) {
 
   const y = new Map();      // slot key -> top
   const order = [...cols.values()].sort((a, b) => a.round - b.round);
+  const bandOf = new Map(matches.map((m) => [slotOf(m), sectionOf(m)]));
 
+  // Where a match's feeders sit, so it can be placed against them. In a
+  // packed layout only feeders from the same band count: the other band's
+  // rows are somewhere else entirely on the page, and centring on them would
+  // drop this match on top of whatever is already there.
   const feeders = (m) => {
     const e = edges?.[slotOf(m)];
     if (!e) return [];
-    return [e.upper, e.lower].filter(Boolean).filter((k) => y.has(k)).map((k) => y.get(k));
+    return [e.upper, e.lower].filter(Boolean)
+      .filter((k) => y.has(k) && (!G.pack || bandOf.get(k) === sectionOf(m)))
+      .map((k) => y.get(k));
   };
 
   // Each band is laid out in round order, so a match's feeders are always
@@ -146,7 +196,7 @@ function layoutBracket(matches, edges) {
       });
       // A column with no feeders in view - the first of a band, or a bracket
       // with no shape at all - is stacked evenly rather than dropped.
-      const step = first ? SLOT : Math.max(SLOT, (bottom - top) / Math.max(1, c.matches.length));
+      const step = first ? G.SLOT : Math.max(G.SLOT, (bottom - top) / Math.max(1, c.matches.length));
       want.forEach((v, i) => { if (v === null) want[i] = top + i * step; });
 
       // Keep a column in order and never overlapping, without moving a match
@@ -155,35 +205,42 @@ function layoutBracket(matches, edges) {
       let floor = -Infinity;
       for (const i of idx) {
         want[i] = Math.max(want[i], floor);
-        floor = want[i] + BOX_H + 14;
+        floor = want[i] + G.BOX_H + 14;
       }
       c.matches.forEach((m, i) => y.set(slotOf(m), want[i]));
-      bottom = Math.max(bottom, ...want.map((v) => v + BOX_H + CAP_H));
+      bottom = Math.max(bottom, ...want.map((v) => v + G.BOX_H + G.CAP_H));
       first = false;
     }
     return bottom;
   };
 
-  const upperBottom = placeBand("upper", TOP);
-  const lowerBottom = placeBand("lower", (order.some((c) => c.section === "upper") ? upperBottom + BAND_GAP : TOP));
+  const upperBottom = placeBand("upper", G.TOP);
+  const lowerBottom = placeBand("lower", (order.some((c) => c.section === "upper") ? upperBottom + G.BAND_GAP : G.TOP));
   const full = Math.max(upperBottom, lowerBottom);
+
+  // Packed columns put the finals in their own band under the other two: at
+  // column zero of their own sequence, the centring below would drop them on
+  // top of whatever the bands already have there.
+  const finalsBanded = G.pack && order.some((c) => c.section === "final") &&
+    order.some((c) => c.section !== "final");
+  if (finalsBanded) placeBand("final", full + G.BAND_GAP);
 
   // Finals sit against their feeders, which normally means between the two
   // bands. With no edge list, centre them instead of stacking them at the top.
-  for (const c of order.filter((x) => x.section === "final")) {
+  for (const c of finalsBanded ? [] : order.filter((x) => x.section === "final")) {
     const want = c.matches.map((m) => {
       const f = feeders(m);
       return f.length ? f.reduce((a, b) => a + b, 0) / f.length : null;
     });
-    const span = full - TOP;
+    const span = full - G.TOP;
     want.forEach((v, i) => {
       if (v !== null) return;
       const n = c.matches.length;
-      want[i] = TOP + span / 2 - BOX_H / 2 + (i - (n - 1) / 2) * SLOT;
+      want[i] = G.TOP + span / 2 - G.BOX_H / 2 + (i - (n - 1) / 2) * G.SLOT;
     });
     const idx = want.map((_, i) => i).sort((a, b) => want[a] - want[b]);
     let floor = -Infinity;
-    for (const i of idx) { want[i] = Math.max(want[i], floor); floor = want[i] + BOX_H + 14; }
+    for (const i of idx) { want[i] = Math.max(want[i], floor); floor = want[i] + G.BOX_H + 14; }
     c.matches.forEach((m, i) => y.set(slotOf(m), want[i]));
   }
 
@@ -195,14 +252,20 @@ function layoutBracket(matches, edges) {
   for (const m of matches) {
     const e = edges?.[slotOf(m)];
     if (!e) continue;
-    const from = [e.upper, e.lower].filter(Boolean).filter((k) => y.has(k)).map((k) => y.get(k));
+    // Packed columns are per band, so the gutter to the left of a column
+    // belongs to that band alone: a wire from another one would be drawn at
+    // an x that means nothing. The loser dropping out of the upper bracket is
+    // the one relationship the phone cannot show, and a line into the wrong
+    // place says less than no line.
+    const keep = (k) => y.has(k) && (!G.pack || bandOf.get(k) === sectionOf(m));
+    const from = [e.upper, e.lower].filter(Boolean).filter(keep).map((k) => y.get(k));
     if (from.length) links.push({ col: colOf(m), from, to: y.get(slotOf(m)) });
   }
 
   // Matches whose winner qualifies out of this bracket get a slot to the
   // right saying so, which is what a play-in is for and what Liquipedia
   // draws there.
-  const quals = matches
+  const quals = G.quals === false ? [] : matches
     .filter((m) => edges?.[slotOf(m)]?.qualifies)
     .map((m) => ({ m, col: colOf(m) + 1, y: y.get(slotOf(m)) }));
 
@@ -215,23 +278,23 @@ function layoutBracket(matches, edges) {
   // whole layout down by the overshoot keeps every relationship intact and
   // puts the top row back where the container starts.
   const top = Math.min(...[...y.values()]);
-  if (top < TOP) {
-    const shift = TOP - top;
+  if (top < G.TOP) {
+    const shift = G.TOP - top;
     for (const [k, v] of y) y.set(k, v + shift);
     for (const l of links) { l.to += shift; l.from = l.from.map((v) => v + shift); }
     for (const q of quals) q.y += shift;
   }
 
-  const height = Math.max(...[...y.values()].map((v) => v + BOX_H + CAP_H)) + 12;
+  const height = Math.max(...[...y.values()].map((v) => v + G.BOX_H + G.CAP_H)) + 12;
   const lastCol = Math.max(...[...cols.values()].map((c) => c.col), ...quals.map((q) => q.col));
-  const width = (lastCol + 1) * COL;
+  const width = lastCol * G.COL + G.BOX_W;
   return { cols: [...cols.values()], y, links, quals, height, width };
 }
 
 function side(team, score, state) {
   const attr = team ? ` data-team="${esc(team.toLowerCase())}" tabindex="0"` : "";
   return `<div class="side ${state}"${attr}>` +
-    `<span class="team${team ? "" : " tbd"}">${teamMark(team)}${esc(team ?? "TBD")}</span>` +
+    `<span class="team${team ? "" : " tbd"}">${teamMark(team)}${esc(teamName(team) ?? "TBD")}</span>` +
     `<span class="sc">${score === null ? "&middot;" : score}</span></div>`;
 }
 
@@ -283,7 +346,7 @@ const bracketEl = (b) => {
     const done = q.m.finished && a !== null && b !== null;
     const who = done ? (a > b ? q.m.teams[0] : q.m.teams[1]) : null;
     parts.push(`<div class="qual${who ? " in" : ""}" style="left:${x}px;top:${q.y + (BOX_H - 30) / 2}px;width:${BOX_W}px">` +
-      (who ? `${crest(who)}<span>${esc(who)}</span>` : `<span class="tbd">TBD</span>`) + `</div>`);
+      (who ? `${crest(who)}<span>${esc(teamName(who))}</span>` : `<span class="tbd">TBD</span>`) + `</div>`);
     const xPrev = x - GUTTER;
     parts.push(`<div class="wire" style="left:${xPrev}px;top:${q.y + BOX_H / 2}px;width:${GUTTER}px;height:1px"></div>`);
   }
@@ -299,9 +362,192 @@ const bracketEl = (b) => {
     if (bottom > top) parts.push(`<div class="wire" style="left:${mid}px;top:${top}px;width:1px;height:${bottom - top}px"></div>`);
     parts.push(`<div class="wire" style="left:${mid}px;top:${to}px;width:${GUTTER / 2}px;height:1px"></div>`);
   }
-  return `<div class="scrollwrap"><span class="hint">scroll &rarr;</span>` +
+  return `<div class="scrollwrap dwrap"><span class="hint">scroll &rarr;</span>` +
     `<div class="scroll"><div class="bk" style="height:${L.height}px;width:${L.width}px">${parts.join("")}</div></div></div>`;
 };
+
+// The same bracket on a phone.
+//
+// The desktop diagram is 1220px of fixed geometry and does not survive 335px
+// of screen: scaled to fit it is unreadable, and left alone it is four
+// sideways swipes to reach the final.
+//
+// What replaced it first was a list - one column per round, snapped like a
+// pager - and a list of rounds is not a bracket. It lost the two things a
+// bracket is for: which match feeds which, and who came through. So this is
+// the real diagram again, drawn at a size a phone can read: the SAME layout
+// engine as the desktop, given a geometry where exactly two round columns fit
+// the screen, with the wires and the qualified slots intact.
+//
+// Same data, same data-mi, so tapping a box opens the same series card.
+
+// "Upper Bracket Quarterfinals" does not fit a column half a phone wide. The
+// lane prefixes shorten, the round itself does not: "UB Quarterfinals" is
+// what a bracket has always called it, and "UB Quarters" was losing a word to
+// save four characters.
+const shortRound = (name) => String(name)
+  .replace(/^Upper Bracket\s*/i, "UB ")
+  .replace(/^Lower Bracket\s*/i, "LB ")
+  .trim();
+
+function phoneBox(m, x, y, G) {
+  const [a, b] = m.scores;
+  const live = isLive(m);
+  const played = m.finished || live;
+  const done = m.finished && a !== null && b !== null;
+  m._stage = STAGE;
+  // The date and the time on their own line at the top of the box. A match
+  // with no kickoff published yet still has the days its stage runs, which is
+  // true and is better than an empty line.
+  const win = windowOf(STAGE);
+  const when = m.startsAt
+    ? `${shortDay(m.startsAt.slice(0, 10))} · ${clockOf(m.startsAt)}`
+    : m.startsOn ? shortDay(m.startsOn)
+    : win ? win : "Time TBD";
+  const row = (i) => {
+    const name = m.teams[i];
+    const seed = Boolean(m.seeds?.[i]);
+    const mine = i === 0 ? a : b, other = i === 0 ? b : a;
+    // Only a finished series has a winner. A Bo7 at 3-2 shows the score with
+    // neither row emphasised, the same rule the diagram uses.
+    const cls = !done || mine === null || other === null ? ""
+      : mine > other ? " won" : " lost";
+    return `<div class="pmt${cls}${name ? "" : " tbd"}">` +
+      `<span class="pmn">${seed ? "" : teamMark(name)}<span>${esc(teamName(name) ?? "TBD")}</span></span>` +
+      `<span class="pms">${played && mine !== null ? esc(mine) : "&middot;"}</span></div>`;
+  };
+  return `<div class="pm ${m.section ?? "final"}${live ? " onair" : ""}" data-mi="${m._i}" tabindex="0" ` +
+      `style="left:${x}px;top:${y}px;width:${G.BOX_W}px;height:${G.BOX_H}px">` +
+    `<div class="pmwhen">${esc(live ? "Live now" : when)}</div>${row(0)}${row(1)}</div>`;
+}
+
+// Which pages a bracket is read in on a phone.
+//
+// One long sideways scroll meant hunting for the part you wanted by dragging
+// past the parts you did not. So the bracket is dealt into pages instead: two
+// round columns each, one screen wide, snapped, with a strip of names above
+// them. The part you want is one tap away.
+//
+// A page holds columns from ONE band, so the upper bracket, the lower bracket
+// and the finals never share one. Qualifiers become a page of their own at the
+// end: a play-in exists to produce them, and they are what it is opened for.
+function phonePages(b) {
+  const pages = [];
+  for (const band of ["upper", "lower", "final"]) {
+    const ms = b.matches.filter((m) => (m.section ?? "final") === band);
+    if (!ms.length) continue;
+    const rounds = [...new Set(ms.map((m) => m.round))].sort((x, y) => x - y);
+    for (let i = 0; i < rounds.length; i += 2) {
+      const take = rounds.slice(i, i + 2);
+      pages.push({ matches: ms.filter((m) => take.includes(m.round)) });
+    }
+  }
+  return pages;
+}
+
+// Everyone this bracket sends through, in bracket order. Only a finished
+// series sends anyone: a live 2-1 filled this in once.
+function qualifiersOf(b) {
+  return b.matches
+    .filter((m) => b.edges?.[slotOf(m)]?.qualifies)
+    .sort((x, y) => x.round - y.round || x.position - y.position)
+    .map((m) => {
+      const [a, c] = m.scores;
+      const done = m.finished && a !== null && c !== null;
+      return { from: m.label ?? "", who: done ? (a > c ? m.teams[0] : m.teams[1]) : null };
+    });
+}
+
+function bracketPhone(b) {
+  const G = { ...phoneGeo(), quals: false };
+  const pages = phonePages(b).map((pg) => {
+    const L = layoutBracket(pg.matches, b.edges, G);
+    const cols = [...L.cols].sort((x, y) => x.round - y.round);
+    const parts = [];
+    for (const c of L.cols) {
+      const x = c.col * G.COL;
+      const top = (L.y.get(slotOf(c.matches[0])) ?? G.TOP) - G.HEAD_H - 6;
+      parts.push(`<div class="prhead ${c.section}" style="left:${x}px;top:${top}px;width:${G.BOX_W}px;height:${G.HEAD_H}px">${esc(shortRound(c.label))}</div>`);
+      for (const m of c.matches) parts.push(phoneBox(m, x, L.y.get(slotOf(m)), G));
+    }
+    // The connectors, drawn down the gutter between the two columns: the half
+    // that leaves each feeder, the vertical that joins them, and the half that
+    // arrives at the match they feed.
+    for (const k of L.links) {
+      const xPrev = k.col * G.COL - G.GUTTER, mid = xPrev + G.GUTTER / 2;
+      const c = k.from.map((v) => v + G.BOX_H / 2).sort((x, y) => x - y);
+      const to = k.to + G.BOX_H / 2;
+      for (const v of c) parts.push(`<div class="wire" style="left:${xPrev}px;top:${v}px;width:${G.GUTTER / 2}px;height:1px"></div>`);
+      const top = Math.min(...c, to), bottom = Math.max(...c, to);
+      if (bottom > top) parts.push(`<div class="wire" style="left:${mid}px;top:${top}px;width:1px;height:${bottom - top}px"></div>`);
+      parts.push(`<div class="wire" style="left:${mid}px;top:${to}px;width:${G.GUTTER / 2}px;height:1px"></div>`);
+    }
+    return {
+      label: shortRound(cols[0]?.label ?? "Matches"),
+      html: `<div class="pbk" style="height:${L.height}px;width:${L.width}px">${parts.join("")}</div>`,
+    };
+  });
+
+  const quals = qualifiersOf(b);
+  if (quals.length) {
+    const rows = quals.map((q) =>
+      `<li class="pqual${q.who ? " in" : ""}">` +
+      (q.who ? `${teamMark(q.who)}<span>${esc(teamName(q.who))}</span>` : `<span class="tbd">TBD</span>`) +
+      `</li>`).join("");
+    pages.push({ label: "Qualified", html: `<ul class="pquals">${rows}</ul>` });
+  }
+
+  // One page is not a pager. A 1v1 that is two semifinals and a final fits on
+  // a single screen, and a strip of one name above it says nothing.
+  if (pages.length < 2) {
+    return `<div class="pbrk one"><div class="ppages">` +
+      `<section class="ppage">${pages[0]?.html ?? ""}</section></div></div>`;
+  }
+  const tabs = pages.map((pg, i) =>
+    `<button type="button" class="ptab" role="tab" aria-selected="${i === 0}">${esc(pg.label)}</button>`).join("");
+  const sheets = pages.map((pg) => `<section class="ppage">${pg.html}</section>`).join("");
+  return `<div class="pbrk">` +
+    `<div class="ptabs" role="tablist" aria-label="Part of the bracket">${tabs}</div>` +
+    `<div class="ppages">${sheets}</div></div>`;
+}
+
+// The page strip: which page is on screen, and tapping a name goes to it.
+function wirePagers() {
+  for (const brk of document.querySelectorAll(".pbrk")) {
+    const pages = brk.querySelector(".ppages");
+    const strip = brk.querySelector(".ptabs");
+    if (!pages || !strip) continue;
+    const tabs = [...strip.querySelectorAll(".ptab")];
+
+    const apply = (i) => {
+      tabs.forEach((t, n) => t.setAttribute("aria-selected", String(n === i)));
+      const on = tabs[i];
+      // Keep the selected name in view without scrollIntoView, which would
+      // scroll the whole page as well as the strip.
+      if (on) strip.scrollLeft = Math.max(0, on.offsetLeft - (strip.clientWidth - on.offsetWidth) / 2);
+      // The pager is as tall as the page under it, not as tall as the tallest
+      // page there is. A two-match round left 500px of empty page below it
+      // because the lower bracket next door needed the room.
+      const sheet = pages.children[i];
+      if (sheet) pages.style.height = `${sheet.scrollHeight}px`;
+    };
+
+    // A swipe reports where it landed; a tap says where it is going. The tap
+    // marks itself rather than waiting for the scroll to arrive, so the strip
+    // answers immediately and still agrees if the scroll is interrupted.
+    pages.addEventListener("scroll", () => {
+      apply(Math.round(pages.scrollLeft / Math.max(1, pages.clientWidth)));
+    }, { passive: true });
+    strip.addEventListener("click", (e) => {
+      const t = e.target.closest(".ptab");
+      if (!t) return;
+      const i = tabs.indexOf(t);
+      apply(i);
+      pages.scrollTo({ left: i * pages.clientWidth, behavior: "smooth" });
+    });
+    apply(0);
+  }
+}
 
 function tableEl(table, matches) {
   const rows = standings(table, matches);
@@ -413,36 +659,37 @@ function railEl(current) {
   const all = seasons();
   const year = yearOf(EVENTS.find((e) => e.slug === current) ?? {});
 
-  const years = all.map(([y, evs]) => {
-    // A season with something live or upcoming in it still gets its own class,
-    // which colours the label. The dot that used to sit after the year is
-    // gone: the event tabs underneath already say "On now" against the event
-    // it belongs to, in words, and a mark on the year said the same thing one
-    // level too far away to be useful.
+  // A season, and the season's events inside it.
+  //
+  // There used to be a second row under the years - one box per event - which
+  // was a row of chrome above the event already on screen, and on a phone the
+  // years themselves collapsed into a dropdown, which hid the only thing worth
+  // keeping visible. Now the years are always the row, and a year OPENS its
+  // events. <details> rather than a script: it works with none.
+  const menus = all.map(([y, evs]) => {
     const live = evs.some((e) => stateOf(e) === "running");
     const soon = evs.some((e) => stateOf(e) === "future");
-    return `<button class="yr${y === year ? " on" : ""}${live ? " islive" : soon ? " isnext" : ""}" ` +
-      `data-year="${esc(y)}" aria-pressed="${y === year ? "true" : "false"}">${esc(y)}</button>`;
+    const items = evs.map((e) => {
+      const st = stateOf(e);
+      const cls = st === "running" ? " islive" : st === "future" ? " isnext" : "";
+      const day = (d) => d ? new Date(`${d}T12:00:00Z`).toLocaleDateString([], { day: "numeric", month: "short" }) : "";
+      const span = e.starts && e.ends
+        ? (e.starts === e.ends ? day(e.starts) : `${new Date(`${e.starts}T12:00:00Z`).getUTCDate()}–${day(e.ends)}`)
+        : "dates TBC";
+      const label = st === "running" ? "On now"
+        : st === "future" ? `${span} &middot; upcoming`
+        : `${span} &middot; ${esc(cityOf(e) ?? "")}`;
+      // "RLCS 2026" is dropped: the season is the button this menu hangs off
+      // and the page is nothing but RLCS events.
+      const name = String(e.name ?? e.slug).replace(/^RLCS\s+\d{4}\s*/, "");
+      return `<button type="button" class="evi${cls}" data-slug="${esc(e.slug)}" ` +
+        `aria-current="${e.slug === current ? "true" : "false"}"><b>${esc(name)}</b><i>${label}</i></button>`;
+    }).join("");
+    return `<details class="ydd"><summary class="yr${y === year ? " on" : ""}${live ? " islive" : soon ? " isnext" : ""}">` +
+      `${esc(y)}</summary><div class="ymenu" role="group" aria-label="Events in ${esc(y)}">${items}</div></details>`;
   }).join("");
 
-  const evs = (all.find(([y]) => y === year) ?? [null, []])[1];
-  const tabs = evs.map((e) => {
-    const st = stateOf(e);
-    const cls = st === "running" ? " islive" : st === "future" ? " isnext" : "";
-    const day = (d) => d ? new Date(`${d}T12:00:00Z`).toLocaleDateString([], { day: "numeric", month: "short" }) : "";
-    const span = e.starts && e.ends
-      ? (e.starts === e.ends ? day(e.starts) : `${new Date(`${e.starts}T12:00:00Z`).getUTCDate()}–${day(e.ends)}`)
-      : "dates TBC";
-    const label = st === "running" ? "On now" : st === "future" ? `${span} &middot; upcoming` : `${span} &middot; ${esc(cityOf(e) ?? "")}`;
-    // "RLCS 2026" is dropped: the season is the row above and the page is
-    // nothing but RLCS events.
-    const name = String(e.name ?? e.slug).replace(/^RLCS\s+\d{4}\s*/, "");
-    return `<button class="ev${cls}" data-slug="${esc(e.slug)}" aria-current="${e.slug === current ? "true" : "false"}">` +
-      `<b>${esc(name)}</b><i>${label}</i></button>`;
-  }).join("");
-
-  return `<div class="years" role="group" aria-label="Season">${years}</div>` +
-    `<div class="evs" role="group" aria-label="Events this season">${tabs}</div>`;
+  return `<div class="years" role="group" aria-label="Season">${menus}</div>`;
 }
 
 // ---- each event's own banner ---------------------------------------------
@@ -491,8 +738,14 @@ function countEl(ev) {
 }
 
 // The grand final: the last played match of the last bracket on the page.
+//
+// The TEAM event's last bracket. The 2026 Worlds runs a 1v1 and a 2v2 title
+// alongside the 3v3, and those stages come after it on the page, so taking
+// the last bracket of all of them put the 2v2 winners under "Champion" of
+// the World Championship the moment the event finished.
 function finalOf(ev) {
-  const brackets = ev.stages.flatMap((s) => s.brackets);
+  const team = ev.stages.filter((s) => !s.format || s.format === "3v3");
+  const brackets = (team.length ? team : ev.stages).flatMap((s) => s.brackets);
   const last = brackets[brackets.length - 1];
   if (!last) return null;
   const played = last.matches.filter((m) => m.finished && m.scores[0] !== null && m.scores[1] !== null);
@@ -504,6 +757,56 @@ function finalOf(ev) {
 // Drawn from the same parsed matches as the bracket beside it, so the two can
 // never disagree. Repainted on its own slow timer as well as on every render:
 // "in 4 min" goes stale between polls even when the feed has not changed.
+// ---- the phone's three panes ----------------------------------------------
+//
+// A phone gets the event as Overview, Schedule and Info rather than one long
+// scroll: the diagram and the standings, the fixtures by day, and what the
+// thing is worth. The panes are all in the page and a body class chooses, so
+// switching costs no rebuild and the back button is not involved.
+let PANE = "bracket";
+let WHEN = "upcoming";   // which half of the schedule pane
+
+function paintPanes() {
+  const ev = EVENTS.find((e) => e.slug === CURRENT);
+  if (!ev) return;
+  const head = document.getElementById("ehead");
+  if (head) head.innerHTML = headerHTML(ev);
+  const sched = document.getElementById("paneFixtures");
+  if (sched) sched.innerHTML = scheduleHTML(ev, Date.now(), WHEN);
+  const teams = document.getElementById("paneTeams");
+  if (teams) teams.innerHTML = teamsHTML(ev);
+  const prizes = document.getElementById("panePrizes");
+  if (prizes) prizes.innerHTML = prizesHTML(ev);
+  // The cards are new nodes every paint, so they are wired here rather than in
+  // wire(), which runs once per render.
+  if (sched) for (const el of sched.querySelectorAll("[data-mi]")) bindMatch(el);
+  showPane(PANE);
+}
+
+function showPane(name) {
+  PANE = name;
+  for (const b of document.querySelectorAll("#etabs button")) {
+    b.setAttribute("aria-selected", String(b.dataset.pane === name));
+  }
+  document.body.classList.remove("pane-bracket", "pane-fixtures", "pane-teams", "pane-prizes");
+  document.body.classList.add("pane-" + name);
+}
+
+document.getElementById("etabs").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-pane]");
+  if (!b) return;
+  showPane(b.dataset.pane);
+  window.scrollTo({ top: 0 });
+});
+
+// The Upcoming / Finished switch inside the schedule pane.
+document.getElementById("paneFixtures").addEventListener("click", (e) => {
+  const b = e.target.closest("button[data-when]");
+  if (!b) return;
+  WHEN = b.dataset.when;
+  paintPanes();
+});
+
 function paintSchedule() {
   const box = document.getElementById("sched");
   if (!box) return;
@@ -514,7 +817,7 @@ function paintSchedule() {
   box.hidden = !html;
   document.body.classList.toggle("hassched", Boolean(html));
 }
-setInterval(paintSchedule, 15e3);
+setInterval(() => { paintSchedule(); paintPanes(); }, 15e3);
 
 // ---- hover card -----------------------------------------------------------
 
@@ -690,6 +993,7 @@ function render(slug) {
   // of naming the same event twice, one above the other.
   document.getElementById("rail").innerHTML = railEl(ev.slug);
   paintSchedule();
+  paintPanes();
   document.getElementById("count").innerHTML = countEl(ev);
 
   // Sections in the order they are PLAYED, from the page's own Format
@@ -721,7 +1025,13 @@ function render(slug) {
       // everything above it.
       const solo = stage.format && stage.format !== "3v3";
       const name = solo ? stage.format : bracketName(b, i, stage.brackets);
-      sections.push({ name, stage: stageFor(name), format: stage.format ?? null, draw: () => bracketEl(b) });
+      // Both shapes are rendered and CSS picks one: the diagram on a screen
+      // with room for it, the list on a phone. Rendering both costs a few KB
+      // of markup and means a rotation needs no rebuild.
+      sections.push({
+        name, stage: stageFor(name), format: stage.format ?? null,
+        draw: () => bracketEl(b) + bracketPhone(b),
+      });
     });
   }
   sections.sort((a, b) => (a.stage?.from ?? "9999").localeCompare(b.stage?.from ?? "9999"));
@@ -742,6 +1052,7 @@ function render(slug) {
 
   hideCard();
   wire();
+  wirePagers();
   fitBrackets();
   markScrollable();
   history.replaceState(null, "", `#${ev.slug}`);
@@ -758,6 +1069,29 @@ function trace(team) {
 }
 
 let held = null;
+// One match element, wired to the series card. Pulled out of wire() because
+// the phone's schedule pane draws its own cards after the page has been wired,
+// and re-running wire() would bind every existing box a second time.
+function bindMatch(el) {
+  if (el.dataset.bound) return;
+  el.dataset.bound = "1";
+  el.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (cardFor === el && card.classList.contains("on")) return hideCard();
+    showCard(el);
+  });
+  el.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    e.preventDefault();
+    if (cardFor === el && card.classList.contains("on")) return hideCard();
+    showCard(el);
+    const first = card.querySelector("a[href]");
+    if (!first) return;
+    returnTo = el;
+    first.focus();
+  });
+}
+
 function wire() {
   // Hover traces; a tap holds it, because there is no hover on a phone and the
   // trace is the one thing on this page worth reaching for.
@@ -783,23 +1117,7 @@ function wire() {
   // was only crossing a match on its way somewhere else, and it covered the
   // bracket underneath. Clicking says "I want this one"; clicking the same
   // match again, or anywhere off the card, puts it away.
-  for (const el of document.querySelectorAll("[data-mi]")) {
-    el.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (cardFor === el && card.classList.contains("on")) return hideCard();
-      showCard(el);
-    });
-    el.addEventListener("keydown", (e) => {
-      if (e.key !== "Enter" && e.key !== " ") return;
-      e.preventDefault();
-      if (cardFor === el && card.classList.contains("on")) return hideCard();
-      showCard(el);
-      const first = card.querySelector("a[href]");
-      if (!first) return;
-      returnTo = el;
-      first.focus();
-    });
-  }
+  for (const el of document.querySelectorAll("[data-mi]")) bindMatch(el);
 }
 
 // Where Escape puts focus back.
@@ -875,19 +1193,45 @@ function markScrollable() {
     sc.addEventListener("scroll", update, { passive: true });
   }
 }
-addEventListener("resize", () => { fitBrackets(); markScrollable(); if (cardFor) place(cardFor); });
+// The phone bracket's column width is measured from the screen, so a rotation
+// changes the geometry it was drawn at. Redraw on a real width change only:
+// scrolling a phone fires resize as the address bar collapses, and redrawing
+// on that would throw the reader's place away every few pixels of scroll.
+let lastW = document.documentElement.clientWidth;
+let reflow = null;
+addEventListener("resize", () => {
+  fitBrackets(); markScrollable(); if (cardFor) place(cardFor);
+  const w = document.documentElement.clientWidth;
+  if (w === lastW) return;
+  lastW = w;
+  if (!window.matchMedia("(max-width:820px)").matches) return;
+  clearTimeout(reflow);
+  reflow = setTimeout(() => render(CURRENT), 180);
+});
 addEventListener("scroll", () => { if (cardFor) place(cardFor); }, { passive: true });
 
 document.getElementById("rail").addEventListener("click", (e) => {
-  const b = e.target.closest(".ev");
-  if (b) { held = null; render(b.dataset.slug); scrollTo({ top: 0, behavior: "smooth" }); return; }
-  // Picking a season opens its most recent event, which is the one a reader
-  // means by "2025" - not the oldest one that happens to sort first.
-  const y = e.target.closest(".yr");
-  if (y) {
-    const first = EVENTS.filter((x) => String(x.starts ?? "").startsWith(y.dataset.year))[0];
-    if (first) { held = null; render(first.slug); }
+  // One menu open at a time. Opening a second while the first is still down
+  // leaves two lists overlapping the page under them.
+  const sum = e.target.closest("summary.yr");
+  if (sum) {
+    const mine = sum.parentElement;
+    for (const d of document.querySelectorAll(".ydd[open]")) if (d !== mine) d.open = false;
+    return;
   }
+  const b = e.target.closest(".evi");
+  if (!b) return;
+  // Picking an event closes the menu it was picked from: left open it would
+  // cover the event it just opened.
+  for (const d of document.querySelectorAll(".ydd[open]")) d.open = false;
+  held = null;
+  render(b.dataset.slug);
+  scrollTo({ top: 0, behavior: "smooth" });
+});
+// Anywhere off the rail closes an open season menu.
+document.addEventListener("click", (e) => {
+  if (e.target.closest("#rail")) return;
+  for (const d of document.querySelectorAll(".ydd[open]")) d.open = false;
 });
 // Anywhere else clears a held trace, so it never gets stuck on, and closes
 // the series card - the card is opened by a click now, so it has to be
@@ -936,12 +1280,12 @@ const liveNow = () => {
 // and how far each lane is scrolled, then put them back.
 function repaint() {
   const openMi = card.classList.contains("on") && cardFor ? cardFor.dataset.mi : null;
-  const scrolls = [...document.querySelectorAll(".scrollwrap .scroll")].map((el) => el.scrollLeft);
+  const scrolls = [...document.querySelectorAll(".scrollwrap .scroll, .ppages")].map((el) => el.scrollLeft);
   const y = window.scrollY;
 
   render(CURRENT);
 
-  document.querySelectorAll(".scrollwrap .scroll").forEach((el, i) => {
+  document.querySelectorAll(".scrollwrap .scroll, .ppages").forEach((el, i) => {
     if (scrolls[i]) el.scrollLeft = scrolls[i];
   });
   window.scrollTo({ top: y });

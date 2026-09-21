@@ -18,7 +18,7 @@
 // Relative, not "/crest.mjs": this module sits at the site root beside it, so
 // both resolve the same in the browser, and the relative form also loads under
 // node, where the tests import this file directly.
-import { crest, assignHues, hasLogo } from "./crest.mjs";
+import { crest, assignHues, hasLogo, teamName } from "./crest.mjs";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -274,7 +274,7 @@ export function spanWords(w) {
 // keeps its crest: the test is whether there is a logo for the name.
 const teamLine = (name, score, won, withCrest) =>
   '<span class="fxt' + (won ? " won" : "") + (name ? "" : " tbd") + '">' + (withCrest ? crest(name) : "") +
-  '<span class="fxn">' + esc(name ?? "TBD") + "</span>" +
+  '<span class="fxn">' + esc(teamName(name) ?? "TBD") + "</span>" +
   (score === null || score === undefined ? "" : "<b>" + esc(score) + "</b>") + "</span>";
 
 function matchEl(m, meta, cls, showFormat) {
@@ -292,7 +292,25 @@ function matchEl(m, meta, cls, showFormat) {
     "</li>";
 }
 
-const group = (title, body) => body ? '<div class="fxg"><h3>' + esc(title) + "</h3><ul>" + body + "</ul></div>" : "";
+/**
+ * One titled group of rows, with a limit for the phone.
+ *
+ * Beside a bracket the column can be long, because it is a column. Above one
+ * it is the thing between the reader and the match they came to see: on a
+ * group-stage day sixteen dated rows ran to 1,479px, four screens of schedule
+ * before the first team appeared. Past the limit the rest go behind a
+ * disclosure rather than being dropped, so nothing is hidden that cannot be
+ * opened, and it opens without JavaScript.
+ */
+const group = (title, items, limit = 0) => {
+  if (!items.length) return "";
+  const head = '<div class="fxg"><h3>' + esc(title) + "</h3><ul>";
+  if (!limit || items.length <= limit) return head + items.join("") + "</ul></div>";
+  const rest = items.length - limit;
+  return head + items.slice(0, limit).join("") + "</ul>" +
+    '<details class="fxmore"><summary>' + rest + " more</summary><ul>" +
+    items.slice(limit).join("") + "</ul></details></div>";
+};
 
 /**
  * The panel's markup, or "" when there is nothing true to put in it.
@@ -319,12 +337,14 @@ export function panelHTML(ev, nowMs, { compact = false } = {}) {
 
   const multi = f.formats.length > 1;
   const zone = zoneLabel(nowMs);
-  const liveBody = f.live.map((m) => matchEl(m, whenWords(m.startsAt, nowMs) ?? "on now", "live", multi)).join("");
-  const nextBody = f.next.map((m) => matchEl(m, whenWords(m.startsAt, nowMs), "", multi)).join("");
+  // What is on now is never folded away, however small the screen.
+  const cap = compact ? 3 : 0;
+  const liveRows = f.live.map((m) => matchEl(m, whenWords(m.startsAt, nowMs) ?? "on now", "live", multi));
+  const nextRows = f.next.map((m) => matchEl(m, whenWords(m.startsAt, nowMs), "", multi));
   // An undated match says so. Liquipedia publishes a stage's kickoffs a few
   // days before it is played, so this is the normal state of a round that has
   // not been scheduled yet rather than a gap in the data.
-  const laterBody = f.later.map((m) => matchEl(m, whenWords(m.startsAt, nowMs) ?? "TBD", "soft", multi)).join("");
+  const laterRows = f.later.map((m) => matchEl(m, whenWords(m.startsAt, nowMs) ?? "TBD", "soft", multi));
   const stageWords = (s) => (s.today ? "today, " + spanWords(s.window) : spanWords(s.window));
   // A round with one named match shows the match; otherwise the round's name
   // and the days it runs, which is all the page has published about it.
@@ -332,8 +352,8 @@ export function panelHTML(ev, nowMs, { compact = false } = {}) {
     (multi && s.format ? '<span class="fxf">' + esc(s.format) + "</span>" : "") +
     '<span class="fxl">' + esc(s.stage ?? "Later rounds") + "</span>" +
     '<span class="fxw">' + esc(stageWords(s)) + "</span></li>");
-  const todayBody = f.soon.filter((s) => s.today).map(stageLine).join("");
-  const soonBody = f.soon.filter((s) => !s.today).map(stageLine).join("");
+  const todayRows = f.soon.filter((s) => s.today).map(stageLine);
+  const soonRows = f.soon.filter((s) => !s.today).map(stageLine);
 
   return '<div class="fxbox' + (f.live.length ? " onair" : "") + '">' +
     '<div class="fxtop"><span class="fxev">Schedule</span>' +
@@ -343,9 +363,9 @@ export function panelHTML(ev, nowMs, { compact = false } = {}) {
     // Naming the zone is what makes that checkable against a stream overlay.
     (f.live.length ? '<span class="fxon"><i class="fxpip" aria-hidden="true"></i>On now</span>' : "") +
     (zone ? '<span class="fxtz">' + esc(zone) + "</span>" : "") + "</div>" +
-    group("Live", liveBody) +
-    group("Next", nextBody) +
-    group("Later today", laterBody + todayBody) +
-    group("To come", soonBody) +
+    group("Live", liveRows) +
+    group("Next", nextRows, cap) +
+    group("Later today", [...laterRows, ...todayRows], cap) +
+    group("To come", soonRows) +
     "</div>";
 }

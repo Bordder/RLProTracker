@@ -41,6 +41,9 @@ const CODE = {
   Spain: "ES", Sweden: "SE", Switzerland: "CH", Taiwan: "TW", Thailand: "TH",
   Tunisia: "TN", Turkey: "TR", Ukraine: "UA",
   "United Arab Emirates": "AE", "United Kingdom": "GB", "United States": "US",
+  // Infoboxes are hand-written, so an event page sometimes carries the short
+  // form where a player page carries the country. Same place either way.
+  "US": "US", "USA": "US", "UK": "GB",
   Uruguay: "UY", Venezuela: "VE", Vietnam: "VN",
 };
 

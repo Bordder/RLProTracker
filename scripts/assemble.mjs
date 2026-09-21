@@ -7,6 +7,7 @@ import { readFile, writeFile, rename, mkdir } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { parsePage } from "./parseBracket.mjs";
+import { codeOf } from "./countries.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..");
@@ -196,6 +197,10 @@ export async function parseEvent(event) {
   for (const k of ["name", "city", "country", "venue", "starts", "ends", "teamCount", "prizePool", "twitch", "youtube"]) {
     if (merged[k] == null && info[k] != null) merged[k] = info[k];
   }
+  // The ISO code for the country, resolved here rather than in the page: the
+  // allowlist that maps a name to a code already exists for player nationality,
+  // and it answers null rather than guessing at a name it does not know.
+  if (merged.country && merged.countryCode == null) merged.countryCode = codeOf(merged.country);
   if (!merged.name) merged.name = event.slug;
 
   return { ...merged, stages: named, counts: countStages(named), unresolved, resolvedAt: teams.resolvedAt };
@@ -230,7 +235,9 @@ export function eventNow(doc, today = new Date().toISOString().slice(0, 10)) {
     if (stage.format && stage.format !== "3v3") continue;
     for (const group of [...(stage.brackets ?? []), ...(stage.matchlists ?? [])]) {
       for (const m of group.matches ?? []) {
-        for (const t of m.teams ?? []) if (t) teams.add(t);
+        // A seed placeholder ("Group A #1") is not a team and must never reach
+        // the board, which tags a roster row when it sees its org here.
+        (m.teams ?? []).forEach((t, i) => { if (t && !m.seeds?.[i]) teams.add(t); });
       }
     }
   }
