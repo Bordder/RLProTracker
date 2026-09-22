@@ -80,3 +80,74 @@ test("every feed refused is the case that does get said out loud", () => {
   assert.ok(results.every((r) => r.refused));
   assert.match(refusalNote(results, 2), /^2 of 2 feeds/);
 });
+
+// ---- a socket that died is not a broken feed -------------------------------
+//
+// 22 September 2026. Same run, six feeds: three answered 403, two were served
+// correctly, and one never got an answer at all. The alert read:
+//
+//   Live data check failed
+//   - steam-hours.json: could not be reached (fetch failed)
+//   - 3 of 6 feeds answered HTTP 403 ...
+//
+// The refusals behaved: they were counted apart and posted as context. The
+// dead socket did not. It was the only line in `problems`, so it alone turned
+// a run that had just proved the site was serving into a failure.
+//
+// A connection that dies before a status code is the same news as a 403. It
+// is reported, because a check that could not look at something should say
+// so, but it is not a finding about the site.
+import { unreachableNote } from "../scripts/smokeLive.mjs";
+
+const dead = (file, error = "fetch failed") => ({ unreachable: true, file, error });
+
+test("a feed that never answered contributes no problems", () => {
+  assert.deepEqual(problemsFor(FEED, dead("steam-hours.json"), NOW), []);
+});
+
+test("the run that produced the 22 September alert is now quiet", () => {
+  const served = { doc: { players: new Array(60), computedAt: new Date(NOW).toISOString() } };
+  const results = [
+    refusal("tracker.json"),
+    served,
+    dead("steam-hours.json"),
+    refusal("presence-hours.json"),
+    served,
+    refusal("bracket.json"),
+  ];
+  const feeds = [
+    FEED,
+    { file: "team-tracker.json", rows: "players", min: 10 },
+    { file: "steam-hours.json", rows: "players", min: 20, stale: 90 },
+    { file: "presence-hours.json", rows: "players", min: 20 },
+    { file: "mmr-history.json", rows: "players", min: 20 },
+    { file: "bracket.json", rows: "events", min: 1 },
+  ];
+  assert.deepEqual(results.flatMap((r, i) => problemsFor(feeds[i], r, NOW)), []);
+
+  // Two feeds were served correctly, so the site is demonstrably up and this
+  // run has nothing to announce. Both notes still exist for the log.
+  assert.ok(!results.every((r) => r.refused || r.unreachable));
+  assert.match(refusalNote(results, 6), /^3 of 6 feeds answered HTTP 403/);
+  assert.match(unreachableNote(results, 6), /^1 of 6 feeds never answered this check/);
+  assert.match(unreachableNote(results, 6), /steam-hours\.json/);
+  assert.match(unreachableNote(results, 6), /fetch failed/);
+});
+
+test("nothing unreachable says nothing", () => {
+  assert.equal(unreachableNote([{ doc: {} }, refusal("a.json")], 2), null);
+});
+
+test("a run where nothing answered at all is still said out loud", () => {
+  const results = ["a.json", "b.json"].map((f) => dead(f));
+  assert.ok(results.every((r) => r.refused || r.unreachable));
+  assert.match(unreachableNote(results, 2), /^2 of 2 feeds never answered/);
+});
+
+test("the two kinds of silence are counted apart", () => {
+  const results = [refusal("a.json"), dead("b.json")];
+  assert.match(refusalNote(results, 2), /^1 of 2 feeds answered HTTP 403/);
+  assert.doesNotMatch(refusalNote(results, 2), /b\.json/);
+  assert.match(unreachableNote(results, 2), /^1 of 2 feeds never answered/);
+  assert.doesNotMatch(unreachableNote(results, 2), /a\.json/);
+});

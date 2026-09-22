@@ -165,12 +165,24 @@ const REFUSAL = new Set([403, 429]);
 // that the check still finishes well inside its job.
 const RETRY_MS = 5000;
 
+// Between one feed and the next.
+const SPACING_MS = 1500;
+
 async function fetchFeed(feed) {
   // Cache-busted, because the point is what is being served now, not what an
   // edge node kept. A 502 here is the finding, not an error to retry away.
-  const res = await fetch(`${SITE}/data/${feed.file}?t=${Date.now()}`, {
-    headers: { "cache-control": "no-cache", "user-agent": UA },
-  });
+  //
+  // A THROWN fetch is a third thing again, and is reported as such: the
+  // request never reached an answer, so it says as little about the site as a
+  // 403 does. It is the same connection being refused, one layer down.
+  let res;
+  try {
+    res = await fetch(`${SITE}/data/${feed.file}?t=${Date.now()}`, {
+      headers: { "cache-control": "no-cache", "user-agent": UA },
+    });
+  } catch (err) {
+    return { unreachable: true, file: feed.file, error: err.message };
+  }
   if (!res.ok) return { status: res.status, ray: res.headers.get("cf-ray") };
   try {
     return { doc: await res.json() };
@@ -189,10 +201,11 @@ async function fetchFeed(feed) {
  */
 async function readFeed(feed) {
   let res = await fetchFeed(feed);
-  if (REFUSAL.has(res.status)) {
+  if (REFUSAL.has(res.status) || res.unreachable) {
     await new Promise((r) => setTimeout(r, RETRY_MS));
     res = await fetchFeed(feed);
   }
+  if (res.unreachable) return res;
   if (!res.status) return res;
   return REFUSAL.has(res.status)
     ? { ...res, refused: true, file: feed.file }
@@ -228,6 +241,27 @@ export function refusalNote(results, total) {
 }
 
 /**
+ * The feeds whose request never got an answer, said once.
+ *
+ * "steam-hours.json: could not be reached (fetch failed)" was posted as a
+ * failure of the live data, in a run where three other feeds were refused
+ * outright and two were served perfectly. A connection that dies before a
+ * status code is the same news as a 403 - this client did not get in - and a
+ * feed is not broken because a socket was. It is reported, because a check
+ * that could not look at something should say so, but it is not a finding
+ * about the site.
+ */
+export function unreachableNote(results, total) {
+  const out = results.filter((r) => r.unreachable);
+  if (!out.length) return null;
+  const files = out.map((r) => r.file).filter(Boolean).join(", ");
+  const why = [...new Set(out.map((r) => r.error).filter(Boolean))].join("; ");
+  return `${out.length} of ${total} feeds never answered this check` +
+    (files ? ` (${files})` : "") + ", twice" + (why ? `: ${why}` : "") + ". " +
+    "The request failed before any status came back, so those feeds went unchecked.";
+}
+
+/**
  * What one fetched feed contributes to the failure list.
  *
  * Three outcomes, and the first one is the reason this is a function rather
@@ -249,7 +283,7 @@ export function refusalNote(results, total) {
  * look like a real failure and page the channel every hour.
  */
 export function problemsFor(feed, res, now) {
-  if (res.refused) return [];
+  if (res.refused || res.unreachable) return [];
   if (res.problems) return res.problems;
   return auditFeed(feed, res.doc, now);
 }
@@ -266,28 +300,39 @@ for (const feed of FEEDS) {
     results.push(res);
     problems.push(...problemsFor(feed, res, now));
   } catch (err) {
-    // A network failure from the runner is not the same news as a broken feed,
-    // and saying so stops an Actions outage being read as a dead site.
-    results.push({});
-    problems.push(`${feed.file}: could not be reached (${err.message})`);
+    // A network failure from the runner is not the same news as a broken feed.
+    // readFeed handles the ones it can see; anything that escapes it lands
+    // here and is still counted as unchecked rather than as a dead feed.
+    results.push({ unreachable: true, file: feed.file, error: err.message });
   }
+  // Spaced out on purpose. Six requests to one origin inside half a second
+  // from a datacenter address is the shape bot protection is looking for, and
+  // this check has no reason to be in a hurry: the run is scheduled, nobody
+  // is waiting on it, and a few seconds buys a request that looks less like a
+  // scrape.
+  if (feed !== FEEDS[FEEDS.length - 1]) await new Promise((r) => setTimeout(r, SPACING_MS));
 }
 
 const refused = refusalNote(results, FEEDS.length);
-const blind = results.every((r) => r.refused);
+const missed = unreachableNote(results, FEEDS.length);
+const notes = [refused, missed].filter(Boolean);
+// Nothing was looked at. Either every feed was turned away, or none of them
+// answered: both mean this run learned nothing, which is worth saying, and
+// neither means the site is down.
+const blind = results.every((r) => r.refused || r.unreachable);
 
 if (!problems.length) {
-  // Nothing wrong with what was served. A refusal is only worth a message
-  // when it left this check with nothing to look at: a run that was turned
-  // away from some feeds and found the rest healthy has learned that the site
-  // is up, and posting that every few minutes is the noise this check exists
-  // to avoid.
-  if (refused) console.log(refused);
+  // Nothing wrong with what was served. Being turned away is only worth a
+  // message when it left this check with nothing to look at: a run that was
+  // refused by some feeds and found the rest healthy has PROVED the site is
+  // up, and posting that every few minutes is the noise this check exists to
+  // avoid.
+  if (notes.length) for (const n of notes) console.log(n);
   else console.log(`${FEEDS.length} feeds served correctly by ${SITE}`);
   if (blind) {
     await postEmbed({
       title: "Live data check could not reach the site",
-      description: `- ${refused}`.slice(0, 3800),
+      description: notes.map((n) => `- ${n}`).join("\n").slice(0, 3800),
       color: 0xb98b32,
       url: process.env.RUN_URL || undefined,
       footer: { text: SITE },
@@ -299,7 +344,7 @@ if (!problems.length) {
 
 // Real problems, with the refusal kept as context underneath them: what was
 // not checked changes how much the list below is worth.
-const lines = refused ? [...problems, refused] : problems;
+const lines = [...problems, ...notes];
 for (const p of lines) console.log(p);
 
 await postEmbed({
