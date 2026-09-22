@@ -363,6 +363,12 @@ let via = null;
 // what differs is only the zone whose rules turned this client away.
 if (pass.blind && FALLBACK_SITE && FALLBACK_SITE !== SITE) {
   console.log(`${SITE} answered nothing; trying ${FALLBACK_SITE}`);
+  // Why the front door said no, in the log even when the fallback succeeds.
+  // The cf-ray in it is the thread to pull on in Cloudflare's Security Events
+  // to find out WHICH rule or service refused, and replacing the results
+  // wholesale would throw the only copy of it away.
+  const why = refusalNote(pass.results, FEEDS.length) ?? unreachableNote(pass.results, FEEDS.length);
+  if (why) console.log(why);
   const second = await sweep(FALLBACK_SITE);
   if (!second.blind) {
     via = `${SITE} refused this check on every feed, so the data below was read from ${FALLBACK_SITE} instead. ` +
