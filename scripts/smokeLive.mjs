@@ -28,6 +28,23 @@ import { postEmbed } from "./discordPost.mjs";
 
 const SITE = process.env.SITE ?? "https://198x.online";
 
+// Where to look when the front door will not open.
+//
+// The custom domain sits in a Cloudflare zone with bot protection on it, and
+// that protection scores this runner as what it is: an unattended client on a
+// datacenter address. On 22 September it refused all six feeds on every run,
+// from three different colos, which is not a bad second any more - it is the
+// standing answer.
+//
+// The Pages deployment domain serves the SAME build through the same Pages
+// Functions, and is not inside that zone, so the zone's rules do not apply to
+// it. It is the second-best thing to a visitor's browser and much better than
+// no check at all.
+//
+// Tried only after the real domain has refused every feed, so an ordinary run
+// still reads exactly what a visitor reads.
+const FALLBACK_SITE = process.env.FALLBACK_SITE ?? "https://rlprotracker.pages.dev";
+
 // How old each feed may be before it is worth saying something.
 //
 // The 2-minute collectors leave data about 3 minutes old at worst, so 20
@@ -168,7 +185,7 @@ const RETRY_MS = 5000;
 // Between one feed and the next.
 const SPACING_MS = 1500;
 
-async function fetchFeed(feed) {
+async function fetchFeed(feed, origin = SITE) {
   // Cache-busted, because the point is what is being served now, not what an
   // edge node kept. A 502 here is the finding, not an error to retry away.
   //
@@ -177,7 +194,7 @@ async function fetchFeed(feed) {
   // 403 does. It is the same connection being refused, one layer down.
   let res;
   try {
-    res = await fetch(`${SITE}/data/${feed.file}?t=${Date.now()}`, {
+    res = await fetch(`${origin}/data/${feed.file}?t=${Date.now()}`, {
       headers: { "cache-control": "no-cache", "user-agent": UA },
     });
   } catch (err) {
@@ -199,11 +216,11 @@ async function fetchFeed(feed) {
  * one run, within half a second of each other. Asking again costs one request
  * and settles which of the two it was.
  */
-async function readFeed(feed) {
-  let res = await fetchFeed(feed);
+async function readFeed(feed, origin = SITE) {
+  let res = await fetchFeed(feed, origin);
   if (REFUSAL.has(res.status) || res.unreachable) {
     await new Promise((r) => setTimeout(r, RETRY_MS));
-    res = await fetchFeed(feed);
+    res = await fetchFeed(feed, origin);
   }
   if (res.unreachable) return res;
   if (!res.status) return res;
@@ -288,38 +305,76 @@ export function problemsFor(feed, res, now) {
   return auditFeed(feed, res.doc, now);
 }
 
+/**
+ * Should a run that read nothing be announced?
+ *
+ * Being refused says nothing about the site - the message itself says so and
+ * tells the reader to go and look in a browser. Posting that every time the
+ * check runs is an alarm whose own text is "this is probably nothing", which
+ * arrived two and three times an hour and is exactly the noise that gets a
+ * channel muted.
+ *
+ * But going silent forever loses the fact that nobody is checking. So it is
+ * said once a day rather than never: only on a run in this hour, which is the
+ * hour the Worker dispatches alerts.yml in.
+ */
+export const shouldAnnounceBlind = (now, hour = 7) => new Date(now).getUTCHours() === hour;
+
 // Imported for auditFeed alone by the tests: nothing to fetch, nothing to post.
 if (import.meta.main) {
 
 const now = Date.now();
-const problems = [];
-const results = [];
-for (const feed of FEEDS) {
-  try {
-    const res = await readFeed(feed);
-    results.push(res);
-    problems.push(...problemsFor(feed, res, now));
-  } catch (err) {
-    // A network failure from the runner is not the same news as a broken feed.
-    // readFeed handles the ones it can see; anything that escapes it lands
-    // here and is still counted as unchecked rather than as a dead feed.
-    results.push({ unreachable: true, file: feed.file, error: err.message });
+
+/** One pass over every feed at one origin. */
+async function sweep(origin) {
+  const problems = [];
+  const results = [];
+  for (const feed of FEEDS) {
+    try {
+      const res = await readFeed(feed, origin);
+      results.push(res);
+      problems.push(...problemsFor(feed, res, now));
+    } catch (err) {
+      // A network failure from the runner is not the same news as a broken
+      // feed. readFeed handles the ones it can see; anything that escapes it
+      // lands here and is still counted as unchecked rather than as a dead
+      // feed.
+      results.push({ unreachable: true, file: feed.file, error: err.message });
+    }
+    // Spaced out on purpose. Six requests to one origin inside half a second
+    // from a datacenter address is the shape bot protection is looking for,
+    // and this check has no reason to be in a hurry: the run is scheduled,
+    // nobody is waiting on it, and a few seconds buys a request that looks
+    // less like a scrape.
+    if (feed !== FEEDS[FEEDS.length - 1]) await new Promise((r) => setTimeout(r, SPACING_MS));
   }
-  // Spaced out on purpose. Six requests to one origin inside half a second
-  // from a datacenter address is the shape bot protection is looking for, and
-  // this check has no reason to be in a hurry: the run is scheduled, nobody
-  // is waiting on it, and a few seconds buys a request that looks less like a
-  // scrape.
-  if (feed !== FEEDS[FEEDS.length - 1]) await new Promise((r) => setTimeout(r, SPACING_MS));
+  // Nothing was looked at. Either every feed was turned away, or none of them
+  // answered: both mean this pass learned nothing, and neither means the site
+  // is down.
+  const blind = results.every((r) => r.refused || r.unreachable);
+  return { origin, problems, results, blind };
 }
 
+let pass = await sweep(SITE);
+let via = null;
+
+// Refused everywhere on the real domain. Ask the Pages domain the same six
+// questions before giving up: the data and the Functions are the same, and
+// what differs is only the zone whose rules turned this client away.
+if (pass.blind && FALLBACK_SITE && FALLBACK_SITE !== SITE) {
+  console.log(`${SITE} answered nothing; trying ${FALLBACK_SITE}`);
+  const second = await sweep(FALLBACK_SITE);
+  if (!second.blind) {
+    via = `${SITE} refused this check on every feed, so the data below was read from ${FALLBACK_SITE} instead. ` +
+      "Same build, same Functions, a zone whose bot rules do not score this runner.";
+    pass = second;
+  }
+}
+
+const { problems, results, blind } = pass;
 const refused = refusalNote(results, FEEDS.length);
 const missed = unreachableNote(results, FEEDS.length);
-const notes = [refused, missed].filter(Boolean);
-// Nothing was looked at. Either every feed was turned away, or none of them
-// answered: both mean this run learned nothing, which is worth saying, and
-// neither means the site is down.
-const blind = results.every((r) => r.refused || r.unreachable);
+const notes = [refused, missed, via].filter(Boolean);
 
 if (!problems.length) {
   // Nothing wrong with what was served. Being turned away is only worth a
@@ -328,8 +383,8 @@ if (!problems.length) {
   // up, and posting that every few minutes is the noise this check exists to
   // avoid.
   if (notes.length) for (const n of notes) console.log(n);
-  else console.log(`${FEEDS.length} feeds served correctly by ${SITE}`);
-  if (blind) {
+  else console.log(`${FEEDS.length} feeds served correctly by ${pass.origin}`);
+  if (blind && shouldAnnounceBlind(now)) {
     await postEmbed({
       title: "Live data check could not reach the site",
       description: notes.map((n) => `- ${n}`).join("\n").slice(0, 3800),
@@ -338,12 +393,16 @@ if (!problems.length) {
       footer: { text: SITE },
       timestamp: new Date(now).toISOString(),
     });
+  } else if (blind) {
+    console.log("blind, but outside the daily notification window; not posting");
   }
+  // A refusal is not a failure of the site, so it must not fail the job
+  // either: a red run every hour is the same alarm in another channel.
   process.exit(0);
 }
 
-// Real problems, with the refusal kept as context underneath them: what was
-// not checked changes how much the list below is worth.
+// Real problems, with what was not checked kept as context underneath them:
+// what this run could not see changes how much the list above is worth.
 const lines = [...problems, ...notes];
 for (const p of lines) console.log(p);
 
@@ -352,7 +411,7 @@ await postEmbed({
   description: lines.map((p) => `- ${p}`).join("\n").slice(0, 3800),
   color: 0xb93b32,
   url: process.env.RUN_URL || undefined,
-  footer: { text: SITE },
+  footer: { text: pass.origin },
   timestamp: new Date(now).toISOString(),
 });
 

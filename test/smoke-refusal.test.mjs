@@ -151,3 +151,33 @@ test("the two kinds of silence are counted apart", () => {
   assert.match(unreachableNote(results, 2), /^1 of 2 feeds never answered/);
   assert.doesNotMatch(unreachableNote(results, 2), /a\.json/);
 });
+
+// ---- how often a blind run is allowed to say so ----------------------------
+//
+// 22 September, later the same day: six of six refused on every run, from
+// three different colos. Not a bad second any more, a standing answer - and
+// the check posted "could not reach the site" two and three times an hour.
+//
+// That alarm's own text tells the reader it is probably nothing and to go and
+// look in a browser. An alarm that says that about itself, at that rate, is
+// what gets a channel muted. But silence would lose the fact that nobody is
+// checking, so it is said once a day instead of never.
+import { shouldAnnounceBlind } from "../scripts/smokeLive.mjs";
+
+const at = (hhmm) => Date.parse(`2026-09-22T${hhmm}:00Z`);
+
+test("a blind run is announced once a day, not every run", () => {
+  assert.equal(shouldAnnounceBlind(at("07:07")), true);
+  assert.equal(shouldAnnounceBlind(at("07:23")), true);
+  assert.equal(shouldAnnounceBlind(at("14:08")), false);
+  assert.equal(shouldAnnounceBlind(at("14:28")), false);
+  assert.equal(shouldAnnounceBlind(at("15:08")), false);
+});
+
+test("the window is the hour the Worker dispatches alerts.yml in", () => {
+  // Both of that hour's runs qualify, so a day with one dropped schedule
+  // still reports. Every other hour is quiet.
+  const hours = Array.from({ length: 24 }, (_, h) => shouldAnnounceBlind(at(`${String(h).padStart(2, "0")}:30`)));
+  assert.equal(hours.filter(Boolean).length, 1);
+  assert.equal(hours[7], true);
+});
