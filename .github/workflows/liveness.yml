@@ -79,31 +79,40 @@ jobs:
           # it is indistinguishable here from an unreachable site. A single
           # sample of a probe that has its own upstream is not evidence of
           # anything, so take three, spaced far enough apart to outlast a blip.
-          # A genuine outage still fails all three and still reports.
           #
-          # Parsed with python3 rather than sed. The old expression could not
-          # tell "computedAt": null from a missing key, and both arrive here as
-          # a healthy 200.
+          # Then ask the Pages domain the same question. Cloudflare's AI bot
+          # protection scores this runner as a crawler and serves it anything
+          # but the JSON - the custom domain is inside that zone and the Pages
+          # domain is not, while both serve the same build through the same
+          # Functions. An ordinary run never gets that far.
+          #
+          # Parsed with python3 rather than sed, which could not tell
+          # "computedAt": null from a missing key. The `|| true` matters more
+          # than it looks: GitHub runs these steps under `bash -e`, so an
+          # unparseable body would otherwise exit python3 non-zero and kill the
+          # step before it printed a word. That is exactly what happened from
+          # 01:35 on 22 September, when the bot protection started answering
+          # this probe with a block page.
           TRIES=3
           GAP=15
 
           computed=""
           code=""
           body=""
-          for attempt in $(seq 1 "$TRIES"); do
-            code=$(curl -sS -o /tmp/status.json -w '%{http_code}' --max-time 20 \
-              -H 'accept: application/json' \
-              -A 'rlprotracker-liveness (+https://198x.online/)' \
-              https://198x.online/api/status || echo 000)
-            # One line on purpose: this is inside a YAML block scalar, and a
-            # script whose lines start at column 0 ends the block.
-            # A malformed or missing body raises, which exits non-zero and
-            # leaves computed empty - the same answer as a body without the key.
-            computed=$(python3 -c 'import json;v=json.load(open("/tmp/status.json")).get("computedAt");print(v if isinstance(v,str) else "")' 2>/dev/null)
-            body=$(head -c 160 /tmp/status.json 2>/dev/null | tr -d '\n')
-            echo "attempt ${attempt}/${TRIES}: HTTP ${code} ${body}"
-            [ -n "$computed" ] && break
-            [ "$attempt" -lt "$TRIES" ] && sleep "$GAP"
+          origin=""
+          for site in https://198x.online https://rlprotracker.pages.dev; do
+            for attempt in $(seq 1 "$TRIES"); do
+              code=$(curl -sS -o /tmp/status.json -w '%{http_code}' --max-time 20 \
+                -H 'accept: application/json' \
+                -A 'rlprotracker-liveness (+https://198x.online/)' \
+                "${site}/api/status" || echo 000)
+              body=$(head -c 160 /tmp/status.json 2>/dev/null | tr -d '\n' || true)
+              computed=$(python3 -c 'import json;v=json.load(open("/tmp/status.json")).get("computedAt");print(v if isinstance(v,str) else "")' 2>/dev/null || true)
+              echo "${site} attempt ${attempt}/${TRIES}: HTTP ${code} ${body}"
+              [ -n "$computed" ] && break
+              [ "$attempt" -lt "$TRIES" ] && sleep "$GAP"
+            done
+            if [ -n "$computed" ]; then origin="$site"; break; fi
           done
 
           # Two separate faults that used to share one number. An unreadable
@@ -116,14 +125,14 @@ jobs:
           # message says which of the two it is, with the evidence attached so
           # the next one does not have to be reproduced to be understood.
           if [ -z "$computed" ]; then
-            echo "could not read /api/status after ${TRIES} tries"
+            echo "could not read /api/status from either origin"
             age_min=""
-            situation="**RL Pro Tracker: cannot read the site.** \`/api/status\` gave no \`computedAt\` on ${TRIES} tries over $(( (TRIES - 1) * GAP ))s, so the age of the published data is unknown. Last reply: HTTP ${code} \`${body}\`."
+            situation="**RL Pro Tracker: cannot read the site.** Neither \`198x.online\` nor the Pages domain gave a \`computedAt\` on ${TRIES} tries each, so the age of the published data is unknown. Last reply: HTTP ${code} \`${body}\`."
           else
             now=$(date -u +%s)
             then=$(date -u -d "$computed" +%s)
             age_min=$(( (now - then) / 60 ))
-            echo "data timestamp: $computed  (${age_min} minutes old)"
+            echo "data timestamp: $computed  (${age_min} minutes old, via ${origin})"
             situation="**RL Pro Tracker: collection is behind.** Published data is ${age_min} minutes old."
           fi
 
