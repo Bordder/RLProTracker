@@ -367,10 +367,21 @@ async function main() {
   const dropped = rosterIds ? new Set([].concat(...snaps.map((s) => s.rows.map((r) => r.id)))).size - players.length : 0;
   if (dropped > 0) console.log(`dropped ${dropped} player(s) held in history but no longer on the roster`);
 
+  // When the current ranked season's counts began, if a purge has recorded
+  // it. The page uses it to say that seasonGames restarted and on what day;
+  // without it, a board of single-digit totals the morning after a changeover
+  // reads as the whole field having stopped playing.
+  const seasonStartedAt = (await readJson(HISTORY_FILE))?.seasonStartedAt ?? null;
+
   await mkdir(join(ROOT, "data", "derived"), { recursive: true });
   await writeFile(
     join(ROOT, "data", "derived", "tracker.json"),
-    JSON.stringify({ computedAt: new Date(now).toISOString(), snapshotCount: snaps.length, players }, null, 2)
+    JSON.stringify({
+      computedAt: new Date(now).toISOString(),
+      ...(seasonStartedAt ? { seasonStartedAt } : null),
+      snapshotCount: snaps.length,
+      players,
+    }, null, 2)
   );
   // A freshness-only companion to tracker.json.
   //

@@ -778,6 +778,10 @@
        markup still leaves no gap behind, because .controls keeps its own. */
     #lanNote{order:6; margin:12px 0 4px}
     #lanNote .lannote{margin:0}
+    /* Same slot and spacing as the LAN note, directly under it when both are
+       up: they are the two things the board says about today. */
+    #seasonNote{order:6; margin:12px 0 4px}
+    #seasonNote .devnote{margin:0}
     /* The tabs and the search are both inside .controls, and the region bar is
        its SIBLING, so no amount of ordering inside .controls can put the search
        under the region bar. display:contents dissolves the wrapper and lets its
@@ -1465,6 +1469,12 @@
          event-now.json, the bracket collector's small companion file. -->
     <div id="lanNote" hidden></div>
 
+    <!-- The first fortnight of a ranked season, when every games figure has
+         restarted and every rating was soft reset. Hidden the rest of the
+         year; filled by renderSeasonNote from tracker.json's seasonStartedAt,
+         which only exists once purgeSeason.mjs has recorded a changeover. -->
+    <div id="seasonNote" hidden></div>
+
     <div class="stats" id="stats"></div>
   </header>
 
@@ -1556,6 +1566,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=906084be" defer></script>
+<script src="rlpt.js?v=2061c3ac" defer></script>
 </body>
 </html>

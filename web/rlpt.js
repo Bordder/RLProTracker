@@ -756,6 +756,7 @@
       // time, so this has to come after that timestamp is in place.
       renderCards();
       renderLanNote();
+      renderSeasonNote();
       if(typeof buildRegions==='function'){ buildRegions(); buildPlaying(); }
       return true;
     }
@@ -833,6 +834,55 @@
         '<b>'+esc(LAN.name)+'</b> is being played'+(where?' in '+esc(where):'')+
         ', '+esc(lanWindow(LAN))+'. '+
         '<a href="/brackets">See the bracket</a></span></div>';
+    }
+
+    // The ranked season changeover, announced.
+    //
+    // Psyonix takes ranked down for about an hour to switch seasons, and for a
+    // few hours after it every games figure is near zero and every rating has
+    // been soft reset. Said ahead of time and through those hours, so nobody
+    // reads the board in that state as the whole field having stopped playing.
+    //
+    // The instant is the announced one, not the moment the purge happens to
+    // run: that is later, and "the season started at 4:37pm" would be a fact
+    // about our maintenance rather than about the game. Set it for the next
+    // changeover and the note appears on the next deploy, then removes itself.
+    //
+    // Everything here is a function declaration or lives inside one, on
+    // purpose. The data load calls renderSeasonNote from higher up this file,
+    // and a `var` declared down here is hoisted without its value: the first
+    // version kept the instant in one and the note read it as undefined.
+
+    // "23 September at 3pm BST", in the reader's own zone. Built by hand so
+    // the time reads the way people say it, rather than as 15:00:00.
+    function changeWords(ms){
+      var d=new Date(ms);
+      var day=d.toLocaleDateString([],{day:'numeric',month:'long'});
+      var h=d.getHours(), m=d.getMinutes();
+      var clock=(h%12||12)+(m?':'+String(m).padStart(2,'0'):'')+(h<12?'am':'pm');
+      var zone='';
+      try{
+        var part=new Intl.DateTimeFormat([],{timeZoneName:'short'}).formatToParts(d)
+          .find(function(x){return x.type==='timeZoneName';});
+        zone=part?' '+part.value:'';
+      }catch(e){}
+      return day+' at '+clock+zone;
+    }
+
+    function renderSeasonNote(){
+      var SEASON_CHANGE='2026-09-23T14:00:00Z';   // 3pm BST
+      var SEASON_NUMBER=24;                       // the season starting, not the one ending
+      var AFTER_MS=6*36e5;                        // how long "a few hours" stays up
+      var box=document.getElementById('seasonNote');
+      if(!box)return;
+      var at=Date.parse(SEASON_CHANGE);
+      if(isNaN(at)||Date.now()>at+AFTER_MS){ box.innerHTML=''; box.hidden=true; return; }
+      box.hidden=false;
+      box.innerHTML='<div class="devnote" role="note">'+
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'+
+        '<span><span class="dn-t">New ranked season</span>'+
+        'Season '+SEASON_NUMBER+' releases on <b>'+esc(changeWords(at))+'</b>. '+
+        'Data will not display correctly for a few hours.</span></div>';
     }
 
     // "15-20 September", or one date when a LAN runs a single day.

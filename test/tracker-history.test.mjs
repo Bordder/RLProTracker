@@ -142,3 +142,19 @@ test("appendRows without a roster keeps everyone, so a bad read cannot empty the
   const history = { players: { a: { name: "A", team: "T", readings: [{ t: 1, playlists: { d2: { matches: 1 } } }] } } };
   assert.deepEqual(Object.keys(appendRows(history, 2, []).players), ["a"]);
 });
+
+// The marker purgeSeason.mjs leaves at a changeover. This file is rewritten by
+// the collector every two minutes, and the version that built a fresh object
+// on each append dropped the marker on the first run after the purge - so the
+// board could never say when the current season's counts began.
+test("the season boundary survives every append", () => {
+  const start = "2026-09-23T16:00:00.000Z";
+  let h = appendRows({ seasonStartedAt: start, players: {} }, T - HOUR, [row("a", 10)]);
+  h = appendRows(h, T, [row("a", 12)]);
+  assert.equal(h.seasonStartedAt, start);
+});
+
+test("no boundary is invented where none was written", () => {
+  const h = appendRows({}, T, [row("a", 10)]);
+  assert.equal("seasonStartedAt" in h, false);
+});

@@ -146,9 +146,15 @@ for (const pl of ["ones", "twos", "threes"]) {
 const compress = (pl, v) =>
   Number.isFinite(v) && mid[pl] != null ? Math.round(mid[pl] + (v - mid[pl]) * KEEP_SPREAD) : v;
 
+// When this modelled season began: the moment the fixtures are made, which is
+// the only instant the board could honestly claim. It is what purgeSeason.mjs
+// writes into the history at a real changeover, carried through to the feed.
+const STARTED = new Date().toISOString();
+
 const reset = {
   "tracker.json": {
     ...trimmed["tracker.json"],
+    seasonStartedAt: STARTED,
     players: wanted.map((p) => {
       const mmr = Object.fromEntries(Object.entries(p.mmr ?? {}).map(([pl, v]) => [pl, compress(pl, v)]));
       return {
@@ -189,6 +195,46 @@ const reset = {
 
 for (const [file, doc] of Object.entries(reset)) await write(join(OUT, "season-reset"), file, doc);
 
+// ---- and a few hours into it -------------------------------------------------
+//
+// season-reset is the instant of the changeover: nobody has a count yet, so
+// every games figure on the board is "not known" rather than a number. The
+// board spends that state for minutes. What it actually spends the first day
+// in is a page of small, real counts - four games here, eleven there - which
+// is when "Most Active Pro" crowns whoever queued first and the totals read as
+// a field that stopped playing. That is the state the season note exists for,
+// so it gets a fixture of its own.
+//
+// Counts are deterministic, not random, so two runs produce the same board and
+// a screenshot can be compared against the last one.
+const early = (i) => {
+  const twos = (i * 7) % 13, threes = (i * 5) % 9, ones = i % 3 === 0 ? 2 : 0;
+  return { ones, twos, threes, total: ones + twos + threes };
+};
+const earlyPlayers = reset["tracker.json"].players.map((p, i) => ({
+  ...p,
+  seasonGames: early(i),
+  // A day in, the 24-hour window has not filled yet: still partial, but with
+  // what has been counted so far in it.
+  games: Object.fromEntries(Object.entries(p.games ?? {}).map(([pl, w]) => [
+    pl,
+    Object.fromEntries(Object.keys(w).map((k) => [k, { games: early(i)[pl] ?? 0, partial: true }])),
+  ])),
+}));
+const teamTotal = (team) => earlyPlayers
+  .filter((p) => p.team === team)
+  .reduce((n, p) => n + p.seasonGames.total, 0);
+const dayOne = {
+  ...reset,
+  "tracker.json": { ...reset["tracker.json"], players: earlyPlayers },
+  "team-tracker.json": {
+    ...reset["team-tracker.json"],
+    teams: reset["team-tracker.json"].teams.map((t) => ({ ...t, seasonGames: teamTotal(t.team) })),
+  },
+};
+for (const [file, doc] of Object.entries(dayOne)) await write(join(OUT, "season-day-one"), file, doc);
+
 console.log(`${wanted.length} players, ${seenTeams.size} teams`);
 console.log(`  ${OUT}`);
 console.log(`  ${join(OUT, "season-reset")}  (seasonGames null, no history, 2v2 around ${mid.twos})`);
+console.log(`  ${join(OUT, "season-day-one")}  (small counts, the first day of a season)`);

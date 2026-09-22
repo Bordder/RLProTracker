@@ -54,7 +54,15 @@ export function appendRows(history, takenAtMs, rows, now = takenAtMs, keepIds = 
     if ((rows ?? []).some((r) => r?.id === id && r.playlists)) continue;
     players[id] = { ...p, readings: collapseUnchanged(downsampleReadings(p.readings ?? [], now)) };
   }
-  return { updatedAt: new Date(takenAtMs).toISOString(), players };
+  // The season boundary survives every append. purgeSeason.mjs writes it once,
+  // at the changeover, and this runs every two minutes: returning a fresh
+  // object here used to drop it on the very next collector run, which left
+  // nothing downstream able to say when the current season's counts began.
+  return {
+    updatedAt: new Date(takenAtMs).toISOString(),
+    ...(history?.seasonStartedAt ? { seasonStartedAt: history.seasonStartedAt } : null),
+    players,
+  };
 }
 
 // Present the history in the shape computeTrackerDeltas already consumes:
