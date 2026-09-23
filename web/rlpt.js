@@ -869,14 +869,18 @@
       return day+' at '+clock+zone;
     }
 
+    // To bring the note back for the next season: set SHOW to true, then
+    // update SEASON_CHANGE (UTC) and SEASON_NUMBER. It also hides itself
+    // AFTER_MS past the change, so a forgotten true does no harm.
     function renderSeasonNote(){
+      var SHOW=false;
       var SEASON_CHANGE='2026-09-23T14:00:00Z';   // 3pm BST
       var SEASON_NUMBER=24;                       // the season starting, not the one ending
       var AFTER_MS=6*36e5;                        // how long "a few hours" stays up
       var box=document.getElementById('seasonNote');
       if(!box)return;
       var at=Date.parse(SEASON_CHANGE);
-      if(isNaN(at)||Date.now()>at+AFTER_MS){ box.innerHTML=''; box.hidden=true; return; }
+      if(!SHOW||isNaN(at)||Date.now()>at+AFTER_MS){ box.innerHTML=''; box.hidden=true; return; }
       box.hidden=false;
       box.innerHTML='<div class="devnote" role="note">'+
         '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>'+
