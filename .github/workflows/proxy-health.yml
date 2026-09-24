@@ -41,6 +41,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        # Read-only job: nothing here runs git after the checkout, so the token
+        # is not left behind in .git/config for later steps to find.
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
@@ -48,22 +52,29 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        # No install scripts, as in tracker.yml: this job holds the proxy
+        # secrets.
+        run: npm ci --no-audit --no-fund --ignore-scripts
+
+      # Keyed on the installed version, as tracker.yml is; see the note there
+      # for what a hand-written version cost. Same key, so the two workflows
+      # share one cache entry.
+      - name: Read the installed Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Cache Chromium
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
-          # Keyed on the lockfile, not a version typed by hand. The hand-typed key
-          # stayed at 1.62.1 after the lockfile moved to 1.63.0, so every run hit
-          # the stale entry, downloaded the new browser again, and never saved it.
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}-shell
 
       # Mirrors tracker.yml: fetch the browser, try to launch it, and only pay
-      # for the apt install when that actually fails.
+      # for the apt install when that actually fails. Headless shell only, as
+      # there: proxyProbe launches headless and never uses the full browser.
       - name: Install Chromium
         run: |
-          npx playwright install chromium
+          npx playwright install --only-shell chromium
           if node -e "require('playwright').chromium.launch().then(b=>b.close())" 2>/dev/null; then
             echo "browser launches as-is; skipping apt"
           else

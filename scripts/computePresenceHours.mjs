@@ -67,7 +67,7 @@ async function main() {
   await mkdir(join(ROOT, "data", "derived"), { recursive: true });
   await writeFile(
     join(ROOT, "data", "derived", "presence-hours.json"),
-    JSON.stringify({ computedAt: new Date(now).toISOString(), pollCount: polls.length, pollMinutes: POLL_MINUTES, players }, null, 2)
+    JSON.stringify({ computedAt: new Date(now).toISOString(), pollCount: polls.length, pollMinutes: POLL_MINUTES, players })
   );
   console.log(`presence-hours.json: ${players.length} players with tracked sessions, ${polls.length} polls`);
 }

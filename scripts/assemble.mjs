@@ -214,7 +214,7 @@ export async function parseEvent(event) {
 /**
  * The LAN being played today, as a few hundred bytes.
  *
- * bracket.json is over half a megabyte of nine events back to 2024, which is
+ * bracket.json is over 200 KB of nine events back to 2024, which is
  * the right size for a page about brackets and far too much for the board to
  * fetch in order to learn one thing: whether a tournament is on, and who is at
  * it. This is that one thing.
@@ -269,7 +269,9 @@ export function eventNow(doc, now = Date.now()) {
 
 /** bracket.json and its small companion, always written together. */
 export async function writeBracketDoc(doc) {
-  await writeAtomic(OUT_PATH, JSON.stringify(doc, null, 2) + "\n");
+  // Unindented, like the board's feeds: 598 KB indented, 215 KB not, for a
+  // document every reader parses and nobody reads by eye.
+  await writeAtomic(OUT_PATH, JSON.stringify(doc) + "\n");
   await writeAtomic(NOW_PATH, JSON.stringify(eventNow(doc)) + "\n");
 }
 

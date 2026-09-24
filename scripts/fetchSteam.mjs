@@ -16,11 +16,19 @@ import { appendSteamRows } from "./steamHistory.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const RL_APPID = 252950;
 
-const KEY = process.env.STEAM_API_KEY;
+// Trimmed so the key reads the same in a URL as it does here, which is what
+// lets redact() below find it.
+const KEY = process.env.STEAM_API_KEY?.trim();
 if (!KEY) {
   console.error("ERROR: set STEAM_API_KEY env var. Get a free key at https://steamcommunity.com/dev/apikey");
   process.exit(1);
 }
+
+// The key in every spelling an error can carry it: as written, and encoded in
+// a URL. A player's error text is stored in steam-history.json, which is
+// published, and GitHub's log masking never reaches a committed file.
+const redact = (text) =>
+  [KEY, encodeURIComponent(KEY)].reduce((s, k) => s.split(k).join("***"), String(text));
 
 const api = (iface, method, ver, params) => {
   const qs = new URLSearchParams({ key: KEY, ...params }).toString();
@@ -46,7 +54,7 @@ async function getJson(url, attempt = 0) {
       await sleep(BACKOFF_MS * 2 ** attempt);
       return getJson(url, attempt + 1);
     }
-    throw new Error(`HTTP ${res.status} for ${url.replace(KEY, "***")}`);
+    throw new Error(`HTTP ${res.status} for ${redact(url)}`);
   }
   return res.json();
 }
@@ -138,7 +146,7 @@ async function main() {
       if (pt.owned) { out.foreverMin = pt.foreverMin; out.twoWeeksMin = pt.twoWeeksMin; }
       out.status = classify(out.visibility, pt.owned, pt.foreverMin);
     } catch (e) {
-      out.status = `error: ${e.message}`;
+      out.status = `error: ${redact(e.message)}`;
     }
     rows.push(out);
     // One player per quarter second. Slower than Steam strictly requires, but
@@ -163,4 +171,4 @@ async function main() {
   }
 }
 
-main().catch((e) => { console.error(e); process.exit(1); });
+main().catch((e) => { console.error(redact(e && e.stack || e)); process.exit(1); });

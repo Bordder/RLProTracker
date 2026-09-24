@@ -185,7 +185,7 @@ async function main() {
 
   await mkdir(join(ROOT, "data", "derived"), { recursive: true });
   await writeFile(join(ROOT, "data", "derived", "steam-hours.json"),
-    JSON.stringify({ computedAt: new Date(now).toISOString(), snapshotCount: snaps.length, players }, null, 2));
+    JSON.stringify({ computedAt: new Date(now).toISOString(), snapshotCount: snaps.length, players }));
 
   const frozen = players.filter((p) => p.totalHoursFrozenAt).length;
   const said = players.filter((p) => p.totalHoursStated).length;

@@ -77,30 +77,49 @@ jobs:
           # dispatch interval and left GitHub cancelling the queued one.
           cache: npm
 
+      # --ignore-scripts: no package in the lockfile needs an install script
+      # (the browser comes from `playwright install` below), and this job holds
+      # the proxy secrets and a token that can push, so a dependency bump that
+      # adds one does not get to run it here.
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        run: npm ci --no-audit --no-fund --ignore-scripts
 
       # Chromium is 22s of a ~65s run, which is the single biggest fixed cost in
       # the cadence. The browser binaries are cached on the Playwright version, so
       # a warm run only pays for the OS deps.
+      #
+      # The version is read from what npm ci just installed, not written here.
+      # It used to be a literal, and it went stale: the key said 1.62.1 while
+      # the lockfile installed 1.63.0, so every run restored 269 MB of a build
+      # nothing launched, Playwright deleted it, and then downloaded 301 MiB of
+      # the right one. A key that matched stopped the cache ever being saved
+      # again, so it could not heal. Measured on run 35940854072: 6s restoring
+      # and 10s downloading, out of an 84s job.
+      - name: Read the installed Playwright version
+        id: pw
+        run: echo "version=$(node -p "require('playwright/package.json').version")" >> "$GITHUB_OUTPUT"
+
       - name: Cache Chromium
         id: pw-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/ms-playwright
-          # Keyed on the lockfile, not a version typed by hand. The hand-typed key
-          # stayed at 1.62.1 after the lockfile moved to 1.63.0, so every run hit
-          # the stale entry, downloaded the new browser again, and never saved it.
-          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+          # -shell because only the headless shell is installed below; a key
+          # that also matched an older full install would restore the wrong set.
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}-shell
 
       # install-deps is an apt install and costs ~15s of every run, but the
       # runner image may already carry Chromium's libraries. Rather than assume
       # either way, prove it: fetch the browser, try to launch it, and only pay
       # for apt when that actually fails. Self-correcting, so if a future image
       # drops a library the run repairs itself instead of breaking.
+      #
+      # --only-shell: launch({ headless: true }) runs chromium-headless-shell,
+      # never the full browser, so the 187 MiB Chrome for Testing download
+      # beside it was never used. The shell is 114 MiB of the 301.
       - name: Install Chromium
         run: |
-          npx playwright install chromium
+          npx playwright install --only-shell chromium
           if node -e "require('playwright').chromium.launch().then(b=>b.close())" 2>/dev/null; then
             echo "browser launches as-is; skipping apt"
           else

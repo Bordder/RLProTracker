@@ -39,10 +39,12 @@ on:
         default: false
 
 permissions:
-  contents: read
   # So this job can dispatch the collectors itself when the Worker cannot be
   # reached. workflow_dispatch is one of the two events GITHUB_TOKEN is still
   # allowed to trigger, so no extra PAT is needed for the fallback.
+  #
+  # Nothing else. The job never checks out the repo and reads the site over
+  # plain HTTPS, so it has no use for contents: read.
   actions: write
 
 concurrency:

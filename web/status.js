@@ -306,26 +306,34 @@
     return clock(from) + "–" + clock(from + SLOT_MIN);
   };
 
+  // The four feeds come out of board.json, the document the board itself
+  // loads, and each history file is asked for once. This page used to make
+  // eight requests on load and every 30 seconds after: the four feeds one by
+  // one, and uptime.json twice, because two rows share it. Four now, and the
+  // bytes are fewer too - board.json adds team-hours and event-now, which
+  // together are smaller than the duplicate uptime.json it replaces.
+  //
+  // A feed the edge could not reach comes back null inside board.json, which
+  // is exactly what a failed single fetch produced, so render() cannot tell
+  // the difference and does not need to.
+  var ups = [];
+  FEEDS.forEach(function (f) { if (ups.indexOf(f.up) < 0) ups.push(f.up); });
+
   var loading = false;
   var refresh = function () {
     if (loading) return;
     loading = true;
-    // Feeds first, then each one's history, so render() can index straight
-    // into the second half with FEEDS.length + i.
-    //
-    // Fetched as the board fetches them: the four feeds in the one merged
-    // board.json, and each uptime file once. It was eight requests every 30
-    // seconds, uptime.json twice, and a burst of requests is what Cloudflare's
-    // rate limit answers with error 1015.
-    var ups = [];
-    FEEDS.forEach(function (f) { if (ups.indexOf(f.up) < 0) ups.push(f.up); });
-    Promise.all([getJson("/data/board.json")].concat(ups.map(function (u) { return getJson("/data/" + u); })))
+    Promise.all(
+      [getJson("/data/board.json")].concat(ups.map(function (u) { return getJson("/data/" + u); }))
+    )
       .then(function (got) {
         var board = got[0] || {};
-        var byUp = {};
-        ups.forEach(function (u, i) { byUp[u] = got[i + 1]; });
+        var runs = {};
+        ups.forEach(function (u, i) { runs[u] = got[i + 1]; });
+        // Feeds first, then each one's history, so render() can index
+        // straight into the second half with FEEDS.length + i.
         render(FEEDS.map(function (f) { return board[f.file] || null; })
-          .concat(FEEDS.map(function (f) { return byUp[f.up]; })));
+          .concat(FEEDS.map(function (f) { return runs[f.up]; })));
       })
       .catch(function () {})
       .then(function () { loading = false; });

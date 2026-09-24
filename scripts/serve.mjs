@@ -15,11 +15,14 @@
 import { createServer } from "node:http";
 import { readFile, readdir, mkdir, copyFile, rename, rm } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { dirname, join, normalize, extname } from "node:path";
+import { dirname, join, normalize, extname, sep } from "node:path";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const WEB = join(ROOT, "web");
 const PORT = process.env.PORT || 5173;
+// This machine only, unless asked. Set HOST=0.0.0.0 to open it to a phone on
+// the same network.
+const HOST = process.env.HOST || "127.0.0.1";
 
 // Which set of JSON to serve. The default is whatever this checkout collected;
 // --seed takes the committed sample instead, optionally a named variant.
@@ -140,7 +143,7 @@ createServer(async (req, res) => {
   }
   if (path === "/") path = "/index.html";
   const file = normalize(join(WEB, path));
-  if (!file.startsWith(WEB)) { res.writeHead(403); return res.end("forbidden"); }
+  if (file !== WEB && !file.startsWith(WEB + sep)) { res.writeHead(403); return res.end("forbidden"); }
   try {
     // Cloudflare Pages serves /how-it-works from how-it-works.html, so the
     // local preview has to as well or every footer link 404s here only.
@@ -153,7 +156,7 @@ createServer(async (req, res) => {
     res.writeHead(404, { "content-type": "text/plain" });
     res.end("not found");
   }
-}).listen(PORT, () => console.log(
-  `serving web/ on http://localhost:${PORT}` +
+}).listen(PORT, HOST, () => console.log(
+  `serving web/ on http://${HOST}:${PORT}` +
   (SEED === null ? "" : `  (seed: ${SEED || "current"})`)
 ));

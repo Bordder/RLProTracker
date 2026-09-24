@@ -63,7 +63,7 @@ async function main() {
 
   await writeFile(
     join(ROOT, "data", "derived", "team-hours.json"),
-    JSON.stringify({ computedAt, snapshotCount, teams }, null, 2)
+    JSON.stringify({ computedAt, snapshotCount, teams })
   );
   console.log(`team-hours.json: ${teams.length} teams`);
   for (const t of teams.slice(0, 12)) {

@@ -26,6 +26,10 @@ const MAX_MESSAGE = 500;
 const MIN_MESSAGE = 25;
 const MAX_USER = 60;
 const TYPES = ["Feedback", "Feature request", "Bug", "Other"];
+// The largest body the form can send is well under 4KB: the message and name
+// at their limits, every character escaped. Anything bigger is not a
+// submission, and is turned away before it is parsed.
+const MAX_BODY = 8 * 1024;
 
 // One submission per address per minute.
 //
@@ -71,8 +75,15 @@ async function handlePost(context) {
   const origin = request.headers.get("origin");
   if (origin && origin !== new URL(request.url).origin) return json({ error: "forbidden" }, 403);
 
+  // The declared length first, so an oversized upload is refused without
+  // being read, then the real one, since a chunked body declares none.
+  if (Number(request.headers.get("content-length")) > MAX_BODY) return json({ error: "too-large" }, 413);
   let payload;
-  try { payload = await request.json(); } catch { return json({ error: "bad-json" }, 400); }
+  try {
+    const text = await request.text();
+    if (text.length > MAX_BODY) return json({ error: "too-large" }, 413);
+    payload = JSON.parse(text);
+  } catch { return json({ error: "bad-json" }, 400); }
   // Valid JSON is not necessarily an object: null, a number or a string got
   // past the parse and then threw on payload.hp, which answered 500.
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) return json({ error: "bad-json" }, 400);
@@ -82,7 +93,9 @@ async function handlePost(context) {
   if (payload.hp) return json({ ok: true });
 
   const message = noMention(String(payload.message ?? "").trim().slice(0, MAX_MESSAGE));
-  const user = noMention(String(payload.user ?? "").trim().slice(0, MAX_USER));
+  // One line, as the form's single-line input gives it: the name goes into the
+  // issue title, and a line break there would split it.
+  const user = noMention(String(payload.user ?? "").replace(/\s+/g, " ").trim().slice(0, MAX_USER));
   const type = TYPES.includes(payload.type) ? payload.type : "Feedback";
   if (!message) return json({ error: "empty-message" }, 400);
   if (message.length < MIN_MESSAGE) return json({ error: "too-short", min: MIN_MESSAGE }, 400);
