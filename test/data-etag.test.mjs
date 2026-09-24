@@ -5,6 +5,7 @@
 // bill. A 304 to an authorised conditional request is not billed; a 200 is.
 import { test, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { loadFile, fetchDerived } from "../functions/data/[[path]].js";
 
 // caches.default, as far as the Function uses it: exact-URL match and put.
@@ -33,7 +34,7 @@ function fakeGitHub(files) {
     }
     if (gh.apiDown) return new Response("oops", { status: 503 });
     const body = gh.files[name];
-    const etag = `"${Buffer.from(body).toString("base64").slice(0, 16)}"`;
+    const etag = `"${createHash("sha1").update(body).digest("hex")}"`;
     const inm = init.headers?.["If-None-Match"];
     if (inm) gh.conditional++;
     if (inm && inm === etag) { gh.notModified++; return new Response(null, { status: 304, headers: { etag } }); }
@@ -157,4 +158,43 @@ test("a board read that finds all six unchanged bills nothing", async () => {
   assert.deepEqual(second, first);
   assert.equal(gh.billed, 6, "unchanged feeds were billed again");
   assert.equal(gh.notModified, 6);
+});
+
+// /api/status polls status.json on the same budget, once per open tab per
+// minute, collapsed per colo for 20 seconds.
+test("the freshness probe revalidates status.json the same way", async () => {
+  const { onRequestGet } = await import("../functions/api/status.js");
+  gh.files["status.json"] = "{\"computedAt\":\"2026-09-24T01:00:00.000Z\"}";
+  const probe = async () => {
+    const c = ctx();
+    const res = await onRequestGet({ request: new Request("https://198x.online/api/status"), env: c.env, waitUntil: c.waitUntil });
+    await c.settle();
+    return res.json();
+  };
+  assert.deepEqual(await probe(), { computedAt: "2026-09-24T01:00:00.000Z" });
+  for (let i = 0; i < 4; i++) {
+    expireHot();
+    assert.deepEqual(await probe(), { computedAt: "2026-09-24T01:00:00.000Z" });
+  }
+  assert.equal(gh.billed, 1);
+  assert.equal(gh.notModified, 4);
+
+  gh.files["status.json"] = "{\"computedAt\":\"2026-09-24T01:02:00.000Z\"}";
+  expireHot();
+  assert.deepEqual(await probe(), { computedAt: "2026-09-24T01:02:00.000Z" });
+  assert.equal(gh.billed, 2);
+});
+
+test("the probe's tracker.json fallback never becomes the status.json base", async () => {
+  const { onRequestGet } = await import("../functions/api/status.js");
+  // No status.json on the branch: the API 404s it, raw 404s it, and the
+  // answer comes from tracker.json instead.
+  gh.files["tracker.json"] = "{\"computedAt\":\"2026-09-24T00:58:00.000Z\",\"players\":[]}";
+  const inner = gh.fetch;
+  globalThis.fetch = async (url, init) => String(url).includes("status.json") ? new Response("nf", { status: 404 }) : inner(url, init);
+  const c = ctx();
+  const res = await onRequestGet({ request: new Request("https://198x.online/api/status"), env: c.env, waitUntil: c.waitUntil });
+  await c.settle();
+  assert.deepEqual(await res.json(), { computedAt: "2026-09-24T00:58:00.000Z" });
+  assert.equal(await cache.match("https://198x.online/__data/status.json"), undefined);
 });

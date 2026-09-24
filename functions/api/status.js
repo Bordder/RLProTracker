@@ -37,7 +37,12 @@ const FILES = ["status.json", "tracker.json"];
 const apiUrl = (f) => `https://api.github.com/repos/Bordder/RLProTracker/contents/data/derived/${f}?ref=data`;
 const rawUrl = (f) => `https://raw.githubusercontent.com/Bordder/RLProTracker/data/data/derived/${f}`;
 
-async function fetchTracker(env) {
+// `etag` is the validator of the status.json copy kept here, if there is one.
+// The read of status.json is then conditional, and an unchanged file answers
+// 304 without spending GH_TOKEN's rate limit - the same revalidation the /data
+// Function does, for the same reason. Returns which file answered and from
+// where, so only the API's own status.json is ever kept as that base.
+export async function fetchTracker(env, etag = null) {
   const headers = {
     Accept: "application/vnd.github.raw",
     "User-Agent": "rlprotracker-site",
@@ -46,12 +51,13 @@ async function fetchTracker(env) {
   if (env && env.GH_TOKEN) headers.Authorization = `Bearer ${env.GH_TOKEN.trim()}`;
   let last = null;
   for (const f of FILES) {
-    const res = await fetch(apiUrl(f), { headers, cf: { cacheTtl: 20 } });
-    if (res.ok) return res;
+    const conditional = f === FILES[0] && etag;
+    const res = await fetch(apiUrl(f), { headers: conditional ? { ...headers, "If-None-Match": etag } : headers, cf: { cacheTtl: 20 } });
+    if (res.ok || (conditional && res.status === 304)) return { res, file: f, api: true };
     last = await fetch(rawUrl(f), { cf: { cacheTtl: 30 }, headers: { "User-Agent": "rlprotracker-site" } });
-    if (last.ok) return last;
+    if (last.ok) return { res: last, file: f, api: false };
   }
-  return last;
+  return last ? { res: last, file: null, api: false } : null;
 }
 
 // How long one upstream read is shared by every tab polling this colo.
@@ -88,14 +94,38 @@ export async function onRequestGet(context) {
     const hot = await cache.match(hotKey);
     if (hot) return withCors(hot);
   }
+  // The last status.json read from the API, with its ETag. The same key the
+  // /data Function keeps its copy of the file under, and the same shape.
+  const baseKey = request
+    ? new Request(new URL("/__data/status.json", request.url).toString(), { method: "GET" })
+    : null;
+  const kept = baseKey ? await cache.match(baseKey) : null;
+  const keptTag = kept ? kept.headers.get("etag") : null;
+  const canWait = typeof (context && context.waitUntil) === "function";
+  const keep = (text, etag) => {
+    if (!baseKey || !etag || !canWait) return;
+    context.waitUntil(cache.put(baseKey, new Response(text, {
+      headers: { "content-type": "application/json; charset=utf-8", "cache-control": "public, max-age=86400", etag },
+    })));
+  };
 
   try {
-    const res = await fetchTracker(context && context.env);
-    if (!res || !res.ok) return withCors(Response.json({ error: "upstream" }, { status: 502 }));
-    const { computedAt } = await res.json();
+    const got = await fetchTracker(context && context.env, keptTag);
+    const res = got && got.res;
+    let text;
+    if (res && res.status === 304 && kept) {
+      text = await kept.text();
+      keep(text, keptTag);
+    } else if (res && res.ok) {
+      text = await res.text();
+      if (got.api && got.file === FILES[0]) keep(text, res.headers.get("etag"));
+    } else {
+      return withCors(Response.json({ error: "upstream" }, { status: 502 }));
+    }
+    const { computedAt } = JSON.parse(text);
     const body = { computedAt: computedAt ?? null };
     const headers = { "cache-control": `public, max-age=20, s-maxage=${HOT_TTL}` };
-    if (hotKey && typeof context.waitUntil === "function") {
+    if (hotKey && canWait) {
       context.waitUntil(cache.put(hotKey, Response.json(body, { headers })));
     }
     return withCors(Response.json(body, { headers }));
