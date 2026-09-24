@@ -52,7 +52,9 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        # No install scripts, as in tracker.yml: this job holds the proxy
+        # secrets.
+        run: npm ci --no-audit --no-fund --ignore-scripts
 
       # Keyed on the installed version, as tracker.yml is; see the note there
       # for what a hand-written version cost. Same key, so the two workflows
