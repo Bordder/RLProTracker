@@ -18,6 +18,11 @@ const dayOf = (iso) => iso ? new Date(iso).toLocaleDateString([], { month: "long
 // UTC: a calendar date, not an instant, so it must not shift with the reader.
 const shortDay = (d) => d ? new Date(`${d}T12:00:00Z`).toLocaleDateString([], { day: "numeric", month: "short", timeZone: "UTC" }) : "";
 const clockOf = (iso) => iso ? new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null;
+// The day of an instant, in the reader's zone: the same zone as the clock
+// beside it. Taking the UTC date off the ISO string could name the wrong day
+// next to a local time: a 23:00 UTC start on the 17th read "17 Sept · 09:00"
+// in Sydney, where it is the 18th.
+const localDay = (iso) => iso ? new Date(iso).toLocaleDateString([], { day: "numeric", month: "short" }) : "";
 
 const BOX_W = 200, GUTTER = 44, ROW_H = 26, BOX_H = ROW_H * 2 + 2;
 const SLOT = BOX_H + 30, HEAD_H = 26, TOP = HEAD_H + 10, COL = BOX_W + GUTTER;
@@ -402,7 +407,7 @@ function phoneBox(m, x, y, G) {
   // true and is better than an empty line.
   const win = windowOf(STAGE);
   const when = m.startsAt
-    ? `${shortDay(m.startsAt.slice(0, 10))} · ${clockOf(m.startsAt)}`
+    ? `${localDay(m.startsAt)} · ${clockOf(m.startsAt)}`
     : m.startsOn ? shortDay(m.startsOn)
     : win ? win : "Time TBD";
   const row = (i) => {
