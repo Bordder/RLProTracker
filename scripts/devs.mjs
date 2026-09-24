@@ -34,8 +34,9 @@ export const profileUrl = ({ platform, id }) =>
 export const apiUrl = ({ platform, id }) =>
   `https://api.tracker.gg/api/v2/rocket-league/standard/profile/${platform}/${encodeURIComponent(id)}`;
 
-// Casual rating and the display name. tracker.gg's Casual games-played stays
-// at 0 for everyone, so it is not read.
+// Casual rating, every playlist's rating (keyed by tracker.gg's playlist
+// name, e.g. "Ranked Standard 3v3"), and the display name. tracker.gg's
+// Casual games-played stays at 0 for everyone, so it is not read.
 export function pickCasual(json) {
   const segs = json?.data?.segments;
   if (!Array.isArray(segs)) return null;
@@ -46,10 +47,16 @@ export function pickCasual(json) {
   // A Steam link can be a vanity name; the profile carries the 64-bit id the
   // Steam presence check needs.
   const uid = String(json?.data?.platformInfo?.platformUserId ?? "");
+  const ratings = {};
+  for (const l of lists) {
+    const v = num(l.stats?.rating?.value);
+    if (l.metadata?.name && v != null) ratings[l.metadata.name] = v;
+  }
   return {
     handle: typeof handle === "string" && handle.trim() ? handle.trim() : null,
     steamId: /^\d{17}$/.test(uid) ? uid : null,
     rating: num(casual?.stats?.rating?.value),
+    ratings,
   };
 }
 
@@ -94,26 +101,34 @@ export function lastGames(json) {
 
 // Fold one reading into a developer's state.
 //
-// Two signals, and the later of the two wins. The recent matches (lastGames)
-// are what tracker.gg itself logged. The Casual rating also moves after every
-// Casual game, so a move between two of our readings is a game seen at this
-// reading's time, which catches one before tracker.gg's own log has it.
+// Three signals, and the latest wins. The recent matches (lastGames) are what
+// tracker.gg itself logged. On top of that, a rating moves after every game
+// in its playlist, so a rating that differs from our previous reading is a
+// game seen at this reading's time, in that playlist. That catches a game
+// before tracker.gg's own log has it: Casual through the Casual rating, and
+// ranked through the ranked ones.
 export function nextDevState(prev, reading, at, games = null) {
   const p = prev ?? {};
   const later = (...xs) => xs.filter(Boolean).sort().at(-1) ?? null;
-  const moved = p.rating != null && reading.rating != null && reading.rating !== p.rating;
-  const casualAt = later(p.casualAt, games?.casualAt, moved ? at : null);
-  const seenAt = later(p.seenAt, games?.seenAt, casualAt);
-  // The mode goes with whichever signal set seenAt: tracker.gg's own log
-  // names it, a Casual rating move means Casual.
-  const mode = seenAt && seenAt === games?.seenAt ? games.mode
-    : seenAt && seenAt !== p.seenAt && seenAt === casualAt ? "Casual"
+  const before = p.ratings ?? (p.rating != null ? { Casual: p.rating } : {});
+  const now = reading.ratings ?? (reading.rating != null ? { Casual: reading.rating } : {});
+  const movedIn = Object.keys(now).filter((k) => before[k] != null && now[k] !== before[k]);
+  // Casual first when several moved at once: it is the playlist this page is for.
+  const movedMode = movedIn.includes("Casual") ? "Casual" : movedIn[0] ?? null;
+  const casualAt = later(p.casualAt, games?.casualAt, movedIn.includes("Casual") ? at : null);
+  const seenAt = later(p.seenAt, games?.seenAt, casualAt, movedMode ? at : null);
+  // The mode goes with whichever signal set seenAt.
+  const mode = !seenAt ? p.mode ?? null
+    : seenAt === games?.seenAt ? games.mode
+    : seenAt !== p.seenAt && seenAt === at && movedMode ? movedMode
+    : seenAt !== p.seenAt && seenAt === casualAt ? "Casual"
     : p.mode ?? null;
   return {
     readAt: at,
     handle: reading.handle ?? p.handle ?? null,
     steamId: reading.steamId ?? p.steamId ?? null,
     rating: reading.rating ?? p.rating ?? null,
+    ratings: Object.keys(now).length ? now : p.ratings ?? {},
     casualAt,
     seenAt,
     mode,
@@ -161,6 +176,7 @@ export function alphaFeed(devs, state, at) {
         platform: d.platform,
         url: profileUrl(d),
         rating: s.rating ?? null,
+        ratings: s.ratings ?? {},
         casualAt: s.casualAt ?? null,
         seenAt: s.seenAt ?? null,
         mode: s.mode ?? null,

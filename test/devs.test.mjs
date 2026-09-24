@@ -28,7 +28,7 @@ const profile = (rating, others = 0) => ({
 });
 
 test("Casual rating and handle come out of a profile", () => {
-  assert.deepEqual(pickCasual(profile(1100, 3)), { handle: "Dev", steamId: null, rating: 1100 });
+  assert.deepEqual(pickCasual(profile(1100, 3)), { handle: "Dev", steamId: null, rating: 1100, ratings: { "Ranked Doubles 2v2": 1400, Casual: 1100 } });
   assert.equal(pickCasual({}), null);
 });
 
@@ -64,6 +64,21 @@ test("the later of tracker.gg's log and our own rating move wins", () => {
   assert.equal(d.rating, 1091, "and keeps the last rating");
   assert.equal(d.handle, "Dev");
   assert.equal(d.mode, "Casual", "the mode stays with the last game");
+});
+
+test("a ranked rating that moves is a game in that playlist", () => {
+  const two = (casual, doubles) => ({ handle: "Dev", steamId: null, rating: casual, ratings: { Casual: casual, "Ranked Doubles 2v2": doubles } });
+  const a = nextDevState(null, two(1100, 1400), "2026-09-24T10:00:00.000Z", { casualAt: null, seenAt: "2026-09-24T09:00:00.000Z", mode: "Casual" });
+  const b = nextDevState(a, two(1100, 1409), "2026-09-24T10:05:00.000Z", null);
+  assert.equal(b.seenAt, "2026-09-24T10:05:00.000Z");
+  assert.equal(b.mode, "Ranked Doubles 2v2");
+  assert.equal(b.casualAt, null, "a ranked game is not a Casual one");
+  assert.equal(b.ratings["Ranked Doubles 2v2"], 1409);
+  const c = nextDevState(b, two(1090, 1409), "2026-09-24T10:10:00.000Z", null);
+  assert.equal(c.mode, "Casual");
+  const d = nextDevState(c, two(1090, 1409), "2026-09-24T10:15:00.000Z", null);
+  assert.equal(d.seenAt, "2026-09-24T10:10:00.000Z", "nothing moved, nothing changes");
+  assert.equal(d.mode, "Casual");
 });
 
 test("each run reads the never-read first, then the live, then the stalest", () => {

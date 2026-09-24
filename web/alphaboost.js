@@ -14,6 +14,9 @@ const nf = (n) => (n == null ? null : Math.round(n).toLocaleString("en-GB"));
 const ACTIVE_MS = 20 * 60e3;
 const INGAME_MS = 10 * 60e3; // the board's LIVE_MS
 const REFRESH_MS = 60e3;
+// tracker.gg's playlist names, shortened for a badge.
+const SHORT = { "Ranked Duel 1v1": "Ranked 1v1", "Ranked Doubles 2v2": "Ranked 2v2", "Ranked Standard 3v3": "Ranked 3v3", "Ranked 4v4 Quads": "Ranked 4v4" };
+const short = (m) => SHORT[m] ?? m;
 const PLATFORM = { steam: "Steam", epic: "Epic", psn: "PlayStation", xbl: "Xbox", switch: "Switch" };
 
 const ms = (iso) => {
@@ -50,17 +53,28 @@ const inGame = (d) => {
   return g != null && Date.now() - g < INGAME_MS;
 };
 
+// The rating for what they are playing: while Playing in a playlist with a
+// rating, that one, labelled; otherwise Casual, which is where most of them
+// are found.
+function mmrCell(d, on) {
+  const inMode = on && d.mode && d.mode !== "Casual" ? d.ratings?.[d.mode] : null;
+  const v = inMode ?? d.rating;
+  if (v == null) return '<span class="na">-</span>';
+  const label = inMode != null ? short(d.mode).replace(/^Ranked /, "") : "Casual";
+  return `<span class="mmr">${nf(v)}</span><span class="mmrl">${esc(label)}</span>`;
+}
+
 function row(d) {
   const seen = ms(d.seenAt);
   const on = playing(d);
   const mark = on
-    ? `<span class="pmark" title="Played in the past 20 minutes">Playing${d.mode ? " " + esc(d.mode) : ""}</span>`
+    ? `<span class="pmark" title="Played in the past 20 minutes">Playing${d.mode ? " " + esc(short(d.mode)) : ""}</span>`
     : inGame(d) ? '<span class="gmark" title="Steam says Rocket League is open">In game</span>' : "";
   const last = seen != null ? ago(seen) : "None recorded";
   return `<tr${on ? ' class="on"' : ""}>
     <td><div class="who"><a class="nm" href="${esc(d.url)}" target="_blank" rel="noopener" title="tracker.gg profile">${esc(d.name)}</a>${mark}</div><span class="pf">${esc(PLATFORM[d.platform] ?? d.platform)}</span></td>
     <td><span class="last${seen == null ? " na" : ""}">${esc(last)}</span></td>
-    <td class="num">${d.rating != null ? `<span class="mmr">${nf(d.rating)}</span>` : '<span class="na">-</span>'}</td>
+    <td class="num">${mmrCell(d, on)}</td>
   </tr>`;
 }
 
@@ -81,7 +95,7 @@ function render(feed) {
 
   $("out").innerHTML = `
     <div class="wrap"><table>
-      <thead><tr><th scope="col">Developer</th><th scope="col">Last game</th><th scope="col" class="num">Casual MMR</th></tr></thead>
+      <thead><tr><th scope="col">Developer</th><th scope="col">Last game</th><th scope="col" class="num">MMR</th></tr></thead>
       <tbody>${list.map(row).join("")}</tbody>
     </table></div>`;
 }
