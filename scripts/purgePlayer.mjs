@@ -8,10 +8,11 @@
 // Taking someone off roster.json stops new readings, but it does not empty
 // what is already held: tracker-history.json lets go on the next run, while
 // steam-history.json keeps a player's newest reading past the retention
-// limit, last-known-hours.json and peak-mmr.json never drop an entry, and the
-// presence log keeps its 15 days. This clears all of them, and the per-player
-// rows in derived/, so a removed player is gone from the current files at once
-// rather than on the next run.
+// limit, and last-known-hours.json and peak-mmr.json never drop an entry. This
+// clears all of them, and the per-player rows in derived/, so a removed player
+// is gone from the current files at once rather than on the next run. It also
+// clears a local presence log if one is present. The live one is sealed in
+// the Actions cache, out of reach here, and forgets a player within 15 days.
 //
 // What it cannot reach is the git history of the data branch, where earlier
 // versions of every file stay. Removing those needs a history rewrite.

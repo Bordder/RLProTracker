@@ -41,9 +41,10 @@ jobs:
           path: .databranch
           fetch-depth: 1
 
+      # The raw log is NOT taken from here any more: see the cache steps below.
       - name: Take the previous run's data from the data branch
         run: |
-          for p in data/presence data/derived/presence-hours.json data/derived/uptime-presence.json; do
+          for p in data/derived/presence-hours.json data/derived/uptime-presence.json; do
             if [ -e ".databranch/$p" ]; then
               mkdir -p "$(dirname "$p")"
               # rm first: cp -r copies a directory INTO an existing directory of
@@ -57,6 +58,27 @@ jobs:
         with:
           node-version: "24"
 
+      # The raw log, which names who was in game at every poll, lives in the
+      # Actions cache rather than on the public data branch. Only the hours
+      # worked out from it are published. It is sealed with PRESENCE_LOG_KEY
+      # (scripts/presenceLogCache.mjs) because pull requests, including ones
+      # from forks, can restore caches written on main, and they never get the
+      # key. Each run saves under its own key and restores the newest, since a
+      # cache entry cannot be overwritten; GitHub evicts the old ones.
+      - name: Restore the sealed presence log
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .presence-cache
+          key: presence-log-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: presence-log-
+
+      # Never fails the run: a missing key, a cache miss or a copy that will not
+      # decrypt starts a fresh log, and the output says which.
+      - name: Open the presence log
+        env:
+          PRESENCE_LOG_KEY: ${{ secrets.PRESENCE_LOG_KEY }}
+        run: node scripts/presenceLogCache.mjs open
+
       - name: Poll live presence
         env:
           STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
@@ -65,9 +87,22 @@ jobs:
       - name: Recompute presence hours
         run: npm run poll:hours
 
+      - name: Seal the presence log
+        env:
+          PRESENCE_LOG_KEY: ${{ secrets.PRESENCE_LOG_KEY }}
+        run: node scripts/presenceLogCache.mjs seal
+
+      - name: Save the sealed presence log
+        if: hashFiles('.presence-cache/log.sealed') != ''
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .presence-cache
+          key: presence-log-${{ github.run_id }}-${{ github.run_attempt }}
+
+      # The hours totals and the uptime record only. data/presence stays off
+      # the branch.
       - name: Publish data to the data branch
         run: >-
           bash scripts/publish-data.sh "[skip ci] data: presence poll"
-          data/presence
           data/derived/presence-hours.json
           data/derived/uptime-presence.json
