@@ -61,6 +61,9 @@ async function handlePost(context) {
 
   let payload;
   try { payload = await request.json(); } catch { return json({ error: "bad-json" }, 400); }
+  // Valid JSON is not necessarily an object: null, a number or a string got
+  // past the parse and then threw on payload.hp, which answered 500.
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return json({ error: "bad-json" }, 400);
 
   // Honeypot: a real person never fills a hidden field. Answer 200 so a bot
   // cannot tell it was rejected, but file nothing.
