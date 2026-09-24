@@ -149,3 +149,86 @@ test("ordering does not change who is selected when the ceiling binds", () => {
   const picked = selectDue(players, fast(3), state, now).map((p) => p.id);
   assert.deepEqual(picked.sort(), ["t-03", "t-04", "t-05"]);
 });
+
+// ---- Low 21 / L-test-3: idle players and their slots -----------------------
+//
+// The tests above use elapsed times far past the interval, so the slot delay
+// never showed. These sit right on the interval boundary, and then run the
+// scheduler against runs spaced the way they really are (120 to 200 seconds,
+// not the 120 the slots assume).
+
+const IDLE_PRIO = { perRun: 150, defaultHours: 0.025, idleMultiplier: 10, hotIntervalMinutes: 2, players: {} };
+const IDLE_MS = 0.025 * HOUR * 10; // 15 minutes
+
+test("an idle player is due once its interval has passed, whatever its slot", () => {
+  const players = roster(8); // eight idle players share eight slots, one each
+  const now = RUN_SPACING_MS * 1000 + 30e3;
+  // Everyone else was read this run's predecessor, so there is an allowance.
+  const at = (ms) => ({ last: iso(ms), fails: 0, presence: "out" });
+  for (const p of players) {
+    const state = Object.fromEntries(players.map((q) => [q.id, at(now - 60e3)]));
+    state[p.id] = at(now - IDLE_MS);
+    assert.deepEqual(ids(selectDue(players, IDLE_PRIO, state, now)), [p.id], `${p.id} at exactly its interval`);
+    state[p.id] = at(now - IDLE_MS + 1000);
+    assert.deepEqual(selectDue(players, IDLE_PRIO, state, now), [], `${p.id} a second short`);
+  }
+});
+
+test("a player who is not idle still waits for its slot", () => {
+  const players = roster(8);
+  const prio = { perRun: 150, defaultHours: 0.25, players: {} }; // 15 minutes, 8 slots
+  const now = RUN_SPACING_MS * 1000; // slot 1000 % 8 = 0
+  const state = Object.fromEntries(players.map((p) => [p.id, { last: iso(now - 0.25 * HOUR), fails: 0 }]));
+  assert.deepEqual(ids(selectDue(players, prio, state, now)), ["t-00"]);
+});
+
+function simulate(n, hours, seed = 7) {
+  let s = seed;
+  const rnd = () => (s = (s * 1103515245 + 12345) % 2 ** 31) / 2 ** 31;
+  const players = roster(n);
+  const t0 = Date.UTC(2026, 8, 20);
+  const state = {};
+  const reads = {};
+  for (const p of players) {
+    const last = t0 - Math.floor(rnd() * IDLE_MS);
+    state[p.id] = { last: iso(last), fails: 0, presence: "out" };
+    reads[p.id] = [last];
+  }
+  const runs = [];
+  let t = t0, prev = Math.max(...Object.values(reads).map((r) => r[0]));
+  while (t < t0 + hours * HOUR) {
+    t += 120e3 + Math.floor(rnd() * 80e3);
+    const due = selectDue(players, IDLE_PRIO, state, t);
+    runs.push({ t, prev, count: due.length });
+    for (const p of due) { state[p.id].last = iso(t); reads[p.id].push(t); }
+    if (due.length) prev = t;
+  }
+  const gaps = Object.values(reads).flatMap((r) => r.slice(1).map((x, i) => ({ from: r[i], gap: x - r[i] })));
+  return { t0, runs, gaps, reads };
+}
+
+test("idle players are read on time against real run spacing, never early", () => {
+  const { t0, gaps } = simulate(40, 48);
+  const warm = gaps.filter((g) => g.from > t0 + HOUR).map((g) => g.gap);
+  // Never more often than the interval.
+  assert.ok(Math.min(...gaps.map((g) => g.gap)) >= IDLE_MS);
+  // And promptly after it: within two run gaps (200s each at most). The slot
+  // rule this replaces left gaps of up to 97 minutes here.
+  assert.ok(Math.max(...warm) <= IDLE_MS + 2 * 200e3, `max gap ${Math.max(...warm) / 1e3}s`);
+});
+
+test("no run reads more idle players than their intervals allow", () => {
+  const n = 40;
+  const { t0, runs, reads } = simulate(n, 48);
+  for (const r of runs) {
+    // What the intervals earn between the previous read and this run.
+    const allow = Math.ceil((n * Math.min(r.t - r.prev, IDLE_MS)) / IDLE_MS - 1e-9);
+    assert.ok(r.count <= allow, `${r.count} read at ${iso(r.t)} against ${allow} allowed`);
+  }
+  // And over the whole window, no more than once per interval each.
+  const end = runs.at(-1).t;
+  const total = Object.values(reads).reduce((sum, r) => sum + r.length - 1, 0);
+  assert.ok(total <= n * (Math.floor((end - t0) / IDLE_MS) + 1));
+  // They stay spread: nothing herds everyone into one run.
+  assert.ok(Math.max(...runs.map((r) => r.count)) < n / 2);
+});
