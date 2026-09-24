@@ -61,6 +61,9 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self'",
+  // Every page links site.webmanifest, and manifest-src falls back to
+  // default-src, so without this the manifest was refused on every load.
+  "manifest-src 'self'",
   // Both data and feedback are same-origin Pages Functions now, so the only
   // outbound destination left is the analytics beacon.
   "connect-src 'self' https://cloudflareinsights.com",
