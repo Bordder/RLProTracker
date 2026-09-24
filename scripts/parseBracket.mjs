@@ -1,8 +1,5 @@
 // Wikitext -> bracket JSON. Pure: no network, no filesystem, no clock.
 //
-// LOCAL ONLY for now. This whole folder is gitignored; files move into
-// scripts/ and web/ in a deliberate commit when the page is wanted live.
-//
 // Shape, verified against live fixtures on 11 September 2026:
 //
 //   {{Bracket|Bracket/8-2Q-U-4L2D-2Q|id=pwvMCvdp2Q

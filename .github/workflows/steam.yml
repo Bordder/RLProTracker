@@ -56,7 +56,7 @@ jobs:
           STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
         run: npm run update
 
-      - name: Prune snapshots older than 15 days
+      - name: Prune snapshots older than 90 days
         run: node scripts/pruneSnapshots.mjs
 
       - name: Publish data to the data branch

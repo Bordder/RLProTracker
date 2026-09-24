@@ -9,9 +9,6 @@ web/config.js
 web/preview-standalone.html
 web/_headers
 
-# NOTE: data/snapshots and data/derived ARE committed on purpose -
-# the hourly job persists them so 24h/7d/14d deltas survive across runs.
-
 # local editor/preview config
 .claude/
 
@@ -37,7 +34,6 @@ data/steam-history.json
 data/last-known-hours.json
 data/proxy-use.json
 
-# Bracket page, built out of tree on purpose (9 Sept 2026). Nothing in here is
 # The bracket scratch folder. Its contents now live in scripts/, web/ and
 # data/bracket/; this is the working copy it was built in and is kept only
 # until the collector has run once from the new paths.

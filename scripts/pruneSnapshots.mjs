@@ -1,5 +1,6 @@
-// Delete snapshots older than 15 days so the repo doesn't grow forever.
-// 15 days keeps enough history for the 14-day window plus margin.
+// Delete snapshots older than 90 days (KEEP_MS) so the repo doesn't grow forever.
+// Only the old per-run snapshot directories: collection writes rolling history
+// files now (see rollingHistory.mjs), so these are usually empty.
 // Covers both the Steam and tracker snapshot directories.
 
 import { readdir, readFile, unlink } from "node:fs/promises";

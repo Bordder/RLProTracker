@@ -314,7 +314,7 @@ export function tierBands(snaps, from = -Infinity) {
 // Readings come from the rolling history (data/tracker-history.json). The old
 // per-run snapshot directory is still read and merged when present, so the
 // history accumulated before the switch is not lost; once those files age out
-// of the 15-day window the directory can go away entirely.
+// of the 90-day window the directory can go away entirely.
 async function loadSnapshots() {
   const byTime = new Map();
 

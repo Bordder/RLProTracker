@@ -1,10 +1,10 @@
 name: Alerts
 
-# The two checks that need the repo checked out, kept out of liveness.yml.
+# The three checks that need the repo checked out, kept out of liveness.yml.
 #
 # liveness.yml is deliberately pure curl: it runs every 5 minutes, dispatches
 # collectors when data goes stale, and adding a checkout plus a Node install to
-# it would slow the watchdog for no benefit. These two do not need 5-minute
+# it would slow the watchdog for no benefit. These do not need 5-minute
 # resolution.
 #
 #   the deployed build is behind main - the CODE visitors run, as opposed to the

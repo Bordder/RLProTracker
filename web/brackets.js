@@ -1,7 +1,7 @@
 import { crest, assignHues, hasLogo, teamName } from "/crest.mjs?v=3d51b913";
 import { standings, pairGroups } from "/standings.mjs?v=5df49caf";
 import { panelHTML, ordinal, spanWords, eventRunning } from "/fixtures.mjs?v=ad9e89c5";
-import { headerHTML, scheduleHTML, prizesHTML, teamsHTML, finalOf } from "/eventview.mjs?v=7dbdc393";
+import { headerHTML, scheduleHTML, prizesHTML, teamsHTML, finalOf } from "/eventview.mjs?v=b2a62e69";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 // "23:00" today, "17th 23:00" on another day. Same wording as the schedule
@@ -1274,7 +1274,7 @@ render(location.hash.slice(1) || defaultEvent().slug);
 // actually moved: a redraw on an unchanged document is work for nothing.
 // How often to re-read the feed.
 //
-// The collector publishes every five minutes and the edge holds one upstream
+// The collector publishes every two minutes on an event day and the edge holds one upstream
 // read for 20 seconds, so 30s while a LAN is on means the page is never more
 // than a few seconds behind the published file. Between events nothing can
 // change, so polling that often would be pure noise on someone's data.

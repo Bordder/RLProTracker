@@ -1,6 +1,6 @@
 // The collector loop: keep bracket.json current while matches are being played.
 //
-// LOCAL ONLY. Everything in this folder is gitignored.
+// Run by .github/workflows/brackets.yml with --once; locally, run it by hand.
 //
 //   node collect.mjs            run until stopped
 //   node collect.mjs --once     one cycle, then exit

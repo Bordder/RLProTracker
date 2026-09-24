@@ -284,10 +284,10 @@ export function teamsHTML(ev) {
  * groups them, and each group is sorted by the first number in its place
  * ("3-4" -> 3) rather than by the order the wikitext happened to list them.
  *
- * Placements are only filled in where the event has actually been decided, and
- * this page does not know that until the bracket does, so every participant
- * cell reads TBD until a winner exists. A table that guessed would be inventing
- * a result.
+ * Every participant cell reads TBD, finished events included: Liquipedia's
+ * prize table carries no teams in the wikitext (it fills them in when it
+ * renders), and deriving placements from the bracket is not done here. A
+ * table that guessed would be inventing a result.
  */
 const DISCIPLINES = ["3v3", "2v2", "1v1"];
 
