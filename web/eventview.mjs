@@ -284,10 +284,13 @@ export function teamsHTML(ev) {
  * groups them, and each group is sorted by the first number in its place
  * ("3-4" -> 3) rather than by the order the wikitext happened to list them.
  *
- * Every participant cell reads TBD, finished events included: Liquipedia's
- * prize table carries no teams in the wikitext (it fills them in when it
- * renders), and deriving placements from the bracket is not done here. A
- * table that guessed would be inventing a result.
+ * Liquipedia's prize table carries no teams in the wikitext (it fills them in
+ * when it renders), so the participants come from the discipline's last
+ * bracket, and only once its grand final is finished: the winner is 1st, the
+ * loser 2nd, and every other team places by the round it was knocked out in.
+ * A place is filled only when the teams knocked out there fit it exactly, and
+ * the walk stops at the first that does not, so the places decided before the
+ * playoffs (the Swiss, the groups) stay TBD rather than being guessed.
  */
 const DISCIPLINES = ["3v3", "2v2", "1v1"];
 
@@ -296,16 +299,76 @@ const placeNo = (p) => {
   return Number.isFinite(n) ? n : Infinity;
 };
 
-const prizeTable = (prizes) => {
-  const rows = [...prizes].sort((a, b) => placeNo(a) - placeNo(b)).map((p) => {
+// How many teams a place holds: "3-4" is two, "9-11" three, "1" one.
+const placeSize = (p) => {
+  const [a, b] = String(p.place).split("-").map(Number);
+  if (!Number.isFinite(a)) return 0;
+  return Number.isFinite(b) && b >= a ? b - a + 1 : 1;
+};
+
+/**
+ * Who finished where, as a Map from a prize's `place` to the teams in it, for
+ * one discipline's stages. Empty until the last bracket's grand final is over.
+ */
+export function placingsOf(stages, prizes) {
+  const out = new Map();
+  const last = (stages ?? []).flatMap((s) => s.brackets ?? []).at(-1);
+  if (!last?.matches?.length) return out;
+  const ms = [...last.matches].sort((a, b) => a.round - b.round || a.position - b.position);
+  const gf = ms.at(-1);
+  const [a, b] = gf.scores ?? [null, null];
+  if (!gf.finished || a === null || b === null || a === b) return out;
+  if (gf.seeds?.[0] || gf.seeds?.[1] || !gf.teams?.[0] || !gf.teams?.[1]) return out;
+  const top = a > b ? [gf.teams[0], gf.teams[1]] : [gf.teams[1], gf.teams[0]];
+
+  // Knocked out: a finished loss in the lower bracket or the finals. An upper
+  // bracket loss only drops a team into the lower one.
+  const rounds = new Map();
+  for (const m of ms) {
+    if (m === gf || !m.finished || (m.section !== "lower" && m.section !== "final")) continue;
+    const [x, y] = m.scores ?? [null, null];
+    if (x === null || y === null || x === y) continue;
+    const i = x > y ? 1 : 0;
+    const name = m.teams?.[i];
+    if (!name || m.seeds?.[i]) continue;
+    if (!rounds.has(m.round)) rounds.set(m.round, []);
+    rounds.get(m.round).push(name);
+  }
+  // Later out places higher. Within a round there is no order, so by name.
+  const groups = [top.slice(0, 1), top.slice(1),
+    ...[...rounds.keys()].sort((x, y) => y - x).map((r) => rounds.get(r).sort((x, y) => x.localeCompare(y)))];
+
+  for (const p of [...prizes].sort((x, y) => placeNo(x) - placeNo(y))) {
+    const size = placeSize(p);
+    const names = [];
+    while (groups.length && names.length < size) names.push(...groups.shift());
+    // A place that would split a round, or that the bracket runs out before,
+    // is where the bracket stops deciding things.
+    if (!size || names.length !== size) break;
+    out.set(p.place, names);
+  }
+  return out;
+}
+
+const who = (name, format) => {
+  const teamGame = !format || format === "3v3";
+  const mark = teamGame || hasLogo(name) ? crest(name) : "";
+  return `<td class="ewho got">${mark}${esc(teamName(name))}</td>`;
+};
+
+const prizeTable = (prizes, placings = new Map(), format = null) => {
+  const rows = [...prizes].sort((a, b) => placeNo(a) - placeNo(b)).flatMap((p) => {
     const first = placeNo(p);
     const cls = first === 1 ? " gold" : first === 2 ? " silver" : first === 3 ? " bronze" : "";
     // A non-breaking hyphen: "3-4" is one placement and wrapping it onto two
     // lines read as two.
     const place = String(p.place).replace(/-/g, "‑");
-    return `<tr><td class="eplace${cls}">${esc(place)}.</td>` +
-      `<td class="ewho"><span class="etbd" aria-hidden="true"></span>TBD</td>` +
+    const row = (cell) => `<tr><td class="eplace${cls}">${esc(place)}.</td>` + cell +
       `<td class="emoney">${esc(money(p.usd))}</td></tr>`;
+    // One row per team, each with the prize it took, as Liquipedia lists them.
+    const names = placings.get(p.place);
+    if (names) return names.map((n) => row(who(n, format)));
+    return [row(`<td class="ewho"><span class="etbd" aria-hidden="true"></span>TBD</td>`)];
   }).join("");
   return `<table class="eprize"><thead><tr><th>#</th><th>Participant</th><th>Prize money</th></tr></thead>` +
     `<tbody>${rows}</tbody></table>`;
@@ -317,10 +380,13 @@ export function prizesHTML(ev) {
   // an empty table would be a claim that there is no prize money, which is a
   // different thing from not knowing.
   const groups = new Map();
+  const stagesOf = new Map();
   for (const st of ev?.stages ?? []) {
+    const key = st.format ?? "3v3";
+    if (!stagesOf.has(key)) stagesOf.set(key, []);
+    stagesOf.get(key).push(st);
     const prizes = st.prizes ?? [];
     if (!prizes.length) continue;
-    const key = st.format ?? "3v3";
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(...prizes);
   }
@@ -334,7 +400,7 @@ export function prizesHTML(ev) {
   // One discipline needs no label saying which one it is.
   const label = order.length > 1;
   return `<h3 class="eph">Prize pool</h3>` + order.map((k) =>
-    (label ? `<h4 class="esub">${esc(k)}</h4>` : "") + prizeTable(groups.get(k))).join("");
+    (label ? `<h4 class="esub">${esc(k)}</h4>` : "") + prizeTable(groups.get(k), placingsOf(stagesOf.get(k), groups.get(k)), k)).join("");
 }
 
 // ---- the result -------------------------------------------------------------
