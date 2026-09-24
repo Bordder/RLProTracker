@@ -35,7 +35,7 @@ const DATA_SRC = SEED === null
 const TYPES = {
   ".html": "text/html", ".js": "text/javascript", ".mjs": "text/javascript",
   ".json": "application/json", ".css": "text/css", ".svg": "image/svg+xml",
-  ".png": "image/png", ".woff2": "font/woff2", ".webmanifest": "application/manifest+json",
+  ".png": "image/png", ".webp": "image/webp", ".woff2": "font/woff2", ".webmanifest": "application/manifest+json",
   ".xml": "application/xml", ".txt": "text/plain",
 };
 
@@ -92,7 +92,11 @@ function syncData() {
 await syncData();
 
 createServer(async (req, res) => {
-  let path = decodeURIComponent(req.url.split("?")[0]);
+  // A malformed escape ("/%E0") makes decodeURIComponent throw, which inside
+  // this async handler was an unhandled rejection rather than a 400.
+  let path;
+  try { path = decodeURIComponent(req.url.split("?")[0]); }
+  catch { res.writeHead(400); return res.end("bad request"); }
   // Re-sync on each derived-data request: the hourly jobs rewrite data/derived
   // while the server stays up, and a startup-only copy would serve stale JSON.
   if (path.startsWith("/data/derived/")) await syncData();
