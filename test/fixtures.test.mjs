@@ -138,9 +138,15 @@ test("ordinals are ordinals, including the teens", () => {
     ["1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "18th", "21st", "22nd", "23rd", "30th"]);
 });
 
+// The panel writes dates in the reader's own locale, so the expected day is
+// formatted the same way rather than spelled out in one. Written as "18 Sept"
+// these only passed on an en-GB machine; the Ubuntu runner is en-US and says
+// "Sep 18", which is what had the Tests workflow failing on main.
+const dayIn = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString([], { day: "numeric", month: "short" });
+
 test("a day range reads as one", () => {
-  assert.equal(spanWords({ from: "2026-09-18", to: "2026-09-20" }), "18–20 Sept");
-  assert.equal(spanWords({ from: "2026-09-17", to: "2026-09-17" }), "17 Sept");
+  assert.equal(spanWords({ from: "2026-09-18", to: "2026-09-20" }), `18–${dayIn("2026-09-20")}`);
+  assert.equal(spanWords({ from: "2026-09-17", to: "2026-09-17" }), dayIn("2026-09-17"));
   assert.equal(spanWords(null), "");
 });
 
@@ -266,7 +272,7 @@ test("a round with one named match shows the match, not the round", () => {
   const html = panelHTML(d, T("2026-09-16T12:00:00Z"));
   assert.ok(html.includes("Nwpo") && html.includes("nass"), html);
   // Still says when, because that is the only timing the page has published.
-  assert.ok(html.includes("18 Sept"), html);
+  assert.ok(html.includes(dayIn("2026-09-18")), html);
 });
 
 test("a round still deciding who is in it stays a round", () => {
