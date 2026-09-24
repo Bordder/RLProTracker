@@ -65,15 +65,18 @@ function mmrCell(d, on) {
 }
 
 function row(d) {
-  const seen = ms(d.seenAt);
+  // Until tracker.gg has given a last game, the last time Steam saw the game
+  // open stands in for it.
+  const game = ms(d.seenAt);
+  const seen = game ?? ms(d.inGameAt);
   const on = playing(d);
   const mark = on
     ? `<span class="pmark" title="Played in the past 20 minutes">Playing${d.mode ? " " + esc(short(d.mode)) : ""}</span>`
     : inGame(d) ? '<span class="gmark" title="Steam says Rocket League is open">In game</span>' : "";
-  const last = seen != null ? ago(seen) : "None recorded";
+  const last = seen != null ? ago(seen) : d.readAt ? "None recorded" : "Not read yet";
   return `<tr${on ? ' class="on"' : ""}>
     <td><div class="who"><a class="nm" href="${esc(d.url)}" target="_blank" rel="noopener" title="tracker.gg profile">${esc(d.name)}</a>${mark}</div><span class="pf">${esc(PLATFORM[d.platform] ?? d.platform)}</span></td>
-    <td><span class="last${seen == null ? " na" : ""}">${esc(last)}</span></td>
+    <td><span class="last${seen == null ? " na" : ""}"${game == null && seen != null ? ' title="Last seen with Rocket League open on Steam"' : ""}>${esc(last)}</span></td>
     <td class="num">${mmrCell(d, on)}</td>
   </tr>`;
 }
@@ -90,7 +93,7 @@ function render(feed) {
   msg.hidden = true;
   // Playing, then In game, then by the last game.
   const tier = (d) => (playing(d) ? 0 : inGame(d) ? 1 : 2);
-  const key = (d) => ms(d.seenAt) ?? -Infinity;
+  const key = (d) => ms(d.seenAt) ?? ms(d.inGameAt) ?? -Infinity;
   const list = [...devs].sort((a, b) => tier(a) - tier(b) || key(b) - key(a) || String(a.name).localeCompare(String(b.name)));
 
   $("out").innerHTML = `
