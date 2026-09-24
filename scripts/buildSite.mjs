@@ -176,7 +176,7 @@ console.log("web/_headers -> CSP written");
 // The HTML itself is always revalidated, so stamping the script reference with a
 // hash of its contents means a changed script is fetched immediately and an
 // unchanged one still hits cache.
-for (const [page, script] of [["index.html", "rlpt.js"], ["status.html", "status.js"], ["brackets.html", "brackets.js"], ["compare.html", "compare.js"], ["alpha-boost.html", "alpha-boost.js"]]) {
+for (const [page, script] of [["index.html", "rlpt.js"], ["status.html", "status.js"], ["brackets.html", "brackets.js"], ["compare.html", "compare.js"], ["alphaboost.html", "alphaboost.js"]]) {
   // Hash the normalised text, not the raw bytes. On Windows git checks these
   // files out with CRLF while the editor writes LF, so hashing bytes made the
   // stamp flip back and forth on every checkout: a phantom diff in index.html

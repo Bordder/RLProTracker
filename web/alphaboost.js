@@ -54,7 +54,7 @@ function row(d) {
   const seen = ms(d.seenAt);
   const on = playing(d);
   const mark = on
-    ? `<span class="pmark" title="A game in the last 20 minutes">Playing${d.mode ? " " + esc(d.mode) : ""}</span>`
+    ? `<span class="pmark" title="Played in the past 20 minutes">Playing${d.mode ? " " + esc(d.mode) : ""}</span>`
     : inGame(d) ? '<span class="gmark" title="Steam says Rocket League is open">In game</span>' : "";
   const last = seen != null ? ago(seen) : "None recorded";
   return `<tr${on ? ' class="on"' : ""}>
