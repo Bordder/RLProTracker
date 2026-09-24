@@ -82,10 +82,15 @@ export function labelOf(code) {
 
 // null rather than a guess. An unmapped name is a wiki spelling this file has
 // not seen, and the fetch logs it so it can be added.
+// The codes the table can produce, so a code written in place of a name - an
+// event infobox saying "de" - is understood too. Only codes already in the
+// table: two letters it has never mapped stay unknown, like any other name.
+const CODES = new Set(Object.values(CODE));
+
 export function codeOf(name) {
   if (!name) return null;
   const t = String(name).trim();
-  return SUBDIVISION[t] ?? CODE[t] ?? null;
+  return SUBDIVISION[t] ?? CODE[t] ?? (CODES.has(t) ? t : null);
 }
 
 // What the pipeline stores per player: the code is the durable part, the flag

@@ -131,3 +131,24 @@ test("teamTracker orders teams by average 2v2, and a team with no rating sorts l
   ]);
   assert.deepEqual(teams.map((t) => t.team), ["top", "mid", "none"]);
 });
+
+test("teamHours counts a fortnight only for the players whose fortnight it measured", () => {
+  // Two of three players carry a frozen or stated TOTAL, which counts them as
+  // tracked, but Steam gives neither a fortnight figure. The sum was printed
+  // as the whole roster's two weeks.
+  const [t] = teamHours([
+    player(),
+    player({ steam2wkHours: null, totalHoursFrozenAt: "2026-08-01" }),
+    player({ steam2wkHours: null, totalHoursStated: "Twitch, 2025" }),
+  ]);
+  assert.equal(t.tracked, 3);
+  assert.equal(t.tracked2wk, 1);
+  assert.equal(t.steam2wkHours, 10);
+});
+
+test("teamHours says when nobody's fortnight was measured, while the sum stays a number", () => {
+  const [t] = teamHours([player({ steam2wkHours: null }), player({ steam2wkHours: null })]);
+  assert.equal(t.tracked, 2);
+  assert.equal(t.tracked2wk, 0);
+  assert.equal(t.steam2wkHours, 0);
+});

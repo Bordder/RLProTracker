@@ -7,7 +7,7 @@
 // is carried through separately as a fallback.
 //
 // Total playtime is also kept in a durable last-known store
-// (data/last-known-hours.json). Snapshots are pruned after 15 days, so without
+// (data/last-known-hours.json). Readings are thinned and dropped after 90 days, so without
 // it a player who opens their profile once and closes it again would lose that
 // reading for good. When the live value is missing we fall back to the stored
 // one and mark it frozen, so the row shows a real (if dated) number instead of

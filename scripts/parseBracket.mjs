@@ -1,8 +1,5 @@
 // Wikitext -> bracket JSON. Pure: no network, no filesystem, no clock.
 //
-// LOCAL ONLY for now. This whole folder is gitignored; files move into
-// scripts/ and web/ in a deliberate commit when the page is wanted live.
-//
 // Shape, verified against live fixtures on 11 September 2026:
 //
 //   {{Bracket|Bracket/8-2Q-U-4L2D-2Q|id=pwvMCvdp2Q
@@ -154,10 +151,14 @@ function parseOpponent(raw) {
   }
   const { positional, named } = templateArgs(t.body);
   const score = (named.score ?? "").trim();
+  // A forfeit is written as a letter where the score goes: W for the side
+  // that went through, FF, DQ or L for the one that did not.
+  const mark = /^(W|FF|DQ|L)$/i.test(score) ? score.toUpperCase() : null;
   return {
     team: positional[0] || null,
     // Empty means unplayed. Only a real number becomes a number.
     score: score === "" ? null : Number.isFinite(+score) ? +score : null,
+    ...(mark ? { mark } : null),
   };
 }
 
@@ -177,6 +178,11 @@ export function parseMatch(body) {
       };
     });
   const hasScore = a.score !== null || b.score !== null;
+  // A forfeit, from the letters above or from walkover=<1|2>: over, with a
+  // winner and no score. Read as "no score" it came out upcoming AND finished,
+  // which the live check reports as a match in two states.
+  const wo = /^[12]$/.test((named.walkover ?? "").trim()) ? Number(named.walkover.trim()) - 1
+    : a.mark === "W" ? 0 : b.mark === "W" ? 1 : null;
   // Three states, not two, because a Bo5 sitting at 2-1 is neither.
   //
   // Liquipedia fills the score in as each game is played and sets finished=
@@ -186,7 +192,7 @@ export function parseMatch(body) {
   // events on 15 September: 396 completed matches, every one of them
   // flagged, and the only two unflagged were the two being played. So the
   // flag is what decides a series, and a score without it means in progress.
-  const finished = /^(t|true|1)$/i.test(named.finished ?? "");
+  const finished = wo !== null || /^(t|true|1)$/i.test(named.finished ?? "");
   const startsAt = parseDate(named.date);
   // Which of the two names are seeds rather than teams, so nothing downstream
   // draws a crest for "Group A #1" or counts it as a participant.
@@ -197,7 +203,8 @@ export function parseMatch(body) {
     scores: [a.score, b.score],
     finished,
     live: hasScore && !finished,
-    upcoming: !hasScore,
+    upcoming: !hasScore && !finished,
+    ...(wo !== null ? { winner: wo, marks: [a.mark ?? null, b.mark ?? null] } : null),
     startsAt,
     // The day, when that is all the page gives. Never a substitute for a
     // kickoff: both are published, and anything reading this has to decide

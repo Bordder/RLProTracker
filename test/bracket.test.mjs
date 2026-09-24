@@ -414,7 +414,7 @@ test("the real Worlds playoff shape is not a binary tree", () => {
 
 import { records, standings, pairGroups } from "../web/standings.mjs";
 
-const played = (a, b, x, y) => ({ teams: [a, b], scores: [x, y], upcoming: false });
+const played = (a, b, x, y) => ({ teams: [a, b], scores: [x, y], upcoming: false, finished: true });
 
 test("a record counts series and games, not matches on the page", () => {
   const r = records([played("A", "B", 3, 1), played("A", "C", 3, 0), played("B", "C", 2, 3)]);
@@ -422,6 +422,16 @@ test("a record counts series and games, not matches on the page", () => {
     { ...r.get("a") },
     { team: "A", won: 2, lost: 0, played: 2, gamesFor: 6, gamesAgainst: 1, diff: 5 }
   );
+});
+
+test("a series still being played is not a result yet", () => {
+  // A Bo5 at 2-1 with no finished flag. Counting it gave the leader a win in
+  // the group table while the series was live: the same mistake that once
+  // qualified Virtus.pro out of a play-in series they were still playing.
+  const r = records([{ teams: ["A", "B"], scores: [2, 1], finished: false, live: true }]);
+  assert.equal(r.get("a")?.won ?? 0, 0);
+  assert.equal(r.get("b")?.lost ?? 0, 0);
+  assert.equal(r.get("a")?.played ?? 0, 0);
 });
 
 test("an unplayed match is not a nil-nil draw", () => {
@@ -737,10 +747,24 @@ test("between events it answers null rather than the nearest one", () => {
   assert.deepEqual(now.teams, []);
 });
 
-test("the window includes both its end days", () => {
+test("the window includes both its end days, padded a day either side", () => {
   assert.equal(eventNow(lanDoc, "2026-09-15").event.slug, "worlds-2026");
   assert.equal(eventNow(lanDoc, "2026-09-20").event.slug, "worlds-2026");
-  assert.equal(eventNow(lanDoc, "2026-09-21").event, null);
+  // The published dates are the venue's. A Fort Worth final that starts at
+  // 22:10 UTC is still being played on the 21st in UTC, and dropping the event
+  // at midnight UTC took the LAN note off the board mid grand final.
+  assert.equal(eventNow(lanDoc, "2026-09-21").event.slug, "worlds-2026");
+  assert.equal(eventNow(lanDoc, "2026-09-22").event, null);
+  assert.equal(eventNow(lanDoc, "2026-09-13").event, null);
+});
+
+test("an event stays on while a match is live, even past its padded window", () => {
+  const late = structuredClone(lanDoc);
+  late.events[1].stages[0].brackets[0].matches[0] = {
+    teams: ["Team Vitality", "NRG"], scores: [2, 2], live: true, finished: false,
+    startsAt: "2026-09-22T23:30:00.000Z",
+  };
+  assert.equal(eventNow(late, Date.parse("2026-09-23T00:30:00Z")).event.slug, "worlds-2026");
 });
 
 test("it stays small enough for the board to fetch", () => {
@@ -766,4 +790,56 @@ test("a name that is already a name is not an unresolved code", () => {
   for (const name of ["Manchester City Esports", "Shopify Rebellion", "NRG", "TSM", "Team Falcons"]) {
     assert.equal(looksLikeCode(name), false, name);
   }
+});
+
+// ---- forfeits ----------------------------------------------------------------
+
+test("a forfeit is a finished match with a winner and no score", () => {
+  // Liquipedia marks a walkover with a letter where the score goes (W against
+  // FF, DQ or L), or with walkover=<winner>. Reading the letters as "no score"
+  // made the match upcoming and finished at once, which the live check reports
+  // as a match in two states and the group card printed as null-null.
+  const [b] = parseBrackets(`{{Bracket|Bracket/2|id=x
+|R1M1={{Match
+    |opponent1={{TeamOpponent|A|score=W}}
+    |opponent2={{TeamOpponent|B|score=FF}}
+    |finished=true
+}}
+|R1M2={{Match
+    |opponent1={{TeamOpponent|C|score=}}
+    |opponent2={{TeamOpponent|D|score=}}
+    |walkover=2
+}}
+}}`);
+  const [a, c] = b.matches;
+  assert.deepEqual([a.finished, a.upcoming, a.live, a.winner], [true, false, false, 0]);
+  assert.deepEqual(a.scores, [null, null]);
+  assert.deepEqual(a.marks, ["W", "FF"]);
+  assert.deepEqual([c.finished, c.upcoming, c.live, c.winner], [true, false, false, 1]);
+});
+
+test("an ordinary match carries no forfeit fields", () => {
+  const [b] = parseBrackets(`{{Bracket|Bracket/2|id=x
+|R1M1={{Match
+    |opponent1={{TeamOpponent|A|score=3}}
+    |opponent2={{TeamOpponent|B|score=1}}
+    |finished=true
+}}
+}}`);
+  assert.equal("winner" in b.matches[0], false);
+  assert.equal("marks" in b.matches[0], false);
+});
+
+// ---- the alias fallback ------------------------------------------------------
+
+import { loadTeams } from "../scripts/assemble.mjs";
+
+test("an unknown short code is not renamed to whatever org contains its letters", async () => {
+  // "ar" came out as Five Fears and "m" as Mate y Tapa, and a renamed code
+  // counts as resolved, so it was never flagged for the resolver either.
+  const t = await loadTeams("worlds-2026");
+  assert.equal(t.name("ar"), "ar");
+  assert.equal(t.name("m"), "m");
+  // The case the fallback exists for still works: a word of the full name.
+  assert.equal(t.name("falcons"), "Team Falcons");
 });

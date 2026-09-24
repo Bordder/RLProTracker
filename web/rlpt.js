@@ -325,7 +325,14 @@
     'geng':'geng-mobil1-racing',
     'geng-esports':'geng-mobil1-racing',
     'helfie-chiefs':'chiefs-esports-club',
-    'virtus-pro':'virtuspro'
+    'virtus-pro':'virtuspro',
+    // Spellings the live bracket feed carries that web/crest.mjs already knew
+    // and this map did not: a LAN listing "Vitality" missed every Team
+    // Vitality row. test/logo-alias.test.mjs keeps the two maps in step.
+    'vitality':'team-vitality',
+    'ssg':'spacestation-gaming',
+    'kc':'karmine-corp',
+    'tm':'twisted-minds'
   };
   var LOGO_DIR='img/teams/';
 
@@ -756,13 +763,17 @@
       var nextTeams=teamNames.map(function(name){
         var t=thByTeam[name]||{team:name,players:(ttByTeam[name]||{}).players||0,tracked:0,steam2wkHours:null,totalHours:null};
         var tt=ttByTeam[name]||{};
-        return { team:t.team, region:REGION[t.team]||null, players:t.players, tracked:t.tracked, ranked:tt.ranked||0,
+        return { team:t.team, region:REGION[t.team]||null, players:t.players, tracked:t.tracked,
+          // How many players' fortnight Steam actually measured, which a frozen
+          // or stated total does not give. Older feeds lack it; fall back.
+          tracked2wk:t.tracked2wk!=null?t.tracked2wk:t.tracked, ranked:tt.ranked||0,
           avgMmr:tt.avgMmr||null, seasonGames:tt.seasonGames!=null?tt.seasonGames:null, games:tt.games||null,
           hours2wk:t.steam2wkHours, totalHours:t.totalHours };
       });
 
       players.length=0; Array.prototype.push.apply(players,nextPlayers);
       teams.length=0;   Array.prototype.push.apply(teams,nextTeams);
+      indexTeams();
 
       // Re-derive on every update, not just at load: a roster change can add a
       // team while the page is open, and without this it would render with the
@@ -915,11 +926,15 @@
     }
 
     // "15-20 September", or one date when a LAN runs a single day.
+    // formatRange, in UTC: gluing a day number to a formatted end date read
+    // "15–September 20" in en-US, dropped the first month of a range that
+    // crosses one, and a local zone put the end a day late east of UTC+12.
     function lanWindow(l){
-      var d=function(iso){ return new Date(iso+'T12:00:00Z').toLocaleDateString([],{day:'numeric',month:'long'}); };
       if(!l.starts)return '';
-      if(!l.ends||l.ends===l.starts)return d(l.starts);
-      return new Date(l.starts+'T12:00:00Z').getUTCDate()+'–'+d(l.ends);
+      var fmt=new Intl.DateTimeFormat(undefined,{day:'numeric',month:'long',timeZone:'UTC'});
+      var at=function(iso){ return new Date(iso+'T12:00:00Z'); };
+      if(!l.ends||l.ends===l.starts)return fmt.format(at(l.starts));
+      return fmt.formatRange(at(l.starts),at(l.ends));
     }
 
     // The highest rating ever reached in the playlist being read. The figure
@@ -951,8 +966,15 @@
       // refresh. Only when the SERVER's own data has gone cold is something
       // actually broken.
       var pageBehind = serverAt!=null && collectedAt!=null && serverAt>collectedAt+60e3;
-      var age = Date.now() - (serverAt!=null ? Math.max(serverAt,collectedAt) : collectedAt);
-      var state = pageBehind ? 'behind' : (age>=HALTED_MS ? 'halted' : (age>=LATE_MS ? 'late' : 'ok'));
+      // "Behind" is only quiet while the refetch it waits on can be expected
+      // to land. If the server's newer data never arrives - the status probe
+      // answers but the data request keeps failing - the numbers on screen go
+      // on ageing, and staying quiet about that forever hid exactly the stale
+      // board this line exists to call out. Past LATE_MS it is judged on the
+      // age of what is actually shown.
+      var shownAge = Date.now() - collectedAt;
+      var age = pageBehind ? shownAge : Date.now() - (serverAt!=null ? Math.max(serverAt,collectedAt) : collectedAt);
+      var state = pageBehind && shownAge<LATE_MS ? 'behind' : (age>=HALTED_MS ? 'halted' : (age>=LATE_MS ? 'late' : 'ok'));
 
       meta.classList.toggle('is-late',state==='late');
       meta.classList.toggle('is-halted',state==='halted');
@@ -1080,13 +1102,18 @@
       });
       thead.appendChild(trh); tbl.appendChild(thead);
       var tb=document.createElement('tbody'); tbl.appendChild(tb);
+      // Region and Playing belong to the players list: their controls sit in
+      // the row the Teams tab hides, so applying them there filtered the teams
+      // table with no visible way to undo it, and Playing emptied it outright
+      // (a team row has no last game of its own to be live by).
+      var byPlayer=items===players;
       function paint(){
         var arr=items.filter(function(x){
-          if(regionQ&&x.region!==regionQ)return false;
+          if(byPlayer&&regionQ&&x.region!==regionQ)return false;
           // Nobody appears twice: the three on the podium are not repeated in
           // the table underneath it.
           if(x.id&&podiumIds[x.id])return false;
-          if(liveOnly&&!isLive(x))return false;
+          if(byPlayer&&liveOnly&&!isLive(x))return false;
           return !searchQ||matchFn(x,searchQ);
         });
         var acc=accessors[sk];
@@ -1107,7 +1134,10 @@
         writeRows(tb,arr.length?arr.map(rowFn).join(''):'');
         // The phone list shows the ordered figure beside the name, and CSS can
         // only pick that cell if the table says which one it is.
-        tbl.dataset.sort=sk;
+        // Peaks are read per playlist, so the phone needs to know which one
+        // too: with only "peak" it went on showing the 2v2 cell beside a list
+        // ordered by the 1v1 or 3v3 peak.
+        tbl.dataset.sort=sk==='peak'?('peak-'+mmrKey):sk;
         trh.querySelectorAll('th').forEach(function(th){ th.classList.remove('s-asc','s-desc'); if(th.dataset.k===sk)th.classList.add(sd==='asc'?'s-asc':'s-desc'); });
 
         // Every control that changes what is on screen repaints, so this is the
@@ -1181,11 +1211,14 @@
     // Team totals only sum the players who publish hours. Printing 0 for a team
   // where nobody does reads as "this team never plays", and a partial sum needs
   // saying so or it looks like the whole roster.
-  var teamHoursCell=function(t,v,fmt){
-    if(!t.tracked)return'<span class="na" title="Every player on this team keeps their hours private, so there is nothing to add up.">hidden</span>';
+  // `n` is how many players the figure actually covers: every tracked player
+  // for the total, only those with a measured fortnight for the two weeks.
+  var teamHoursCell=function(t,v,fmt,n){
+    if(n==null)n=t.tracked;
+    if(!n)return'<span class="na" title="No player on this team has Steam hours to add up for this figure.">hidden</span>';
     if(v==null)return'<span class="dash">&middot;</span>';
     var body=fmt(v);
-    if(t.tracked<t.players)return'<span class="part" title="'+t.tracked+' of '+t.players+' players publish hours; the rest keep them private.">'+body+'</span>';
+    if(n<t.players)return'<span class="part" title="'+n+' of '+t.players+' players have Steam hours in this figure; the rest keep them private or only have an older total.">'+body+'</span>';
     return body;
   };
 
@@ -1217,7 +1250,7 @@
         mmrCell(a.ones,'m1')+mmrCell(a.twos,'m2')+mmrCell(a.threes,'m3')+
         '<td class="c-sg" data-l="season">'+(t.seasonGames!=null?'<span class="sgv">'+nf(t.seasonGames)+'</span>':'<span class="dash">&middot;</span>')+'</td>'+
         '<td class="c-g14" data-l="24h games">'+teamGamesCell(t)+'</td>'+
-        '<td class="c-hr c-hr2" data-l="2wk h">'+teamHoursCell(t,t.hours2wk,hf)+'</td>'+
+        '<td class="c-hr c-hr2" data-l="2wk h">'+teamHoursCell(t,t.hours2wk,hf,t.tracked2wk)+'</td>'+
         '<td class="c-hr c-hrt" data-l="total h">'+teamHoursCell(t,t.totalHours,function(x){return nf(Math.round(x));})+'</td>'+
         '<td class="c-cp">'+copyBtn(t.team)+'</td></tr>';
     };
@@ -1262,7 +1295,7 @@
       var bits=[t.team+(t.region?(' ('+t.region+')'):'')], m=mmrBit(t.avgMmr,'avg ');
       if(m)bits=bits.concat(m);
       if(t.seasonGames!=null)bits.push(nf(t.seasonGames)+' games this season');
-      if(t.tracked&&t.hours2wk!=null)bits.push(hf(t.hours2wk)+'h in 2wk');
+      if(t.tracked2wk&&t.hours2wk!=null)bits.push(hf(t.hours2wk)+'h in 2wk');
       if(t.tracked&&t.totalHours!=null)bits.push(nf(Math.round(t.totalHours))+'h total');
       var out=[bits.join(SEP)];
       var roster=(byTeam[t.team]||[]).slice();
@@ -1272,7 +1305,14 @@
     };
 
     // Roster-comparison panel for a team (players side by side, best per row highlighted).
-    var byTeam={}; players.forEach(function(p){ (byTeam[p.team]=byTeam[p.team]||[]).push(p); });
+    //
+    // Rebuilt by hydrate() on every refresh. It was built once, here, from the
+    // first load, and hydrate replaces every player object, so the team panel,
+    // the team copy line and the partial marker on team games went on showing
+    // the numbers from when the page was opened.
+    var byTeam={};
+    function indexTeams(){ byTeam={}; players.forEach(function(p){ (byTeam[p.team]=byTeam[p.team]||[]).push(p); }); }
+    indexTeams();
     var teamPanel=function(name){
       var roster=(byTeam[name]||[]).slice();
       if(!roster.length)return '<div class="exp-wrap"><div class="exp-h">No player data yet</div></div>';
@@ -2239,7 +2279,7 @@
           rows+='<span class="tl s'+sr.i+'"><i></i>'+esc(sr.name)+'<b>'+nf(pt[3])+'</b></span>';
         });
         var w=new Date(mmrBase+when*60000);
-        tip.innerHTML='<span class="tw">'+esc(w.toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'})+
+        tip.innerHTML='<span class="ttime">'+esc(w.toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'})+
           ', '+w.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}))+'</span>'+rows;
         tip.removeAttribute('hidden');
         mark.removeAttribute('hidden');
@@ -2321,9 +2361,11 @@
       // 24h column is fixed: a link has to describe what is on screen, and
       // win=d7 there would describe something the recipient cannot see.
       if(win!=='d1'&&!teamsOn)q.push('win='+win);
-      if(regionQ)q.push('region='+encodeURIComponent(regionQ));
+      // Neither filter applies on the teams tab, so a link from there must not
+      // carry them.
+      if(regionQ&&!teamsOn)q.push('region='+encodeURIComponent(regionQ));
       if(searchQ)q.push('q='+encodeURIComponent(searchQ));
-      if(liveOnly)q.push('playing=1');
+      if(liveOnly&&!teamsOn)q.push('playing=1');
       var next=location.pathname+(q.length?('?'+q.join('&')):'')+location.hash;
       if(next===location.pathname+location.search+location.hash)return;
       // Safari throws once replaceState is called more than 100 times in 30
@@ -2452,11 +2494,13 @@
           })
           .catch(function(){
             // Last resort: hand the user the prefilled issue rather than dropping
-            // what they wrote.
+            // what they wrote. As a link they click, not window.open: this runs
+            // after the request failed, long after the click that sent it, and
+            // popup blockers refuse a window opened then.
             var title=type+(user?(' from '+user):'')+': '+msg.split('\n')[0].slice(0,60);
             var body=msg+'\n\n---\nType: '+type+'\nFrom: '+(user||'anonymous')+'\nVia: RL Pro Tracker feedback form';
-            window.open(REPO+'/issues/new?title='+encodeURIComponent(title)+'&body='+encodeURIComponent(body),'_blank','noopener,noreferrer');
-            fbRes.textContent='Could not send directly - opening GitHub instead.'; fbRes.className='msg err';
+            var url=REPO+'/issues/new?title='+encodeURIComponent(title)+'&body='+encodeURIComponent(body);
+            fbRes.innerHTML='Could not send directly. <a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Open it as a GitHub issue instead</a>.'; fbRes.className='msg err';
           })
           .then(function(){ fbBtn.disabled=false; });
       });

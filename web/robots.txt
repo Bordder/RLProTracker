@@ -2,11 +2,12 @@
 User-agent: *
 Allow: /
 
-# Endpoints, not pages: /data serves the JSON the board reads, /status is a
-# freshness probe, /feedback only answers POST. Nothing for a crawler to index,
-# and crawling them just wastes both our time.
+# Endpoints, not pages: /data serves the JSON the board reads, /api/status is
+# a freshness probe, /feedback only answers POST. Nothing for a crawler to
+# index, and crawling them just wastes both our time. /status itself is the
+# human-readable status page and is in the sitemap, so it is not blocked.
 Disallow: /data/
-Disallow: /status
+Disallow: /api/
 Disallow: /feedback
 
 Sitemap: https://198x.online/sitemap.xml

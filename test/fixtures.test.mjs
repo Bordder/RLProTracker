@@ -7,9 +7,17 @@
 // with missing information lands in.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { matchesOf, sectionName, fixturesFrom, whenWords, ordinal, spanWords, zoneLabel, panelHTML } from "../web/fixtures.mjs";
+import { matchesOf, sectionName, fixturesFrom, whenWords, ordinal, spanWords, zoneLabel, panelHTML, eventRunning } from "../web/fixtures.mjs";
+import { PAD } from "../scripts/events.mjs";
 
 const T = (iso) => Date.parse(iso);
+
+// The zone is pinned, as the locale is below: "today" and "later" are the
+// reader's days, so a test written against UTC failed on a machine in New
+// Zealand, where 18:00 UTC on the 15th is already the 16th. Each test file
+// runs in its own process, so this reaches no other file. The test that is
+// ABOUT the reader's zone sets its own and puts this one back.
+process.env.TZ = "UTC";
 
 // The event the panel is shown for, shaped the way a Worlds page parses: a
 // dated play-in bracket, an undated group matchlist, and an undated playoff
@@ -138,16 +146,38 @@ test("ordinals are ordinals, including the teens", () => {
     ["1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "18th", "21st", "22nd", "23rd", "30th"]);
 });
 
-// The panel writes dates in the reader's own locale, so the expected day is
-// formatted the same way rather than spelled out in one. Written as "18 Sept"
-// these only passed on an en-GB machine; the Ubuntu runner is en-US and says
-// "Sep 18", which is what had the Tests workflow failing on main.
-const dayIn = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString([], { day: "numeric", month: "short" });
+// The locale is passed in rather than left to the machine running the tests:
+// GitHub's runners report en-US, a British laptop en-GB, and a test that only
+// passes on one of them says nothing about the code.
+const GB = "en-GB";
+// formatRange spaces its dash with whatever space the locale data uses (a thin
+// or narrow no-break space on some ICU builds), so compare on plain spaces.
+const plain = (s) => s.replace(/\s/g, " ");
 
 test("a day range reads as one", () => {
-  assert.equal(spanWords({ from: "2026-09-18", to: "2026-09-20" }), `18–${dayIn("2026-09-20")}`);
-  assert.equal(spanWords({ from: "2026-09-17", to: "2026-09-17" }), dayIn("2026-09-17"));
-  assert.equal(spanWords(null), "");
+  assert.equal(plain(spanWords({ from: "2026-09-18", to: "2026-09-20" }, GB)), "18 – 20 Sept");
+  assert.equal(spanWords({ from: "2026-09-17", to: "2026-09-17" }, GB), "17 Sept");
+  assert.equal(spanWords(null, GB), "");
+});
+
+test("a day range reads as one in a month-first locale too", () => {
+  // Built by hand as "day, dash, formatted end", en-US came out "18–Sep 20".
+  assert.equal(plain(spanWords({ from: "2026-09-18", to: "2026-09-20" }, "en-US")), "Sep 18 – 20");
+});
+
+test("a range across two months names both", () => {
+  // "30–2 Oct" dropped September entirely.
+  assert.equal(plain(spanWords({ from: "2026-09-30", to: "2026-10-02" }, GB)), "30 Sept – 2 Oct");
+});
+
+test("a date is the same date whatever zone the reader is in", () => {
+  // Midday UTC is already the next day at UTC+13, which put the end of a
+  // range a day late for a reader in New Zealand.
+  const saved = process.env.TZ;
+  process.env.TZ = "Pacific/Auckland";
+  try {
+    assert.equal(plain(spanWords({ from: "2026-09-18", to: "2026-09-20" }, GB)), "18 – 20 Sept");
+  } finally { process.env.TZ = saved; }
 });
 
 test("the markup escapes what Liquipedia supplies", () => {
@@ -269,10 +299,10 @@ test("a round with one named match shows the match, not the round", () => {
   const f = fixturesFrom(d, T("2026-09-16T12:00:00Z"));
   const final = f.soon.find((s) => s.stage === "Final");
   assert.deepEqual(final.match.teams, ["Nwpo", "nass"]);
-  const html = panelHTML(d, T("2026-09-16T12:00:00Z"));
+  const html = panelHTML(d, T("2026-09-16T12:00:00Z"), { locale: GB });
   assert.ok(html.includes("Nwpo") && html.includes("nass"), html);
   // Still says when, because that is the only timing the page has published.
-  assert.ok(html.includes(dayIn("2026-09-18")), html);
+  assert.ok(html.includes("18 Sept"), html);
 });
 
 test("a round still deciding who is in it stays a round", () => {
@@ -310,4 +340,38 @@ test("the panel names the reader's timezone", () => {
   // would only offer an offset.
   assert.ok(label === expected || !/^GMT|^UTC/.test(label), label);
   assert.ok(panelHTML(ev(), now).includes(label), "and it reaches the panel");
+});
+
+test("an event is running inside its dates padded a day either side", () => {
+  const e = { starts: "2026-09-15", ends: "2026-09-20", stages: [] };
+  assert.equal(eventRunning(e, T("2026-09-21T00:30:00Z")), true, "a venue evening past midnight UTC");
+  assert.equal(eventRunning(e, T("2026-09-14T06:00:00Z")), true);
+  assert.equal(eventRunning(e, T("2026-09-22T06:00:00Z")), false);
+});
+
+test("a live match keeps an event running past its window, a stale one does not", () => {
+  const e = (m) => ({ starts: "2026-09-15", ends: "2026-09-20", stages: [{ brackets: [{ matches: [m] }], matchlists: [] }] });
+  const at = T("2026-09-23T00:30:00Z");
+  assert.equal(eventRunning(e({ live: true, finished: false, startsAt: "2026-09-22T23:30:00Z" }), at), true);
+  // A score left on a page nobody finished is not a tournament running forever.
+  assert.equal(eventRunning(e({ live: true, finished: false, startsAt: "2026-09-18T23:30:00Z" }), at), false);
+});
+
+test("the page and the collector pad an event by the same amount", () => {
+  const e = { starts: "2026-09-15", ends: "2026-09-15", stages: [] };
+  assert.equal(eventRunning(e, T("2026-09-15T00:00:00Z") - PAD), true);
+  assert.equal(eventRunning(e, T("2026-09-15T00:00:00Z") - PAD - 1), false);
+});
+
+test("every live match is listed, however many are on at once", () => {
+  // The live bucket was cut to four, and a fifth started match is neither
+  // next nor undated, so it fell out of the panel altogether.
+  const d = ev();
+  const now = T("2026-09-16T12:00:00Z");
+  d.stages[0].brackets[0].matches = Array.from({ length: 6 }, (_, i) => ({
+    label: `Match ${i + 1}`, teams: [`T${i}a`, `T${i}b`], scores: [1, 0], finished: false, live: true,
+    startsAt: "2026-09-16T11:30:00.000Z",
+  }));
+  const html = panelHTML(d, now, { locale: GB });
+  for (let i = 1; i <= 6; i++) assert.ok(html.includes(`Match ${i}`), `Match ${i}`);
 });

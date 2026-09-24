@@ -1,6 +1,6 @@
 // The collector loop: keep bracket.json current while matches are being played.
 //
-// LOCAL ONLY. Everything in this folder is gitignored.
+// Run by .github/workflows/brackets.yml with --once; locally, run it by hand.
 //
 //   node collect.mjs            run until stopped
 //   node collect.mjs --once     one cycle, then exit
@@ -19,11 +19,15 @@
 import { join } from "node:path";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
 import { loadEvents, eventsDue, allMatches } from "./events.mjs";
 import { pollPlan, MINUTE, IDLE, perHour } from "./bracketSchedule.mjs";
 import {
   CACHE_DIR, OUT_PATH, sleep, parseEvent, buildDoc, writeAtomic, writeBracketDoc, fetchWikitext,
 } from "./assemble.mjs";
+
+// This script's own folder. import.meta.dirname would do, from Node 20.11.
+const HERE_DIR = fileURLToPath(new URL(".", import.meta.url));
 
 const ONCE = process.argv.includes("--once");
 const DRY = process.argv.includes("--dry");
@@ -142,7 +146,7 @@ async function cycle(events) {
       const title = events.find((e) => e.slug === stale.slug)?.titles[0]?.title;
       log(`unresolved team names on ${stale.slug}: ${stale.unresolved.join(", ")} - re-resolving`);
       try {
-        const { stdout } = await run(process.execPath, ["resolveTeams.mjs", title, stale.slug], { cwd: import.meta.dirname });
+        const { stdout } = await run(process.execPath, ["resolveTeams.mjs", title, stale.slug], { cwd: HERE_DIR });
         log(`${stale.slug}: ${stdout.trim()}`);
         built = (await rebuild(events, built.source)) ?? built;
       } catch (err) {

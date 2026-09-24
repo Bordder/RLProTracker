@@ -264,3 +264,39 @@ test("players with no state survive the pass untouched", () => {
   assert.deepEqual(withPresence([pRow("a")], {}), [pRow("a")]);
   assert.deepEqual(withPresence([pRow("a")]), [pRow("a")]);
 });
+
+test("the combined count is still filling if any playlist is", () => {
+  // 2v2 jumps 800 games in 25 hours, which is thrown out as the counter moving
+  // under us rather than play. The total used to take its flag from 1v1 alone,
+  // so it published the 1v1 figure on its own as a finished count.
+  const snaps = [
+    { t: T0, rows: [row("p", { d1: pl(1000, 10), d2: pl(2000, 100) })] },
+    { t: T25, rows: [row("p", { d1: pl(1000, 12), d2: pl(2000, 900) })] },
+  ];
+  const [p] = computeTrackerPlayers(snaps).players;
+  assert.equal(p.games.twos.d1.partial, true);
+  assert.equal(p.games.total.d1.partial, true);
+});
+
+test("a complete total is not marked partial because 1v1 is", () => {
+  // The other direction: 1v1 appears only in the latest reading, every other
+  // playlist is complete.
+  const snaps = [
+    { t: T0, rows: [row("p", { d2: pl(2000, 100) })] },
+    { t: T25, rows: [row("p", { d1: pl(1000, 3), d2: pl(2000, 110) })] },
+  ];
+  const [p] = computeTrackerPlayers(snaps).players;
+  assert.equal(p.games.total.d1.partial, p.games.ones.d1.partial || p.games.twos.d1.partial);
+});
+
+import { currentAccounts } from "../scripts/computeTrackerDeltas.mjs";
+
+test("a player's current account is the one their newest reading came from", () => {
+  const snaps = [
+    { t: T25, rows: [{ id: "p", who: "epic:right", playlists: {} }] },
+    { t: T0, rows: [{ id: "p", who: "steam:wrong", playlists: {} }, { id: "q", playlists: {} }] },
+  ];
+  const acc = currentAccounts(snaps);
+  assert.equal(acc.get("p"), "epic:right");
+  assert.equal(acc.get("q"), null);
+});

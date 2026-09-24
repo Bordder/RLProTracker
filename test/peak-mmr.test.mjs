@@ -142,3 +142,56 @@ test("the peak's date is our own last new high, not the career best", () => {
   const store = updatePeaks({ players: {} }, [bestSnap(0, 1568, 1808)]);
   assert.equal(peakFor(store, "p1").at, new Date(at(0)).toISOString());
 });
+
+// ---- which account a peak belongs to ------------------------------------------
+//
+// A player is sometimes read from the wrong account for a while: a Steam id
+// Liquipedia attached to somebody else, before the right Epic profile is set.
+// That account's career best was stored as the player's peak, and a store that
+// never goes down kept it forever.
+
+const acct = (h, who, rating, best) => ({
+  t: at(h),
+  rows: [{ id: "p1", who, playlists: { d2: { rating, matches: 100, ...(best ? { best: { rating: best, season: "Season 17" } } : null) } } }],
+});
+
+test("a peak from another account is not published for the current one", () => {
+  const store = updatePeaks({ players: {} }, [acct(0, "steam:wrong", 2400, 2900), acct(1, "epic:right", 1800, 2100)]);
+  const pk = peakFor(store, "p1", "epic:right");
+  assert.equal(pk.twos, 2100);
+  assert.equal(pk.season.twos, "Season 17");
+});
+
+test("switching back to an account brings its own peak back, still never lowered", () => {
+  let store = updatePeaks({ players: {} }, [acct(0, "steam:a", 2500, null)]);
+  store = updatePeaks(store, [acct(1, "steam:b", 1700, null)]);
+  store = updatePeaks(store, [acct(2, "steam:a", 2300, null)]);
+  assert.equal(peakFor(store, "p1", "steam:a").twos, 2500);
+  assert.equal(peakFor(store, "p1", "steam:b").twos, 1700);
+});
+
+test("switching accounts is not refused as a jump", () => {
+  // 1,800 to 2,400 between two readings is a jump within one account, and two
+  // different accounts are simply two different ratings.
+  const store = updatePeaks({ players: {} }, [acct(0, "steam:a", 1800, null), acct(1, "epic:b", 2400, null)]);
+  assert.equal(peakFor(store, "p1", "epic:b").twos, 2400);
+});
+
+test("peaks recorded before accounts were tracked still count for the current one", () => {
+  // Readings with no account are kept by the rest of the pipeline as the
+  // current account's, and the store does the same, so nothing already
+  // earned disappears when this ships.
+  const legacy = updatePeaks({ players: {} }, [snap(0, 2600)]);
+  const store = updatePeaks(legacy, [acct(1, "epic:right", 2500, null)]);
+  assert.equal(peakFor(store, "p1", "epic:right").twos, 2600);
+});
+
+test("updatePeaks leaves the store it is given untouched", () => {
+  // Only the players map was copied, and each player's entries were written
+  // in place, so the CLI's "set or raised" count compared the new store with
+  // itself and always said 0 for a player already held.
+  const store = { players: { p1: { twos: { rating: 1500, at: "then" }, accounts: { "epic:x": { twos: { rating: 1400, at: "then" } } } } } };
+  const before = JSON.stringify(store);
+  updatePeaks(store, [snap(0, 1600), acct(1, "epic:x", 1700, null)]);
+  assert.equal(JSON.stringify(store), before);
+});

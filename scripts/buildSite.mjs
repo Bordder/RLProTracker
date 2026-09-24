@@ -61,6 +61,9 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self'",
+  // Every page links site.webmanifest, and manifest-src falls back to
+  // default-src, so without this the manifest was refused on every load.
+  "manifest-src 'self'",
   // Both data and feedback are same-origin Pages Functions now, so the only
   // outbound destination left is the analytics beacon.
   "connect-src 'self' https://cloudflareinsights.com",
@@ -214,14 +217,15 @@ for (const [page, script] of [["index.html", "rlpt.js"], ["status.html", "status
 {
   const css = (await readFile(join(ROOT, "web", "fonts", "fonts.css"), "utf8")).replace(/\r\n/g, "\n");
   const hash = createHash("sha256").update(css).digest("hex").slice(0, 8);
-  const pattern = /href="fonts\/fonts\.css(?:\?v=[0-9a-f]+)?"/;
+  // The optional slash is 404.html, which links it root-relative.
+  const pattern = /href="(\/?)fonts\/fonts\.css(?:\?v=[0-9a-f]+)?"/;
   let stamped = 0;
   for (const page of await readdir(join(ROOT, "web"))) {
     if (!page.endsWith(".html")) continue;
     const pagePath = join(ROOT, "web", page);
     const html = await readFile(pagePath, "utf8");
     if (!pattern.test(html)) continue;               // index.html inlines its faces
-    const out = html.replace(pattern, `href="fonts/fonts.css?v=${hash}"`);
+    const out = html.replace(pattern, `href="$1fonts/fonts.css?v=${hash}"`);
     if (out !== html) { await writeFile(pagePath, out); stamped++; }
   }
   console.log(`fonts.css?v=${hash} -> ${stamped} page(s) restamped`);

@@ -8,7 +8,7 @@ import { dirname, join } from "node:path";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const LOGO_DIR = join(ROOT, "web", "img", "teams");
 
-// Must match teamSlug() in web/index.html.
+// Must match teamSlug() in web/rlpt.js and web/crest.mjs.
 export const teamSlug = (name) =>
   String(name || "").toLowerCase()
     .replace(/[’'".]/g, "")
@@ -34,6 +34,6 @@ for (const r of rows) {
 const found = rows.filter((r) => r.ext);
 console.log(`\n${found.length}/${rows.length} teams have a logo file.`);
 if (found.length) {
-  console.log("TEAM_LOGO entry for web/index.html:");
+  console.log("TEAM_LOGO entry for web/rlpt.js and web/crest.mjs:");
   console.log(`  var TEAM_LOGO={${found.map((r) => `'${r.slug}':'${r.ext}'`).join(",")}};`);
 }

@@ -248,7 +248,8 @@
   .search.has .clr{display:block}
   .wrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}
   .wlbl{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:11px;font-weight:600;color:var(--slate)}
-  /* Region filter sits with the search so it applies to players and teams alike. */
+  /* Region filter. It orders nothing and applies to the players list only: its
+     row is hidden on the Teams tab, so it does not filter the teams table. */
   .rseg button{font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:11.5px;font-weight:600;padding:5px 10px}
   .rseg button[aria-pressed="true"]{background:var(--panel2);color:var(--bone);box-shadow:inset 0 0 0 1px var(--accent-line)}
   /* Holds the region label and its count as ONE flex item, so the two sit on a
@@ -734,7 +735,8 @@
     background:var(--ink);border:1px solid var(--line2);border-radius:6px;padding:6px 9px;
     display:flex;flex-direction:column;gap:3px;box-shadow:0 4px 14px rgba(0,0,0,.45)}
   .chart-tip[hidden]{display:none}
-  .chart-tip .tw{font-family:var(--mono);font-size:10.5px;color:var(--dim)}
+  /* Not .tw: that is the Twitch link's class, and its underline came with it. */
+  .chart-tip .ttime{font-family:var(--mono);font-size:10.5px;color:var(--dim)}
   .chart-tip .tl{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--slate)}
   .chart-tip .tl i{width:8px;height:8px;border-radius:2px;background:currentColor;flex:0 0 auto}
   .chart-tip .tl b{font-family:var(--mono);font-size:12px;color:var(--bone);margin-left:auto;padding-left:10px}
@@ -1030,8 +1032,8 @@
   /* Links inside body copy were falling back to the browser default blue, which
      is close to unreadable on this background. Bold bone text with a warm
      underline instead. */
-  .note a,.fb .lead a,.dek a{color:var(--bone);font-weight:600;text-decoration:underline;text-decoration-color:var(--accent-line);text-underline-offset:2px}
-  .note a:hover,.fb .lead a:hover,.dek a:hover{color:var(--accent);text-decoration-color:var(--accent)}
+  .note a,.fb .lead a,.fb .msg a,.dek a{color:var(--bone);font-weight:600;text-decoration:underline;text-decoration-color:var(--accent-line);text-underline-offset:2px}
+  .note a:hover,.fb .lead a:hover,.fb .msg a:hover,.dek a:hover{color:var(--accent);text-decoration-color:var(--accent)}
   .foot-links a{color:var(--slate);font-size:12.5px;text-decoration:none;border-bottom:1px solid var(--line2);padding-bottom:1px}
   .foot-links a:hover{color:var(--accent);border-color:var(--accent-line)}
   .fb{margin-top:24px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
@@ -1228,11 +1230,15 @@
     .feed>tbody>tr>td.c-mmr.m2{display:block;text-align:right;min-width:52px}
     .feed[data-sort="ones"]>tbody>tr>td.c-mmr.m1,
     .feed[data-sort="threes"]>tbody>tr>td.c-mmr.m3,
+    .feed[data-sort="peak-ones"]>tbody>tr>td.c-mmr.m1,
+    .feed[data-sort="peak-threes"]>tbody>tr>td.c-mmr.m3,
     .feed[data-sort="sg"]>tbody>tr>td.c-sg,
     .feed[data-sort="h2"]>tbody>tr>td.c-hr2,
     .feed[data-sort="ht"]>tbody>tr>td.c-hrt{display:block;text-align:right;min-width:56px}
     .feed[data-sort="ones"]>tbody>tr>td.c-mmr.m2,
     .feed[data-sort="threes"]>tbody>tr>td.c-mmr.m2,
+    .feed[data-sort="peak-ones"]>tbody>tr>td.c-mmr.m2,
+    .feed[data-sort="peak-threes"]>tbody>tr>td.c-mmr.m2,
     .feed[data-sort="sg"]>tbody>tr>td.c-mmr.m2,
     .feed[data-sort="h2"]>tbody>tr>td.c-mmr.m2,
     .feed[data-sort="ht"]>tbody>tr>td.c-mmr.m2,
@@ -1495,8 +1501,8 @@
 
     <!-- The first fortnight of a ranked season, when every games figure has
          restarted and every rating was soft reset. Hidden the rest of the
-         year; filled by renderSeasonNote from tracker.json's seasonStartedAt,
-         which only exists once purgeSeason.mjs has recorded a changeover. -->
+         year; filled by renderSeasonNote in rlpt.js, which is switched on by
+         hand for each changeover (SHOW and SEASON_CHANGE there). -->
     <div id="seasonNote" hidden></div>
 
     <div class="stats" id="stats"></div>
@@ -1584,6 +1590,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=2695268d" defer></script>
+<script src="rlpt.js?v=2425a301" defer></script>
 </body>
 </html>

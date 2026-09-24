@@ -413,7 +413,8 @@ function playerRanks(players, prio) {
 // choose which players to scrape this run: those due AND in this run's slot, most
 // overdue first, capped at perRun. Each player has a target refresh interval in
 // hours (data/priorities.json) and a slot (playerRanks) that spreads same-interval
-// players across runs. Never-fetched players fill in immediately (ignore slot).
+// players across runs. Never-fetched players fill in immediately (ignore slot),
+// and idle players are due once their interval has passed, capped per run.
 function selectDue(players, prio, state, now) {
   const defaultHours = prio.defaultHours ?? 12;
   const ranks = playerRanks(players, prio);
@@ -439,16 +440,39 @@ function selectDue(players, prio, state, now) {
     // ONLY on an explicit "out". A private or hidden-details profile reports
     // "unknown" and is left at full cadence, because for them presence proves
     // nothing - which is about half the roster.
-    else if (st.presence === "out") interval *= prio.idleMultiplier ?? 1;
+    const idle = !st.hot && st.presence === "out";
+    if (idle) interval *= prio.idleMultiplier ?? 1;
     const last = st.last ? Date.parse(st.last) : 0;
     const slots = Math.max(1, Math.round(interval / RUN_SPACING_MS));
     const mySlot = (ranks.get(p.id) ?? 0) % slots;
     const curSlot = Math.floor(now / RUN_SPACING_MS) % slots;
     const elapsed = now - last;
-    const due = last === 0 || (elapsed >= interval && mySlot === curSlot);
-    return { p, score: elapsed / interval, due };
+    // An idle player is due once its interval has passed, slot or not. Runs
+    // are ~160s apart, not the 120s the slots assume, so about a quarter of
+    // the slots see no run at all, and an idle player whose slot fell in one
+    // waited a whole extra cycle: up to 77 minutes against a 15-minute
+    // interval in a simulated 6 hours. How many idle players one run may read
+    // is capped below instead, which is what keeps them spread.
+    const due = last === 0 || (elapsed >= interval && (idle || mySlot === curSlot));
+    return { p, score: elapsed / interval, due, idle: idle && last > 0, interval };
   });
   scored.sort((a, b) => b.score - a.score);
+
+  // No more idle reads in a run than their intervals allow over the time
+  // since the previous run: a player on a 15-minute interval earns 1/15 of a
+  // read per minute, and a run takes what the idle players have earned
+  // between them, most overdue first, rounded up. Without it, idle players
+  // that fall due in the same gap between runs are read together, share a
+  // `last` from then on, and never part: simulated over 48 hours, all 40 idle
+  // players ended up in one run. Deferred ones stay due and go first next
+  // run. The previous run is the newest read on record.
+  const prevRun = Math.max(0, ...Object.values(state).map((s) => (s?.last ? Date.parse(s.last) : 0)).filter(Number.isFinite));
+  const idlers = scored.filter((x) => x.idle);
+  if (prevRun > 0 && prevRun < now && idlers.length) {
+    const dt = now - prevRun;
+    let allow = Math.ceil(idlers.reduce((sum, x) => sum + Math.min(dt, x.interval) / x.interval, 0) - 1e-9);
+    for (const x of scored) if (x.idle && x.due && !(allow-- > 0)) x.due = false;
+  }
   const perRun = process.env.LIMIT ? +process.env.LIMIT : prio.perRun ?? 10;
   // CI: only players that are due this run. LIMIT (local testing) ignores the due
   // gate and just takes the most-overdue N.

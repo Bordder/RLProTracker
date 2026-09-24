@@ -1,3 +1,6 @@
+// Whether a LAN is being played: see lanRunning.js for the rule and why.
+import { lanRunning } from "./lanRunning.js";
+
 // Fires the repo's collector workflows on a schedule.
 //
 // GitHub's cron drops most high-frequency scheduled runs on public repos (a */5
@@ -61,9 +64,7 @@ async function bracketDay(now) {
   try {
     const res = await fetch(BRACKET_FEED, { cf: { cacheTtl: 60 } });
     if (!res.ok) return false;
-    const doc = await res.json();
-    const day = now.toISOString().slice(0, 10);
-    return (doc.events || []).some((e) => e.starts && e.ends && e.starts <= day && day <= e.ends);
+    return lanRunning(await res.json(), now.getTime());
   } catch {
     // Never let this decide nothing gets dispatched: on a failed read, fall
     // back to the slow cadence rather than to silence.
@@ -78,6 +79,12 @@ async function dispatchBracket(env, event) {
 }
 
 async function dispatch(env, workflow) {
+  // Said plainly, the way check() says it. Without this, env.GH_TOKEN.trim()
+  // below threw a TypeError on every dispatch and the log held only that.
+  if (!env.GH_TOKEN) {
+    console.log(`${workflow} -> not dispatched: GH_TOKEN binding missing`);
+    return null;
+  }
   const url = `https://api.github.com/repos/${env.GH_OWNER}/${env.GH_REPO}` +
     `/actions/workflows/${workflow}/dispatches`;
   const res = await fetch(url, {

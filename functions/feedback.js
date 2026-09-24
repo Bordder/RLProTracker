@@ -59,9 +59,21 @@ const json = (body, status = 200) =>
     headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
   });
 
+// A GitHub mention inside a message, with a zero-width space after the @ so it
+// reads the same and notifies nobody. Without it anybody could use this form
+// to ping any GitHub user through an issue on this repo.
+const noMention = (s) => s.replace(/@(?=[A-Za-z0-9])/g, "@\u200b");
+
 async function handlePost(context) {
   const { request, env } = context;
   if (!env.GH_TOKEN) return json({ error: "not-configured" }, 503);
+
+  // Only this site's own pages. request.json() parses whatever the content
+  // type, and a text/plain POST needs no CORS preflight, so any other site
+  // could make its visitors file issues here. A browser always sends Origin
+  // on a POST; a caller without one is not a browser being used by a page.
+  const origin = request.headers.get("origin");
+  if (origin && origin !== new URL(request.url).origin) return json({ error: "forbidden" }, 403);
 
   // The declared length first, so an oversized upload is refused without
   // being read, then the real one, since a chunked body declares none.
@@ -72,15 +84,18 @@ async function handlePost(context) {
     if (text.length > MAX_BODY) return json({ error: "too-large" }, 413);
     payload = JSON.parse(text);
   } catch { return json({ error: "bad-json" }, 400); }
+  // Valid JSON is not necessarily an object: null, a number or a string got
+  // past the parse and then threw on payload.hp, which answered 500.
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) return json({ error: "bad-json" }, 400);
 
   // Honeypot: a real person never fills a hidden field. Answer 200 so a bot
   // cannot tell it was rejected, but file nothing.
   if (payload.hp) return json({ ok: true });
 
-  const message = String(payload.message ?? "").trim().slice(0, MAX_MESSAGE);
+  const message = noMention(String(payload.message ?? "").trim().slice(0, MAX_MESSAGE));
   // One line, as the form's single-line input gives it: the name goes into the
   // issue title, and a line break there would split it.
-  const user = String(payload.user ?? "").replace(/\s+/g, " ").trim().slice(0, MAX_USER);
+  const user = noMention(String(payload.user ?? "").replace(/\s+/g, " ").trim().slice(0, MAX_USER));
   const type = TYPES.includes(payload.type) ? payload.type : "Feedback";
   if (!message) return json({ error: "empty-message" }, 400);
   if (message.length < MIN_MESSAGE) return json({ error: "too-short", min: MIN_MESSAGE }, 400);

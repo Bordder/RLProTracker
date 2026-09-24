@@ -114,9 +114,16 @@ export function computeTrackerPlayers(snaps, rosterIds) {
       }
     }
 
+    // The total is still filling if ANY playlist is. It used to take the flag
+    // from 1v1 alone, so a 2v2 window thrown out as implausible left the
+    // other two summed and published as if they were the whole count.
     for (const wk of Object.keys(WINDOWS)) {
-      const vals = ["ones", "twos", "threes"].map((k) => games[k][wk].games).filter((v) => v != null);
-      games.total[wk] = { games: vals.length ? vals.reduce((a, b) => a + b, 0) : null, partial: games.ones[wk].partial };
+      const pls = ["ones", "twos", "threes"];
+      const vals = pls.map((k) => games[k][wk].games).filter((v) => v != null);
+      games.total[wk] = {
+        games: vals.length ? vals.reduce((a, b) => a + b, 0) : null,
+        partial: pls.some((k) => games[k][wk].partial),
+      };
     }
     const sVals = ["ones", "twos", "threes"].map((k) => seasonGames[k]).filter((v) => v != null);
     seasonGames.total = sVals.length ? sVals.reduce((a, b) => a + b, 0) : null;
@@ -168,6 +175,17 @@ export function computeTrackerPlayers(snaps, rosterIds) {
   }
 
   return { now, players };
+}
+
+// Each player's current account: the one their newest reading came from, or
+// null for a reading that carries none. Which peak is published depends on it
+// (see peakFor in peakMmr.mjs).
+export function currentAccounts(snaps) {
+  const out = new Map();
+  for (const snap of [...snaps].sort((a, b) => a.t - b.t)) {
+    for (const row of snap.rows) if (row.playlists) out.set(row.id, row.who ?? null);
+  }
+  return out;
 }
 
 // Steam's live answer, attached to the rows about to be published.
@@ -296,7 +314,7 @@ export function tierBands(snaps, from = -Infinity) {
 // Readings come from the rolling history (data/tracker-history.json). The old
 // per-run snapshot directory is still read and merged when present, so the
 // history accumulated before the switch is not lost; once those files age out
-// of the 15-day window the directory can go away entirely.
+// of the 90-day window the directory can go away entirely.
 async function loadSnapshots() {
   const byTime = new Map();
 
@@ -359,8 +377,9 @@ async function main() {
   // rating set on this very run is already the peak it produced.
   const peaks = updatePeaks(await readStore(), snaps);
   await writeStore(peaks);
+  const accounts = currentAccounts(snaps);
   const players = withSteam.map((p) => {
-    const peak = peakFor(peaks, p.id);
+    const peak = peakFor(peaks, p.id, accounts.get(p.id) ?? null);
     const profile = profiles.get(p.id);
     return { ...p, ...(peak ? { peak } : null), ...profile };
   });

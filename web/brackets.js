@@ -1,7 +1,7 @@
 import { crest, assignHues, hasLogo, teamName } from "/crest.mjs?v=3d51b913";
-import { standings, pairGroups } from "/standings.mjs?v=733b8667";
-import { panelHTML, ordinal } from "/fixtures.mjs?v=94128e9f";
-import { headerHTML, scheduleHTML, prizesHTML, teamsHTML } from "/eventview.mjs?v=d38fa8c8";
+import { standings, pairGroups } from "/standings.mjs?v=5df49caf";
+import { panelHTML, ordinal, spanWords, eventRunning } from "/fixtures.mjs?v=ad9e89c5";
+import { headerHTML, scheduleHTML, prizesHTML, teamsHTML, finalOf } from "/eventview.mjs?v=67123bed";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 // "23:00" today, "17th 23:00" on another day. Same wording as the schedule
@@ -15,8 +15,14 @@ const timeOf = (iso) => {
   return sameDay ? clock : `${ordinal(at.getDate())} ${clock}`;
 };
 const dayOf = (iso) => iso ? new Date(iso).toLocaleDateString([], { month: "long", day: "numeric", year: "numeric" }) : null;
-const shortDay = (d) => d ? new Date(`${d}T12:00:00Z`).toLocaleDateString([], { day: "numeric", month: "short" }) : "";
+// UTC: a calendar date, not an instant, so it must not shift with the reader.
+const shortDay = (d) => d ? new Date(`${d}T12:00:00Z`).toLocaleDateString([], { day: "numeric", month: "short", timeZone: "UTC" }) : "";
 const clockOf = (iso) => iso ? new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null;
+// The day of an instant, in the reader's zone: the same zone as the clock
+// beside it. Taking the UTC date off the ISO string could name the wrong day
+// next to a local time: a 23:00 UTC start on the 17th read "17 Sept · 09:00"
+// in Sydney, where it is the 18th.
+const localDay = (iso) => iso ? new Date(iso).toLocaleDateString([], { day: "numeric", month: "short" }) : "";
 
 const BOX_W = 200, GUTTER = 44, ROW_H = 26, BOX_H = ROW_H * 2 + 2;
 const SLOT = BOX_H + 30, HEAD_H = 26, TOP = HEAD_H + 10, COL = BOX_W + GUTTER;
@@ -72,11 +78,11 @@ let STAGE = null;
 let FORMAT = null;
 const teamMark = (name) => (!FORMAT || FORMAT === "3v3" || hasLogo(name) ? crest(name) : "");
 
-// "18-20 Sept", or "15 Sept" for a single day.
+// "18-20 Sept", or "15 Sept" for a single day. The schedule column's own
+// wording, so the two never disagree about how a range reads.
 function windowOf(st) {
   if (!st?.from) return null;
-  const d = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString([], { day: "numeric", month: "short" });
-  return st.to && st.to !== st.from ? `${new Date(`${st.from}T12:00:00Z`).getUTCDate()}–${d(st.to)}` : d(st.from);
+  return spanWords({ from: st.from, to: st.to });
 }
 
 // Match a section to its line in the Format section. The names line up
@@ -401,7 +407,7 @@ function phoneBox(m, x, y, G) {
   // true and is better than an empty line.
   const win = windowOf(STAGE);
   const when = m.startsAt
-    ? `${shortDay(m.startsAt.slice(0, 10))} · ${clockOf(m.startsAt)}`
+    ? `${localDay(m.startsAt)} · ${clockOf(m.startsAt)}`
     : m.startsOn ? shortDay(m.startsOn)
     : win ? win : "Time TBD";
   const row = (i) => {
@@ -579,8 +585,10 @@ function groupEl(ml, table) {
     const wa = done && a !== null && b !== null && a > b, wb = done && a !== null && b !== null && b > a;
     // Crest, name, score, name, crest: the same reading order as a match box
     // in the bracket above, so the two do not have to be learned separately.
+    // A forfeit has no score, only the letters Liquipedia writes in its place.
+    const shown = (x, i) => esc(x ?? m.marks?.[i] ?? "·");
     const score = played
-      ? `<b class="${wa ? "w" : ""}">${a}</b><i>&ndash;</i><b class="${wb ? "w" : ""}">${b}</b>`
+      ? `<b class="${wa || m.winner === 0 ? "w" : ""}">${shown(a, 0)}</b><i>&ndash;</i><b class="${wb || m.winner === 1 ? "w" : ""}">${shown(b, 1)}</b>`
       : `<span class="vs">vs</span>`;
     m._stage = STAGE;
     rows.push(`<div class="gm" data-mi="${m._i}" tabindex="0">` +
@@ -601,7 +609,25 @@ function groupEl(ml, table) {
 const load = async () =>
   (await fetch("/data/bracket.json?v=" + Date.now(), { cache: "no-store" })).json();
 
-let doc = await load();
+// The first read has to succeed before anything can be drawn, and it used to
+// be a bare await: a 502, or Cloudflare answering a burst with an HTML error
+// page, made res.json() throw, the module stopped there and the page sat on
+// "Loading" with nothing to say why. So it says so in the site notice bar and
+// keeps asking on the page's ordinary live cadence until the feed answers.
+let doc = null;
+while (!doc) {
+  try {
+    doc = await load();
+    if (!Array.isArray(doc?.events)) doc = null;
+  } catch {
+    doc = null;
+  }
+  if (!doc) {
+    document.getElementById("notice").textContent = "The bracket data did not load. Trying again every 30 seconds.";
+    await new Promise((r) => setTimeout(r, 30_000));
+  }
+}
+document.getElementById("notice").textContent = "";
 
 // Newest first. An event with no dates yet sorts to the front rather than
 // vanishing off the end.
@@ -611,10 +637,12 @@ let EVENTS = byNewest(doc.events);
 
 const startMs = (e) => Date.parse(`${e.starts}T00:00:00Z`);
 const endMs = (e) => Date.parse(`${e.ends}T23:59:59Z`);
+// Running is decided by eventRunning, not by the UTC date: the dates are the
+// venue's, and a North American final runs past midnight UTC.
 const stateOf = (e, now = Date.now()) => {
+  if (eventRunning(e, now)) return "running";
   if (!Number.isFinite(startMs(e))) return "tbd";
   if (now > endMs(e)) return "past";
-  if (now >= startMs(e)) return "running";
   return "future";
 };
 
@@ -672,10 +700,7 @@ function railEl(current) {
     const items = evs.map((e) => {
       const st = stateOf(e);
       const cls = st === "running" ? " islive" : st === "future" ? " isnext" : "";
-      const day = (d) => d ? new Date(`${d}T12:00:00Z`).toLocaleDateString([], { day: "numeric", month: "short" }) : "";
-      const span = e.starts && e.ends
-        ? (e.starts === e.ends ? day(e.starts) : `${new Date(`${e.starts}T12:00:00Z`).getUTCDate()}–${day(e.ends)}`)
-        : "dates TBC";
+      const span = e.starts && e.ends ? spanWords({ from: e.starts, to: e.ends }) : "dates TBC";
       const label = st === "running" ? "On now"
         : st === "future" ? `${span} &middot; upcoming`
         : `${span} &middot; ${esc(cityOf(e) ?? "")}`;
@@ -737,21 +762,6 @@ function countEl(ev) {
   return "";
 }
 
-// The grand final: the last played match of the last bracket on the page.
-//
-// The TEAM event's last bracket. The 2026 Worlds runs a 1v1 and a 2v2 title
-// alongside the 3v3, and those stages come after it on the page, so taking
-// the last bracket of all of them put the 2v2 winners under "Champion" of
-// the World Championship the moment the event finished.
-function finalOf(ev) {
-  const team = ev.stages.filter((s) => !s.format || s.format === "3v3");
-  const brackets = (team.length ? team : ev.stages).flatMap((s) => s.brackets);
-  const last = brackets[brackets.length - 1];
-  if (!last) return null;
-  const played = last.matches.filter((m) => m.finished && m.scores[0] !== null && m.scores[1] !== null);
-  return played.sort((a, b) => a.round - b.round || a.position - b.position).pop() ?? null;
-}
-
 // The schedule column, for the event on screen.
 //
 // Drawn from the same parsed matches as the bracket beside it, so the two can
@@ -772,6 +782,11 @@ function paintPanes() {
   const head = document.getElementById("ehead");
   if (head) head.innerHTML = headerHTML(ev);
   const sched = document.getElementById("paneFixtures");
+  // The pane is rebuilt every 15 seconds, which detaches the card an open
+  // series card is anchored to: the next scroll measured a detached node,
+  // got all zeros, and pinned the card to the top-left of the screen. Carry
+  // the card over to the new copy of the same match instead.
+  const openMi = cardFor && sched?.contains(cardFor) ? cardFor.dataset.mi : null;
   if (sched) sched.innerHTML = scheduleHTML(ev, Date.now(), WHEN);
   const teams = document.getElementById("paneTeams");
   if (teams) teams.innerHTML = teamsHTML(ev);
@@ -780,6 +795,10 @@ function paintPanes() {
   // The cards are new nodes every paint, so they are wired here rather than in
   // wire(), which runs once per render.
   if (sched) for (const el of sched.querySelectorAll("[data-mi]")) bindMatch(el);
+  if (openMi !== null) {
+    const again = sched.querySelector(`[data-mi="${CSS.escape(openMi)}"]`);
+    if (again) { cardFor = again; place(again); } else hideCard();
+  }
   showPane(PANE);
 }
 
@@ -1102,8 +1121,11 @@ function wire() {
     el.addEventListener("mouseleave", () => { if (!held) trace(null); });
     el.addEventListener("blur", () => { if (!held) trace(null); });
     el.addEventListener("click", (e) => { e.stopPropagation(); held = held === t ? null : t; trace(held); });
+    // stopPropagation, the same as the click above: the row sits inside a
+    // match box that opens the series card on Enter, so without it one key
+    // press traced the team AND opened the card, moving focus into it.
     el.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); held = held === t ? null : t; trace(held); }
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); held = held === t ? null : t; trace(held); }
     });
   }
   // The card: every match box and every group row.
@@ -1257,7 +1279,7 @@ render(location.hash.slice(1) || defaultEvent().slug);
 // actually moved: a redraw on an unchanged document is work for nothing.
 // How often to re-read the feed.
 //
-// The collector publishes every five minutes and the edge holds one upstream
+// The collector publishes every two minutes on an event day and the edge holds one upstream
 // read for 20 seconds, so 30s while a LAN is on means the page is never more
 // than a few seconds behind the published file. Between events nothing can
 // change, so polling that often would be pure noise on someone's data.

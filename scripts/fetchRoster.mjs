@@ -232,7 +232,9 @@ async function main() {
         p.steamId64 = s.steamId64; p.vanity = s.vanity;
         p.status = s.steamId64 || s.vanity ? "ok" : "no-steam-link";
       }
-      console.log(`  ${p.team.padEnd(20)} ${p.name.padEnd(14)} ${p.status.padEnd(13)} ${p.steamId64 ?? p.vanity ?? "-"}`);
+      // A free agent has team: null, and null.padEnd threw here, killing the
+      // run before the batch was saved.
+      console.log(`  ${(p.team ?? "Free agent").padEnd(20)} ${p.name.padEnd(14)} ${p.status.padEnd(13)} ${p.steamId64 ?? p.vanity ?? "-"}`);
     }
     await save(); // persist after every chunk so progress survives
     if (i + CHUNK < todo.length) await sleep(CHUNK_DELAY);

@@ -9,9 +9,12 @@
 // Everything here comes from the same parsed event the diagram is drawn from,
 // so the two can never disagree, and it says TBD wherever Liquipedia has not
 // published something rather than filling the gap.
-import { crest, hasLogo, teamSlug, teamName } from "/crest.mjs?v=3d51b913";
-import { flagSVG } from "/flags.mjs?v=d67b29cc";
-import { matchesOf, whenWords, zoneLabel, ordinal, isLive } from "/fixtures.mjs?v=94128e9f";
+// Relative, not "/crest.mjs": this module sits at the site root beside them, so
+// both resolve to the same URL in the browser, and only the relative form loads
+// under node, where the tests import this file directly.
+import { crest, hasLogo, teamSlug, teamName } from "./crest.mjs?v=3d51b913";
+import { flagSVG } from "./flags.mjs?v=d67b29cc";
+import { matchesOf, whenWords, zoneLabel, ordinal, isLive, eventRunning } from "./fixtures.mjs?v=ad9e89c5";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -42,17 +45,19 @@ const money = (usd) => {
   return "$" + usd;
 };
 
-/** "15 - 20 September 2026", or one date for a single day. */
-export function dateRange(ev) {
+/**
+ * "15 - 20 September 2026", or one date for a single day.
+ *
+ * formatRange, in UTC, for the same reasons as spanWords: a day number glued
+ * to a formatted end date read "15 – September 20, 2026" in en-US, and a local
+ * zone moved the end a day late east of UTC+12.
+ */
+export function dateRange(ev, locale = undefined) {
   if (!ev?.starts) return "";
-  const d = (iso, opts) => new Date(iso + "T12:00:00Z").toLocaleDateString([], opts);
-  const full = { day: "numeric", month: "long", year: "numeric" };
-  if (!ev.ends || ev.ends === ev.starts) return d(ev.starts, full);
-  const sameMonth = ev.starts.slice(0, 7) === ev.ends.slice(0, 7);
-  const from = sameMonth
-    ? new Date(ev.starts + "T12:00:00Z").getUTCDate()
-    : d(ev.starts, { day: "numeric", month: "long" });
-  return `${from} – ${d(ev.ends, full)}`;
+  const fmt = new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  const at = (iso) => new Date(iso + "T12:00:00Z");
+  if (!ev.ends || ev.ends === ev.starts) return fmt.format(at(ev.starts));
+  return fmt.formatRange(at(ev.starts), at(ev.ends));
 }
 
 /** The header block: what the event is, when, what it is worth, and where. */
@@ -216,26 +221,43 @@ export function scheduleHTML(ev, nowMs, tab = "upcoming") {
 /**
  * Every team in the event, and whether they are still in it.
  *
- * Out means eliminated: they appear in a finished match and lost it, and no
- * unfinished match still names them. That is derivable from the bracket alone,
- * which is the point - nothing here needs a second source.
+ * Out takes evidence that the team is finished, and no unfinished match still
+ * naming them. A loss alone is not that evidence: a team beaten in the upper
+ * bracket drops to the lower one, and a team beaten in a group or Swiss round
+ * plays again, but Liquipedia writes their next slot only once it is decided,
+ * so for a while nothing names them and they used to read as out. The evidence
+ * is a loss in the lower bracket or the finals, a group table marking their
+ * place as eliminated, or the event being over.
  */
-export function teamsOf(ev) {
+export function teamsOf(ev, nowMs = Date.now()) {
   const all = matchesOf(ev).filter((m) => !m.format || m.format === "3v3");
+  const over = !eventRunning(ev, nowMs) && Date.parse(`${ev?.ends}T00:00:00Z`) < nowMs;
+  const down = new Set();
+  for (const s of ev?.stages ?? []) {
+    if (s.format && s.format !== "3v3") continue;
+    for (const t of s.tables ?? []) {
+      for (const r of t.rows ?? []) if (r.team && r.outcome === "down") down.add(r.team.toLowerCase());
+    }
+  }
   const seen = new Map();
   for (const m of all) {
     (m.teams ?? []).forEach((name, i) => {
       if (!name || m.seeds?.[i]) return;
-      if (!seen.has(name)) seen.set(name, { name, playing: false, lost: false });
+      if (!seen.has(name)) seen.set(name, { name, playing: false, lost: false, knocked: false });
       const t = seen.get(name);
       if (!m.finished) { t.playing = true; return; }
       const [a, b] = m.scores ?? [null, null];
       if (a === null || b === null) return;
       const won = i === 0 ? a > b : b > a;
-      if (!won) t.lost = true;
+      if (won) return;
+      t.lost = true;
+      if (m.section === "lower" || m.section === "final") t.knocked = true;
     });
   }
-  const list = [...seen.values()].map((t) => ({ name: t.name, out: t.lost && !t.playing }));
+  const list = [...seen.values()].map((t) => ({
+    name: t.name,
+    out: !t.playing && (t.knocked || down.has(t.name.toLowerCase()) || (over && t.lost)),
+  }));
   return list.sort((x, y) => Number(x.out) - Number(y.out) || x.name.localeCompare(y.name));
 }
 
@@ -262,10 +284,13 @@ export function teamsHTML(ev) {
  * groups them, and each group is sorted by the first number in its place
  * ("3-4" -> 3) rather than by the order the wikitext happened to list them.
  *
- * Placements are only filled in where the event has actually been decided, and
- * this page does not know that until the bracket does, so every participant
- * cell reads TBD until a winner exists. A table that guessed would be inventing
- * a result.
+ * Liquipedia's prize table carries no teams in the wikitext (it fills them in
+ * when it renders), so the participants come from the discipline's last
+ * bracket, and only once its grand final is finished: the winner is 1st, the
+ * loser 2nd, and every other team places by the round it was knocked out in.
+ * A place is filled only when the teams knocked out there fit it exactly, and
+ * the walk stops at the first that does not, so the places decided before the
+ * playoffs (the Swiss, the groups) stay TBD rather than being guessed.
  */
 const DISCIPLINES = ["3v3", "2v2", "1v1"];
 
@@ -274,16 +299,76 @@ const placeNo = (p) => {
   return Number.isFinite(n) ? n : Infinity;
 };
 
-const prizeTable = (prizes) => {
-  const rows = [...prizes].sort((a, b) => placeNo(a) - placeNo(b)).map((p) => {
+// How many teams a place holds: "3-4" is two, "9-11" three, "1" one.
+const placeSize = (p) => {
+  const [a, b] = String(p.place).split("-").map(Number);
+  if (!Number.isFinite(a)) return 0;
+  return Number.isFinite(b) && b >= a ? b - a + 1 : 1;
+};
+
+/**
+ * Who finished where, as a Map from a prize's `place` to the teams in it, for
+ * one discipline's stages. Empty until the last bracket's grand final is over.
+ */
+export function placingsOf(stages, prizes) {
+  const out = new Map();
+  const last = (stages ?? []).flatMap((s) => s.brackets ?? []).at(-1);
+  if (!last?.matches?.length) return out;
+  const ms = [...last.matches].sort((a, b) => a.round - b.round || a.position - b.position);
+  const gf = ms.at(-1);
+  const [a, b] = gf.scores ?? [null, null];
+  if (!gf.finished || a === null || b === null || a === b) return out;
+  if (gf.seeds?.[0] || gf.seeds?.[1] || !gf.teams?.[0] || !gf.teams?.[1]) return out;
+  const top = a > b ? [gf.teams[0], gf.teams[1]] : [gf.teams[1], gf.teams[0]];
+
+  // Knocked out: a finished loss in the lower bracket or the finals. An upper
+  // bracket loss only drops a team into the lower one.
+  const rounds = new Map();
+  for (const m of ms) {
+    if (m === gf || !m.finished || (m.section !== "lower" && m.section !== "final")) continue;
+    const [x, y] = m.scores ?? [null, null];
+    if (x === null || y === null || x === y) continue;
+    const i = x > y ? 1 : 0;
+    const name = m.teams?.[i];
+    if (!name || m.seeds?.[i]) continue;
+    if (!rounds.has(m.round)) rounds.set(m.round, []);
+    rounds.get(m.round).push(name);
+  }
+  // Later out places higher. Within a round there is no order, so by name.
+  const groups = [top.slice(0, 1), top.slice(1),
+    ...[...rounds.keys()].sort((x, y) => y - x).map((r) => rounds.get(r).sort((x, y) => x.localeCompare(y)))];
+
+  for (const p of [...prizes].sort((x, y) => placeNo(x) - placeNo(y))) {
+    const size = placeSize(p);
+    const names = [];
+    while (groups.length && names.length < size) names.push(...groups.shift());
+    // A place that would split a round, or that the bracket runs out before,
+    // is where the bracket stops deciding things.
+    if (!size || names.length !== size) break;
+    out.set(p.place, names);
+  }
+  return out;
+}
+
+const who = (name, format) => {
+  const teamGame = !format || format === "3v3";
+  const mark = teamGame || hasLogo(name) ? crest(name) : "";
+  return `<td class="ewho got">${mark}${esc(teamName(name))}</td>`;
+};
+
+const prizeTable = (prizes, placings = new Map(), format = null) => {
+  const rows = [...prizes].sort((a, b) => placeNo(a) - placeNo(b)).flatMap((p) => {
     const first = placeNo(p);
     const cls = first === 1 ? " gold" : first === 2 ? " silver" : first === 3 ? " bronze" : "";
     // A non-breaking hyphen: "3-4" is one placement and wrapping it onto two
     // lines read as two.
     const place = String(p.place).replace(/-/g, "‑");
-    return `<tr><td class="eplace${cls}">${esc(place)}.</td>` +
-      `<td class="ewho"><span class="etbd" aria-hidden="true"></span>TBD</td>` +
+    const row = (cell) => `<tr><td class="eplace${cls}">${esc(place)}.</td>` + cell +
       `<td class="emoney">${esc(money(p.usd))}</td></tr>`;
+    // One row per team, each with the prize it took, as Liquipedia lists them.
+    const names = placings.get(p.place);
+    if (names) return names.map((n) => row(who(n, format)));
+    return [row(`<td class="ewho"><span class="etbd" aria-hidden="true"></span>TBD</td>`)];
   }).join("");
   return `<table class="eprize"><thead><tr><th>#</th><th>Participant</th><th>Prize money</th></tr></thead>` +
     `<tbody>${rows}</tbody></table>`;
@@ -295,10 +380,13 @@ export function prizesHTML(ev) {
   // an empty table would be a claim that there is no prize money, which is a
   // different thing from not knowing.
   const groups = new Map();
+  const stagesOf = new Map();
   for (const st of ev?.stages ?? []) {
+    const key = st.format ?? "3v3";
+    if (!stagesOf.has(key)) stagesOf.set(key, []);
+    stagesOf.get(key).push(st);
     const prizes = st.prizes ?? [];
     if (!prizes.length) continue;
-    const key = st.format ?? "3v3";
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(...prizes);
   }
@@ -312,5 +400,29 @@ export function prizesHTML(ev) {
   // One discipline needs no label saying which one it is.
   const label = order.length > 1;
   return `<h3 class="eph">Prize pool</h3>` + order.map((k) =>
-    (label ? `<h4 class="esub">${esc(k)}</h4>` : "") + prizeTable(groups.get(k))).join("");
+    (label ? `<h4 class="esub">${esc(k)}</h4>` : "") + prizeTable(groups.get(k), placingsOf(stagesOf.get(k), groups.get(k)), k)).join("");
+}
+
+// ---- the result -------------------------------------------------------------
+
+/**
+ * The grand final of a finished event, or null.
+ *
+ * The TEAM event's last bracket: the 2026 Worlds runs a 1v1 and a 2v2 title
+ * alongside the 3v3, and those stages come after it on the page, so taking the
+ * last bracket of all of them put the 2v2 winners under "Champion".
+ *
+ * The grand final is the last match of that bracket, and it has to be FINISHED
+ * itself. This used to take the last match that had finished, which during a
+ * grand final is the match before it: at 00:30 UTC in the Worlds 2024 final it
+ * named the semifinal's winner Champion while the final was being played.
+ */
+export function finalOf(ev) {
+  const team = (ev?.stages ?? []).filter((s) => !s.format || s.format === "3v3");
+  const brackets = (team.length ? team : ev?.stages ?? []).flatMap((s) => s.brackets ?? []);
+  const last = brackets[brackets.length - 1];
+  if (!last?.matches?.length) return null;
+  const gf = [...last.matches].sort((a, b) => a.round - b.round || a.position - b.position).pop();
+  const [a, b] = gf.scores ?? [null, null];
+  return gf.finished && a !== null && b !== null ? gf : null;
 }

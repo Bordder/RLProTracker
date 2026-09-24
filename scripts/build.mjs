@@ -1,6 +1,6 @@
 // Turn wikitext into bracket.json, once, from the cache by default.
 //
-// LOCAL ONLY. Everything in this folder is gitignored.
+// For local use: nothing in CI runs this.
 //
 //   node build.mjs              from fixtures/, offline, instant
 //   node build.mjs --live       one request per title, 2s apart

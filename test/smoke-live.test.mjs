@@ -73,6 +73,14 @@ test("a frozen bracket is only a problem while the event is on", () => {
   assert.deepEqual(auditBracket(past, NOW), []);
 });
 
+test("an event whose last day has ended in UTC but not at the venue is still watched", () => {
+  // A North American grand final runs past midnight UTC. Judging "being
+  // played" on the UTC date switched this check off during it.
+  const day = new Date(NOW - 86400e3).toISOString().slice(0, 10);
+  const [problem] = auditBracket(doc({ generatedAt: ago(180) }, { starts: day, ends: day }), NOW);
+  assert.match(problem ?? "", /old while/);
+});
+
 test("a match in two states at once is caught", () => {
   const d = doc();
   d.events[0].stages[0].brackets[0].matches[1].finished = true;   // live AND finished

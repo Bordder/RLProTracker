@@ -56,6 +56,34 @@ export const isLive = (m, nowMs) => Boolean(m?.live) ||
   Boolean(m?.startsAt && !m.finished &&
     nowMs >= Date.parse(m.startsAt) && nowMs - Date.parse(m.startsAt) < LIVE_FOR);
 
+/**
+ * Is this event being played at `nowMs`?
+ *
+ * Its published dates are the venue's, and every "is it on today" check used
+ * to compare them against the UTC date. A North American grand final runs
+ * past midnight UTC, so for its last hours the event read as over: the bracket
+ * page crowned the semifinal winner, the board lost its LAN note and the cron
+ * Worker slowed the bracket collector to twice an hour.
+ *
+ * So an event is running inside its dates padded a day either side (the same
+ * pad scripts/events.mjs gives the collector, and a test holds the two
+ * together), or while any of its matches is live. A live match only counts if
+ * it started within LIVE_FOR, so a score left on a page nobody finished cannot
+ * keep an old event running forever.
+ */
+export const EVENT_PAD = 86400e3;
+export function eventRunning(ev, nowMs) {
+  const from = Date.parse(`${ev?.starts}T00:00:00Z`) - EVENT_PAD;
+  const to = Date.parse(`${ev?.ends}T00:00:00Z`) + 86400e3 + EVENT_PAD;
+  if (nowMs >= from && nowMs <= to) return true;
+  return (ev?.stages ?? []).some((s) =>
+    [...(s.brackets ?? []), ...(s.matchlists ?? [])].some((g) =>
+      (g.matches ?? []).some((m) => {
+        const at = Date.parse(m.startsAt ?? "");
+        return !m.finished && nowMs >= at && nowMs - at < LIVE_FOR;
+      })));
+}
+
 const windowOf = (st) => (st?.from ? { from: st.from, to: st.to || st.from } : null);
 
 // Which section a bracket is, the same way the bracket page names it: from the
@@ -146,8 +174,10 @@ export function fixturesFrom(ev, nowMs) {
   const today = day(nowMs);
 
   const live = all.filter((m) => isLive(m, nowMs))
-    .sort((a, b) => (Date.parse(a.startsAt ?? "") || 0) - (Date.parse(b.startsAt ?? "") || 0))
-    .slice(0, MAX_LIVE);
+    .sort((a, b) => (Date.parse(a.startsAt ?? "") || 0) - (Date.parse(b.startsAt ?? "") || 0));
+  // Not cut here. A started match is neither "next" nor undated, so one cut
+  // from this list was on no list at all; past MAX_LIVE they are folded behind
+  // a disclosure when drawn instead.
   const liveSet = new Set(live);
 
   const next = all
@@ -257,13 +287,20 @@ export function zoneLabel(nowMs = Date.now()) {
   }
 }
 
-/** "18-20 Sept", or "17 Sept" for a single day. */
-export function spanWords(w) {
+/**
+ * "18-20 Sept", or "17 Sept" for a single day.
+ *
+ * formatRange rather than a day number glued to a formatted end date: the glue
+ * assumed the day comes first, so en-US read "18–Sep 20", and a range across
+ * two months lost the first one ("30–2 Oct"). UTC because these are calendar
+ * dates, not instants: in the reader's own zone, midday UTC is already the next
+ * day east of UTC+12. `locale` is for the tests; the page uses the reader's.
+ */
+export function spanWords(w, locale = undefined) {
   if (!w?.from) return "";
-  const d = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString([], { day: "numeric", month: "short" });
-  return w.to && w.to !== w.from
-    ? new Date(w.from + "T12:00:00Z").getUTCDate() + "–" + d(w.to)
-    : d(w.from);
+  const fmt = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" });
+  const at = (iso) => new Date(iso + "T12:00:00Z");
+  return w.to && w.to !== w.from ? fmt.formatRange(at(w.from), at(w.to)) : fmt.format(at(w.from));
 }
 
 // ---- drawing ---------------------------------------------------------------
@@ -320,7 +357,7 @@ const group = (title, items, limit = 0) => {
  * what is on and what is next, and folds the undated matches of a stage back
  * into the one line they all share, rather than quietly hiding rows with CSS.
  */
-export function panelHTML(ev, nowMs, { compact = false } = {}) {
+export function panelHTML(ev, nowMs, { compact = false, locale = undefined } = {}) {
   const f = fixturesFrom(ev, nowMs);
   if (!f) return "";
   if (compact && f.later.length) {
@@ -337,7 +374,8 @@ export function panelHTML(ev, nowMs, { compact = false } = {}) {
 
   const multi = f.formats.length > 1;
   const zone = zoneLabel(nowMs);
-  // What is on now is never folded away, however small the screen.
+  // What is on now is not cut down to the phone's cap, however small the
+  // screen. Only past MAX_LIVE at once do the rest go behind a disclosure.
   const cap = compact ? 3 : 0;
   const liveRows = f.live.map((m) => matchEl(m, whenWords(m.startsAt, nowMs) ?? "on now", "live", multi));
   const nextRows = f.next.map((m) => matchEl(m, whenWords(m.startsAt, nowMs), "", multi));
@@ -345,7 +383,7 @@ export function panelHTML(ev, nowMs, { compact = false } = {}) {
   // days before it is played, so this is the normal state of a round that has
   // not been scheduled yet rather than a gap in the data.
   const laterRows = f.later.map((m) => matchEl(m, whenWords(m.startsAt, nowMs) ?? "TBD", "soft", multi));
-  const stageWords = (s) => (s.today ? "today, " + spanWords(s.window) : spanWords(s.window));
+  const stageWords = (s) => (s.today ? "today, " : "") + spanWords(s.window, locale);
   // A round with one named match shows the match; otherwise the round's name
   // and the days it runs, which is all the page has published about it.
   const stageLine = (s) => (s.match ? matchEl(s.match, stageWords(s), "soft", multi) : '<li class="fxs">' +
@@ -363,7 +401,7 @@ export function panelHTML(ev, nowMs, { compact = false } = {}) {
     // Naming the zone is what makes that checkable against a stream overlay.
     (f.live.length ? '<span class="fxon"><i class="fxpip" aria-hidden="true"></i>On now</span>' : "") +
     (zone ? '<span class="fxtz">' + esc(zone) + "</span>" : "") + "</div>" +
-    group("Live", liveRows) +
+    group("Live", liveRows, MAX_LIVE) +
     group("Next", nextRows, cap) +
     group("Later today", [...laterRows, ...todayRows], cap) +
     group("To come", soonRows) +

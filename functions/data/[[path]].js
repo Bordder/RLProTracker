@@ -72,7 +72,6 @@ const withCors = (res) => {
   return r;
 };
 
-const ALLOWED = /^[a-z0-9-]+\.json$/i;
 
 // The board's six feeds, as one file.
 //
@@ -95,6 +94,25 @@ const BOARD = [
   "event-now.json",
 ];
 const BOARD_FILE = "board.json";
+
+// Every file the site reads through this Function, and nothing else.
+//
+// Each request that gets past this goes upstream as an authenticated GitHub
+// API call on the same token the cron Worker dispatches the collectors with,
+// and a miss is never cached. A pattern here rather than a list let any
+// made-up name through, so anybody could spend that budget and stop
+// collection. Built from what the pages fetch: the board's feeds, the board
+// document itself, the rating history, the bracket and the status page's
+// uptime files. A new feed has to be added here before a page can read it.
+const PUBLISHED = new Set([
+  ...BOARD,
+  BOARD_FILE,
+  "mmr-history.json",
+  "bracket.json",
+  "uptime.json",
+  "uptime-steam.json",
+  "uptime-presence.json",
+]);
 
 /**
  * One derived file's bytes, through the hot cache, the upstream, and then the
@@ -206,9 +224,10 @@ const jsonResponse = (body, extra = {}) => new Response(body, {
 export async function onRequestGet(context) {
   const { request, params, waitUntil } = context;
   const file = (params.path || []).join("/");
-  // Only ever proxy the derived JSON: no path traversal, no fetching arbitrary
-  // repo contents through the site's origin.
-  if (!ALLOWED.test(file)) return withCors(new Response("not found", { status: 404 }));
+  // Only ever proxy the published JSON: no path traversal, no fetching
+  // arbitrary repo contents through the site's origin, and no upstream call
+  // at all for a name the site does not publish.
+  if (!PUBLISHED.has(file)) return withCors(new Response("not found", { status: 404 }));
 
   if (file === BOARD_FILE) {
     const cache = caches.default;
