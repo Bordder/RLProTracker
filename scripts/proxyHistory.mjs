@@ -189,9 +189,15 @@ export function judgeHours(hourly) {
   }
   const rate = attempts ? fails / attempts : 0;
   const benchRate = runs ? benched / runs : 0;
+  // The same "dead" as summarise: a trailing run of DEAD_HOURS consecutive,
+  // judged hours with no success at all and enough attempts. It used to be
+  // any DEAD_HOURS bad hours, scattered ones included, which is the rule
+  // summarise was changed to refuse.
+  const run = deadRun(hourly);
+  const sustained = run.hours >= DEAD_HOURS && run.attempts >= MIN_DEAD_ATTEMPTS;
   const state =
     attempts < MIN_ATTEMPTS || runs < MIN_RUNS ? "unproven"
-    : badHours >= DEAD_HOURS ? "dead"
+    : sustained ? "dead"
     : blockedNow ? "blocked"
     : rate >= BAD_RATE || benchRate >= BAD_BENCH ? "bad"
     : "ok";

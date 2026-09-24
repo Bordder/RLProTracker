@@ -319,3 +319,17 @@ test("a swapped index judged from the swap does not inherit the old proxy's deat
   // Judged from the swap, the replacement's own hour is clean.
   assert.equal(judgeHours(row.hourly.slice(0, 1)).state, "ok");
 });
+
+test("judgeHours applies the same rule for dead as summarise", () => {
+  // judgeHours exists so part of a window can be judged "by exactly the same
+  // rules", and it called any three bad hours dead: scattered ones included,
+  // which summarise deliberately refuses.
+  for (const pattern of [
+    [[24, 24], [24, 1], [24, 24], [24, 1], [24, 24]],
+    [[24, 0], [24, 24], [24, 24], [24, 24]],
+    [[68, 0], [80, 4], [22, 22], [30, 0]],
+  ]) {
+    const row = rowsBy(summarise(build(pattern)))[0];
+    assert.equal(judgeHours(row.hourly).state, row.state, JSON.stringify(pattern));
+  }
+});
