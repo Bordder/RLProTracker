@@ -4,7 +4,9 @@
 // Over time this reconstructs hours even for players whose game HISTORY is
 // private (works for any public profile - the live game field stays visible).
 //
-// Appends one JSON line per poll to data/presence/log.jsonl.
+// Appends one JSON line per poll to data/presence/log.jsonl. The file is kept
+// between runs in the Actions cache, sealed (scripts/presenceLogCache.mjs), and
+// is never published: only the hours worked out from it are.
 //
 // Usage:  STEAM_API_KEY=xxx npm run poll
 
@@ -23,8 +25,8 @@ if (!KEY) { console.error("set STEAM_API_KEY"); process.exit(1); }
 
 const chunk = (arr, n) => Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n));
 
-// The log is append-only and committed on every poll, so without pruning it grows
-// forever AND git stores a fresh copy of the whole file 288 times a day.
+// The log is append-only and carried into every run, so without pruning it grows
+// forever, and each run caches a fresh copy of the whole file.
 // computePresenceHours never looks further back than 14 days, so older entries are
 // dead weight. Only rewrites when there is something to drop.
 const KEEP_MS = 15 * 24 * 3600e3;
