@@ -21,7 +21,7 @@
 // Read the freshness-only file, not the whole board.
 //
 // This endpoint returns about 40 bytes. It used to get them out of tracker.json,
-// which is 180 KB: every upstream read pulled and parsed the entire board to
+// which was 180 KB: every upstream read pulled and parsed the entire board to
 // keep one timestamp. The edge cache below collapses that to one read every 20
 // seconds, but those reads spend the same GH_TOKEN budget the collectors
 // dispatch through, so a probe meant to be cheap was competing with collection.

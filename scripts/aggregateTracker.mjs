@@ -68,7 +68,7 @@ async function main() {
   const teams = teamTracker(players);
 
   await mkdir(join(ROOT, "data", "derived"), { recursive: true });
-  await writeFile(join(ROOT, "data", "derived", "team-tracker.json"), JSON.stringify({ computedAt, snapshotCount, teams }, null, 2));
+  await writeFile(join(ROOT, "data", "derived", "team-tracker.json"), JSON.stringify({ computedAt, snapshotCount, teams }));
   console.log(`team-tracker.json: ${teams.length} teams`);
   for (const t of teams.slice(0, 12)) {
     console.log(`  ${t.team.padEnd(20)} avg 2v2 MMR:${t.avgMmr.twos ?? "-"}  ranked ${t.ranked}/${t.players}`);
