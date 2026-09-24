@@ -577,13 +577,17 @@
   .pexp-in .pvv{font-family:var(--mono);font-size:12.5px;color:var(--bone)}
   /* Straight through to this player's line on the ratings tab, so the reader
      does not have to go and find them again in the other search. */
-  .pexp-link{
-    margin-left:auto;flex:0 0 auto;appearance:none;-webkit-appearance:none;cursor:pointer;
+  /* Compare is a link to another page and the chart jump is a button on
+     this one; they look the same and sit together at the end of the line. */
+  .pexp-cmp{margin-left:auto}
+  .pexp-cmp+.pexp-link{margin-left:0}
+  .pexp-link,.pexp-cmp{
+    margin-left:auto;flex:0 0 auto;text-decoration:none;display:inline-block;appearance:none;-webkit-appearance:none;cursor:pointer;
     background:transparent;border:1px solid var(--line2);border-radius:7px;
     color:var(--slate);font-family:var(--mono);font-size:11.5px;padding:6px 11px;
     transition:color .12s,border-color .12s}
-  .pexp-link:hover{color:var(--accent);border-color:var(--accent-line)}
-  .pexp-link:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .pexp-link:hover,.pexp-cmp:hover{color:var(--accent);border-color:var(--accent-line)}
+  .pexp-link:focus-visible,.pexp-cmp:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   /* The phone lays every row out as a grid with a selector of its own, which
      outranked a bare .pexp rule: the detail row went on rendering underneath
      the card as a squashed strip repeating what the card already said. That is
@@ -613,6 +617,7 @@
     #playersView .feed>tbody>tr.pexp .pexp-facts>div[data-k="nationality"],
     #playersView .feed>tbody>tr.pexp .pexp-facts>div[data-k="twitch"]{display:flex}
     #playersView .feed>tbody>tr.pexp .pexp-link{display:none}
+    #playersView .feed>tbody>tr.pexp .pexp-cmp{display:inline-block;margin:10px 0 0}
     #playersView .feed>tbody>tr.pexp .pexp-facts{gap:10px 26px}
     /* No hover on a phone, and :focus-visible does not fire on a tap, so a
        marker that reveals on hover would reveal nothing at all. The strip has
@@ -1590,6 +1595,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=2425a301" defer></script>
+<script src="rlpt.js?v=16c2763b" defer></script>
 </body>
 </html>

@@ -1612,6 +1612,16 @@
           var k=String(f[0]).toLowerCase().replace(/[^a-z0-9]+/g,'-');
           return '<div data-k="'+k+'"><span class="pk">'+f[0]+'</span><span class="pvv">'+f[1]+'</span></div>';
         }).join('')+'</div>'+
+        // Head to head against their highest-rated teammate, the comparison
+        // most people open a player to make. A player with no teammate on the
+        // board is compared with nobody in particular: the page picks.
+        '<a class="pexp-cmp" href="/compare?p='+encodeURIComponent(p.name)+
+          (function(){
+            var mate=players.filter(function(x){ return x.team&&x.team===p.team&&x.id!==p.id; })
+              .sort(function(a,b){ return ((b.mmr&&b.mmr.twos)||0)-((a.mmr&&a.mmr.twos)||0); })[0];
+            return mate?','+encodeURIComponent(mate.name):'';
+          })()+
+          '" aria-label="Compare '+esc(p.name)+' with another player">Compare &rarr;</a>'+
         // Straight through to this player's rating history rather than making
         // the reader find them again in the other tab's search.
         '<button type="button" class="pexp-link" data-id="'+esc(p.id)+'" '+
@@ -1622,7 +1632,9 @@
       // On a phone this row is trimmed to nationality and Twitch. A player with
       // neither would otherwise open an empty strip under the card, so the row
       // says so and the phone hides it outright.
-      var mob=(p.country||p.twitch)?'':' pexp-nomob';
+      // Every player now carries the Compare link, which the phone shows too,
+      // so no row is empty any more.
+      var mob='';
       return '<tr class="pexp'+mob+'"><td colspan="'+span+'">'+detailInner(p)+'</td></tr>';
     };
     var applyOpenPlayer=function(){
