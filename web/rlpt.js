@@ -1060,13 +1060,18 @@
       });
       thead.appendChild(trh); tbl.appendChild(thead);
       var tb=document.createElement('tbody'); tbl.appendChild(tb);
+      // Region and Playing belong to the players list: their controls sit in
+      // the row the Teams tab hides, so applying them there filtered the teams
+      // table with no visible way to undo it, and Playing emptied it outright
+      // (a team row has no last game of its own to be live by).
+      var byPlayer=items===players;
       function paint(){
         var arr=items.filter(function(x){
-          if(regionQ&&x.region!==regionQ)return false;
+          if(byPlayer&&regionQ&&x.region!==regionQ)return false;
           // Nobody appears twice: the three on the podium are not repeated in
           // the table underneath it.
           if(x.id&&podiumIds[x.id])return false;
-          if(liveOnly&&!isLive(x))return false;
+          if(byPlayer&&liveOnly&&!isLive(x))return false;
           return !searchQ||matchFn(x,searchQ);
         });
         var acc=accessors[sk];
@@ -2308,9 +2313,11 @@
       // 24h column is fixed: a link has to describe what is on screen, and
       // win=d7 there would describe something the recipient cannot see.
       if(win!=='d1'&&!teamsOn)q.push('win='+win);
-      if(regionQ)q.push('region='+encodeURIComponent(regionQ));
+      // Neither filter applies on the teams tab, so a link from there must not
+      // carry them.
+      if(regionQ&&!teamsOn)q.push('region='+encodeURIComponent(regionQ));
       if(searchQ)q.push('q='+encodeURIComponent(searchQ));
-      if(liveOnly)q.push('playing=1');
+      if(liveOnly&&!teamsOn)q.push('playing=1');
       var next=location.pathname+(q.length?('?'+q.join('&')):'')+location.hash;
       if(next===location.pathname+location.search+location.hash)return;
       // Safari throws once replaceState is called more than 100 times in 30

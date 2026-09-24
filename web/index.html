@@ -248,7 +248,8 @@
   .search.has .clr{display:block}
   .wrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px}
   .wlbl{font-family:var(--display);text-transform:uppercase;letter-spacing:.12em;font-size:11px;font-weight:600;color:var(--slate)}
-  /* Region filter sits with the search so it applies to players and teams alike. */
+  /* Region filter. It orders nothing and applies to the players list only: its
+     row is hidden on the Teams tab, so it does not filter the teams table. */
   .rseg button{font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;font-size:11.5px;font-weight:600;padding:5px 10px}
   .rseg button[aria-pressed="true"]{background:var(--panel2);color:var(--bone);box-shadow:inset 0 0 0 1px var(--accent-line)}
   /* Holds the region label and its count as ONE flex item, so the two sit on a
@@ -1584,6 +1585,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=934b6f01" defer></script>
+<script src="rlpt.js?v=11a56a73" defer></script>
 </body>
 </html>
