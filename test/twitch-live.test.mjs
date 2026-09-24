@@ -44,12 +44,14 @@ test("chunking keeps every request inside Twitch's 100-login limit", () => {
   assert.deepEqual(chunk([]), []);
 });
 
-test("a stream becomes the three things a badge needs", () => {
+test("a stream becomes only what a badge needs", () => {
+  // The badge only asks whether a channel is live. Viewer counts and start
+  // times are not shown anywhere, so they are not republished either.
   const live = liveFrom([
     { user_login: "vatira_", game_name: "Rocket League", viewer_count: 1200, started_at: "2026-09-16T12:00:00Z", type: "live" },
   ]);
   assert.deepEqual(live, {
-    vatira_: { game: "Rocket League", viewers: 1200, startedAt: "2026-09-16T12:00:00Z" },
+    vatira_: { game: "Rocket League" },
   });
 });
 
@@ -60,7 +62,7 @@ test("the stream title is never carried", () => {
   const live = liveFrom([
     { user_login: "x_y_z", title: "<img src=x onerror=alert(1)>", game_name: "Rocket League", viewer_count: 1, type: "live" },
   ]);
-  assert.deepEqual(Object.keys(live.x_y_z).sort(), ["game", "startedAt", "viewers"]);
+  assert.deepEqual(Object.keys(live.x_y_z).sort(), ["game"]);
   assert.ok(!JSON.stringify(live).includes("onerror"), JSON.stringify(live));
 });
 
@@ -99,9 +101,9 @@ test("without a filter every game is reported", () => {
 
 test("missing or odd fields do not throw and do not invent numbers", () => {
   const live = liveFrom([{ user_login: "a_b_c" }]);
-  assert.deepEqual(live.a_b_c, { game: null, viewers: null, startedAt: null });
+  assert.deepEqual(live.a_b_c, { game: null });
   const weird = liveFrom([{ user_login: "d_e_f", game_name: 42, viewer_count: "lots", started_at: {} }]);
-  assert.deepEqual(weird.d_e_f, { game: null, viewers: null, startedAt: null });
+  assert.deepEqual(weird.d_e_f, { game: null });
   assert.deepEqual(liveFrom([]), {});
   assert.deepEqual(liveFrom(null), {});
   assert.deepEqual(liveFrom([null, undefined, {}]), {});
