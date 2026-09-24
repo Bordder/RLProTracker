@@ -59,7 +59,14 @@ for attempt in 1 2 3 4 5; do
     cp -r "$p" "$WORK/$p"
   done
 
-  git -C "$WORK" add -- "$@" 2>/dev/null || true
+  # One path at a time, and only paths that exist on the branch after the
+  # copy. `git add` aborts the WHOLE add when any one pathspec matches nothing,
+  # so a file listed here but produced by neither this run nor an earlier one
+  # made every run report "no changes to publish" and publish nothing.
+  for p in "$@"; do
+    [ -e "$WORK/$p" ] || continue
+    git -C "$WORK" add -- "$p"
+  done
   if git -C "$WORK" diff --staged --quiet; then
     echo "no changes to publish"
     exit 0
