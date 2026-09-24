@@ -2240,7 +2240,7 @@
           rows+='<span class="tl s'+sr.i+'"><i></i>'+esc(sr.name)+'<b>'+nf(pt[3])+'</b></span>';
         });
         var w=new Date(mmrBase+when*60000);
-        tip.innerHTML='<span class="tw">'+esc(w.toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'})+
+        tip.innerHTML='<span class="ttime">'+esc(w.toLocaleDateString([],{weekday:'short',day:'numeric',month:'short'})+
           ', '+w.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}))+'</span>'+rows;
         tip.removeAttribute('hidden');
         mark.removeAttribute('hidden');

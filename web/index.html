@@ -735,7 +735,8 @@
     background:var(--ink);border:1px solid var(--line2);border-radius:6px;padding:6px 9px;
     display:flex;flex-direction:column;gap:3px;box-shadow:0 4px 14px rgba(0,0,0,.45)}
   .chart-tip[hidden]{display:none}
-  .chart-tip .tw{font-family:var(--mono);font-size:10.5px;color:var(--dim)}
+  /* Not .tw: that is the Twitch link's class, and its underline came with it. */
+  .chart-tip .ttime{font-family:var(--mono);font-size:10.5px;color:var(--dim)}
   .chart-tip .tl{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--slate)}
   .chart-tip .tl i{width:8px;height:8px;border-radius:2px;background:currentColor;flex:0 0 auto}
   .chart-tip .tl b{font-family:var(--mono);font-size:12px;color:var(--bone);margin-left:auto;padding-left:10px}
@@ -1589,6 +1590,6 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=f53f61ad" defer></script>
+<script src="rlpt.js?v=89a2feec" defer></script>
 </body>
 </html>
