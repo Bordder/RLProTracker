@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FAQ &middot; RL Pro Tracker</title>
+<meta name="description" content="Common questions about RL Pro Tracker: what it measures, why some players show no hours, and how to report a problem.">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="favicon-16.png" sizes="16x16" type="image/png">
+<link rel="icon" href="favicon-48.png" sizes="48x48" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#0C0E13">
+<link rel="stylesheet" href="fonts/fonts.css?v=3395e810">
+<style>
+  :root{
+    --ink:#0C0E13; --bone:#F2EFE6; --slate:#8B90A0; --dim:#565E6A;
+    --accent:#FF5A1F; --line:#262B36;
+    --display:'Big Shoulders Display','Arial Narrow',system-ui,sans-serif;
+    --body:'Archivo',system-ui,-apple-system,'Segoe UI',sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--ink)}
+  body{color:var(--slate);font-family:var(--body);font-size:15px;line-height:1.6;padding:0 20px 80px}
+  .wrap{max-width:720px;margin:0 auto}
+  header.top{padding:26px 0 14px;border-bottom:1px solid var(--line);margin-bottom:18px;display:flex;gap:18px;align-items:baseline;flex-wrap:wrap}
+  .crumbs{font-size:12px;color:var(--dim);margin:0 0 24px}
+  .crumbs a{color:var(--slate);text-decoration:none}
+  .crumbs a:hover{color:var(--accent)}
+  .crumbs span[aria-current]{color:var(--bone)}
+  .brand{font-family:var(--display);font-weight:900;text-transform:uppercase;letter-spacing:.02em;font-size:19px;color:var(--bone);text-decoration:none}
+  .brand span{color:var(--accent)}
+  h1{font-family:var(--display);font-weight:900;text-transform:uppercase;font-size:clamp(2rem,6vw,3rem);line-height:.95;margin:0 0 4px;color:var(--bone)}
+  .updated{color:var(--dim);font-size:13px;margin:0 0 26px}
+  .preamble{color:var(--bone);border-left:2px solid var(--accent);padding-left:14px;margin-bottom:32px}
+  h2{font-family:var(--display);font-weight:800;text-transform:uppercase;letter-spacing:.04em;font-size:1.15rem;margin:32px 0 8px;color:var(--bone)}
+  h2 .n{color:var(--accent);margin-right:8px}
+  b,strong{color:var(--bone);font-weight:600}
+  a{color:var(--accent)}
+  ul{padding-left:20px}
+  li{margin-bottom:5px}
+  code{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:var(--bone)}
+  .tag{display:inline-block;border:1px solid var(--line);border-radius:4px;padding:1px 7px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin-right:6px}
+  footer.legal{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);color:var(--dim);font-size:13px}
+  footer.legal .links a{margin-right:14px}
+  footer.legal .copyright{margin-top:16px;padding-top:14px;border-top:1px solid var(--line);font-size:11.5px;line-height:1.6}
+  footer.legal .copyright b{color:var(--slate);font-weight:600}
+  .handle{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;color:var(--slate)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <a class="brand" href="/">RL Pro Tracker<span>.</span></a>
+  </header>
+  <nav class="crumbs" aria-label="Breadcrumb">
+    <a href="/">Tracker</a> <span aria-hidden="true">/</span> <span aria-current="page">FAQ</span>
+  </nav>
+  <h1>FAQ</h1>
+  <p class="updated">Last updated 4 September 2026</p>
+
+  <h2><span class="n">1.</span> What is this actually measuring?</h2>
+  <p>Ranked ladder activity outside official matches: how many ranked games a pro has played,
+  their MMR per playlist, and how many hours they have put in. It exists to answer the argument
+  that starts every time someone plays badly at an event: have they actually been queuing?</p>
+
+  <h2><span class="n">2.</span> Why does a player show no hours?</h2>
+  <p>Three reasons, and the cell says which one: <b>private</b> means the whole profile is closed,
+  <b>hidden</b> means the profile is open but its game details are switched off, and
+  <b>hours hidden</b> means the profile is public but keeps its total playtime private, which is a
+  separate Steam setting.</p>
+  <p>A fourth says <b>epic</b>: no Steam account to read, so there are no hours at all.</p>
+  <p>None of it affects ranks or games played, which come from elsewhere. Profiles are
+  re-checked every hour and fill in by themselves if anything changes.
+  <a href="/how-it-works">How it works</a> goes through it properly.</p>
+
+  <h2><span class="n">3.</span> How are the estimated hours worked out?</h2>
+  <p>Steam still shows what somebody is playing right now even when it hides how long they have
+  played. So for those profiles the site checks every few minutes and, whenever it finds them in
+  Rocket League, credits the time since the last check.</p>
+  <p>Estimates show in the <b>2wk h</b> column with a tilde in front, like <b>~14.2</b>, and a
+  dotted underline. They always come out low: a session between two checks is invisible, and
+  nothing before tracking began counts. Treat them as a floor. A plain number in that column is
+  Steam&rsquo;s own.</p>
+
+  <h2><span class="n">4.</span> How often does it update?</h2>
+  <p>Every few minutes, for every player on the same cycle. The page updates itself while you
+  have it open, so you do not need to refresh. If collection falls behind or stops, the site says
+  so at the top rather than quietly showing old numbers.</p>
+
+  <h2><span class="n">5.</span> Is the data accurate?</h2>
+  <p>It is as accurate as public sources allow, which is not the same as perfect. Sources go
+  down, profiles change, and collection sometimes fails. Ranked stats only move when a match
+  ends, so a figure a few minutes old is normal. Do not bet on any of it.</p>
+
+  <h2><span class="n">6.</span> Which players are listed?</h2>
+  <p>Players competing in RLCS, currently 94 across 34 teams. Regions follow the team&rsquo;s
+  competitive region, not nationality.</p>
+
+  <h2><span class="n">7.</span> I am one of the players listed. Can you take my entry down?</h2>
+  <p>Yes, and you do not have to explain why.</p>
+  <p>Message me on Discord at <span class="handle">@53vi</span>, which is private, or use the
+  feedback form at the bottom of the tracker. Tell me which player you are and the row comes off,
+  along with the data behind it.</p>
+
+  <h2><span class="n">8.</span> Something is wrong. How do I report it?</h2>
+  <p>The feedback form at the bottom of the tracker is the fastest route, and it does not need an
+  account. <b>You will get a reply within 48 hours.</b> Discord, at
+  <span class="handle">@53vi</span>, is the private route.</p>
+
+  <h2><span class="n">9.</span> Do you track visitors?</h2>
+  <p>No. The site sets <b>no cookies</b>, stores nothing in your browser, has no accounts to sign
+  into and carries no advertising.</p>
+  <p>The one thing that does run is Cloudflare Web Analytics, which counts page views. It is
+  cookieless, does not fingerprint your device and cannot follow you to other sites.
+  The <a href="/privacy">privacy policy</a> has the detail.</p>
+
+  <h2><span class="n">10.</span> Is this affiliated with Rocket League or RLCS?</h2>
+  <p>No. It is an independent fan project with no affiliation to Psyonix, Epic Games, RLCS, or any
+  team or player shown.</p>
+
+  <h2><span class="n">11.</span> Where do the team logos come from?</h2>
+  <p>Three places: public domain files on Wikimedia Commons, an org&rsquo;s own press kit, or supplied
+  to us directly. Each one is listed with its source in
+  <a href="https://github.com/Bordder/RLProTracker/blob/main/web/img/teams/sources.json" rel="noopener">sources.json</a>.</p>
+  <p>Want yours removed? Message <b>@53vi</b> on Discord.</p>
+
+  <h2><span class="n">12.</span> Can I see the code?</h2>
+  <p>Yes, the whole project is on <a href="https://github.com/Bordder/RLProTracker" rel="noopener">GitHub</a>,
+  including the collectors and this page.</p>
+
+  <footer class="legal">
+    <div class="links"><a href="/">Back to the tracker</a><a href="/how-it-works">How it works</a><a href="/faq">FAQ</a><a href="/status">Status</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div>
+    <p class="copyright">Built and maintained by <b>Bordder</b>. &copy; 2026.<br />
+    A fan-made project, not affiliated with Psyonix, Epic Games or RLCS. Rocket League is a trademark of Psyonix LLC. Player and team names belong to their respective owners.</p>
+  </footer>
+</div>
+</body>
+</html>

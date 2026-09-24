@@ -1,0 +1,28 @@
+version: 2
+updates:
+  # Runtime/dev dependencies (playwright-extra, puppeteer plugins, fs-extra...).
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(dev-deps)"
+    groups:
+      # One PR for routine patch/minor bumps; majors still come through alone
+      # so a breaking change is never buried in a batch.
+      minor-and-patch:
+        update-types: ["minor", "patch"]
+
+  # The pinned actions in .github/workflows (checkout, setup-node...).
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+    commit-message:
+      prefix: "chore(ci)"

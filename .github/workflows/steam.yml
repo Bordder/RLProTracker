@@ -1,0 +1,67 @@
+name: Steam update (hourly)
+
+# Collects Steam playtime once a day (hours change slowly), then commits the
+# refreshed JSON back to the repo so the site reads current data.
+# NOTE: scheduled runs can be delayed a few minutes under GitHub load, and
+# schedules pause if the repo sees no commits for 60 days - a manual run resumes them.
+
+on:
+  schedule:
+    - cron: "0 * * * *" # hourly. Steam only refreshes playtime when a session ends, so
+                        # polling faster mostly re-reads the same numbers; hourly is enough
+                        # to catch a session the same day. It also gives computeDeltas 24
+                        # snapshots a day instead of 1, which is what makes the 24h/7d hour
+                        # windows meaningful. Unproxied and ~60 Steam calls per run, so this
+                        # costs no proxy bandwidth and uses ~1.4% of the API quota.
+  workflow_dispatch: {} # allow manual runs from the Actions tab
+
+permissions:
+  contents: write # needed to commit updated data back
+
+concurrency:
+  group: steam-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+
+      - name: Run activity update (Steam hours -> deltas -> team aggregate)
+        env:
+          STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }}
+        run: npm run update
+
+      - name: Prune snapshots older than 15 days
+        run: node scripts/pruneSnapshots.mjs
+
+      - name: Commit refreshed data
+        run: |
+          git config user.name "rl-tracker-bot"
+          git config user.email "actions@github.com"
+          git add data/steam-history.json data/last-known-hours.json data/derived/steam-hours.json data/derived/team-hours.json
+          git diff --staged --quiet && echo "no changes" && exit 0
+          git commit -m "[skip ci] data: hourly steam update"
+          # rebase+retry so a concurrent job's push can't reject ours
+          # Clear any half-finished rebase before retrying: without this, one
+          # conflict leaves unmerged files behind and every later attempt dies
+          # on them instead of trying again.
+          #
+          # -X theirs means the commit being replayed - our freshly computed
+          # data - wins a conflict. That is what we want: the file is
+          # regenerated from scratch each run, so the newer copy is correct and
+          # there is nothing in the older one worth merging.
+          for i in 1 2 3 4 5; do
+            git rebase --abort 2>/dev/null || true
+            if git pull --rebase --autostash -X theirs origin main && git push; then
+              exit 0
+            fi
+            echo "push retry $i"; sleep $((RANDOM % 8 + 3))
+          done
+          git rebase --abort 2>/dev/null || true
+          echo "push failed after retries"; exit 1

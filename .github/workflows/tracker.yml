@@ -1,0 +1,107 @@
+name: Tracker update
+
+# Collects ranked MMR and games-played per playlist from tracker.gg using a
+# headless browser (stealth) that clears Cloudflare, then commits the results.
+# Offset 30 minutes from the Steam job so their pushes don't overlap.
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"  # safety net; the Cloudflare Worker (worker/) drives the
+                           # real cadence via workflow_dispatch. GitHub drops most
+                           # high-frequency scheduled runs on public repos anyway, and a
+                           # */5 here just adds collisions with the dispatcher.
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+# Overlapping dispatches QUEUE rather than kill the run in progress. The comment
+# this replaces assumed triggers were 20 minutes apart; they are now 3, and two
+# dispatchers were live at once, so cancel-in-progress was destroying runs
+# mid-scrape - 3 of 6 consecutive runs cancelled at 00:20-00:24, each having
+# already spent proxy bandwidth. A scrape that finishes late is still useful
+# data; a cancelled one is pure waste. timeout-minutes below still caps a hang.
+concurrency:
+  group: tracker-update
+  cancel-in-progress: false
+
+jobs:
+  tracker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25 # hard cap so a hung browser/proxy can't run for the 6h default
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+          # Without this the install re-resolves Playwright and the stealth
+          # plugin from the registry on every run. Measured 2026-09-03: 271s of
+          # install against a 29s scrape, which pushed runs past the 2-minute
+          # dispatch interval and left GitHub cancelling the queued one.
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      # Chromium is 22s of a ~65s run, which is the single biggest fixed cost in
+      # the cadence. The browser binaries are cached on the Playwright version, so
+      # a warm run only pays for the OS deps.
+      - name: Cache Chromium
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-1.62.1
+
+      # install-deps is an apt install and costs ~15s of every run, but the
+      # runner image may already carry Chromium's libraries. Rather than assume
+      # either way, prove it: fetch the browser, try to launch it, and only pay
+      # for apt when that actually fails. Self-correcting, so if a future image
+      # drops a library the run repairs itself instead of breaking.
+      - name: Install Chromium
+        run: |
+          npx playwright install chromium
+          if node -e "require('playwright').chromium.launch().then(b=>b.close())" 2>/dev/null; then
+            echo "browser launches as-is; skipping apt"
+          else
+            echo "launch failed; installing system dependencies"
+            npx playwright install-deps chromium
+          fi
+
+      - name: Collect tracker data (MMR + games, then aggregate)
+        env:
+          STEAM_API_KEY: ${{ secrets.STEAM_API_KEY }} # presenceHot: detect who's in-game
+          PROXY_HOST: ${{ secrets.PROXY_HOST }}
+          PROXY_PORTS: ${{ secrets.PROXY_PORTS }}
+          PROXY_USER: ${{ secrets.PROXY_USER }}
+          PROXY_PASS: ${{ secrets.PROXY_PASS }}
+          PROXY_LIST: ${{ secrets.PROXY_LIST }}
+        run: npm run tracker
+
+      - name: Prune old snapshots
+        run: node scripts/pruneSnapshots.mjs
+
+      - name: Commit refreshed data
+        run: |
+          git config user.name "rl-tracker-bot"
+          git config user.email "actions@github.com"
+          git add data/tracker-history.json data/tracker-state.json data/derived/tracker.json data/derived/team-tracker.json data/derived/uptime.json data/proxy-use.json
+          git diff --staged --quiet && echo "no changes" && exit 0
+          git commit -m "[skip ci] data: tracker update"
+          # Clear any half-finished rebase before retrying: without this, one
+          # conflict leaves unmerged files behind and every later attempt dies
+          # on them instead of trying again.
+          #
+          # -X theirs means the commit being replayed - our freshly computed
+          # data - wins a conflict. That is what we want: the file is
+          # regenerated from scratch each run, so the newer copy is correct and
+          # there is nothing in the older one worth merging.
+          for i in 1 2 3 4 5; do
+            git rebase --abort 2>/dev/null || true
+            if git pull --rebase --autostash -X theirs origin main && git push; then
+              exit 0
+            fi
+            echo "push retry $i"; sleep $((RANDOM % 8 + 3))
+          done
+          git rebase --abort 2>/dev/null || true
+          echo "push failed after retries"; exit 1

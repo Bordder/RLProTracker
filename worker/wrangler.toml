@@ -1,0 +1,52 @@
+name = "rlprotracker-cron"
+main = "src/index.js"
+compatibility_date = "2026-01-01"
+
+# No public URL. This Worker only runs on a schedule, and the workers.dev
+# hostname it was getting embedded the account holder's email local-part
+# (<name>.workers.dev), which is not something a cron job should be publishing.
+# Scheduled handlers run regardless of routing.
+workers_dev = false
+
+# A probe URL on the site's own zone, rather than the workers.dev hostname,
+# which embeds the account holder's email local-part. Needed because a Worker
+# with no route cannot be inspected at all: when its crons stopped firing on
+# 2026-09-02 there was no way to tell whether the Worker was running and failing
+# to dispatch, or not running at all.
+[[routes]]
+pattern = "cron.198x.online"
+custom_domain = true
+
+# GitHub's own scheduler drops most high-frequency runs on public repos, so this
+# Worker is the primary trigger for the collectors and the crons in
+# .github/workflows/ are a slow safety net.
+#
+# Two schedules, and the handler dispatches by which one fired: presence every
+# 5 minutes (matches POLL_MINUTES in computePresenceHours.mjs), tracker every 3,
+# and steam hourly.
+#
+# Steam was left on GitHub's own hourly cron and paid for it: it last fired at
+# 07:32 and was still not running five hours later, so a fix to how playtime is
+# classified could not reach the site. GitHub drops these runs on public repos
+# whatever the interval, so every collector that matters is dispatched here now.
+# Offset to :07 to stay clear of the tracker and presence ticks. The tracker runs
+# every 2 min against a measured run time of 51-73s, so there is roughly 47s of
+# headroom - watch the cancelled-run rate as the roster grows, because tracker.yml
+# sets cancel-in-progress and an overlapping dispatch kills the run before it.
+[triggers]
+crons = ["*/5 * * * *", "*/2 * * * *", "7 * * * *"]
+
+# GH_TOKEN is a fine-grained PAT (Actions: read and write) and is NOT declared
+# here - add it as a Secret in the dashboard. Secrets survive a deploy; the vars
+# below do not, which is why they live in this file.
+[vars]
+GH_OWNER = "Bordder"
+GH_REPO  = "RLProTracker"
+GH_REF   = "main"
+
+# Without this, the dashboard log stream stays empty - including the invocation
+# lines that tell you whether the cron fired at all, which is the first thing
+# you want when a scheduled Worker looks dead.
+[observability.logs]
+enabled = true
+invocation_logs = true
