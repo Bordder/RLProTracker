@@ -161,6 +161,9 @@ export function steamFeed(devs, state, summaries, prev, at, appId = "252950") {
     const x = bySteam.get(id);
     const steam = !x || x.communityvisibilitystate !== 3 ? "private" : String(x.gameid) === appId ? "in" : "out";
     out[d.key] = { steam, inGameAt: steam === "in" ? at : prev?.devs?.[d.key]?.inGameAt ?? null };
+    // The Steam id only for a public profile, so the page can link to it. A
+    // private one is not linked: its owner has chosen not to be looked up.
+    if (steam !== "private") out[d.key].steamId = id;
   }
   return { devs: out };
 }
@@ -176,6 +179,7 @@ export function alphaFeed(devs, state, at) {
       return {
         key: d.key,
         name: d.name ?? s.handle ?? d.id,
+        spotted: d.spotted ?? [],
         platform: d.platform,
         url: profileUrl(d),
         rating: s.rating ?? null,
@@ -223,7 +227,11 @@ export function loadDevs(file) {
     if (seen.has(key)) continue;
     seen.add(key);
     const steam = /^\d{17}$/.test(String(d.steam ?? "")) ? String(d.steam) : null;
-    out.push({ key, name: d.name || null, ...who, ...(steam ? { steam } : null) });
+    // Where players have reported meeting them, e.g. "US-West 4v4". Set by
+    // hand in devs.json; nothing can track it (see the page's note).
+    const spotted = (Array.isArray(d.spotted) ? d.spotted : [])
+      .map((x) => String(x).trim().slice(0, 30)).filter(Boolean).slice(0, 6);
+    out.push({ key, name: d.name || null, ...who, ...(steam ? { steam } : null), ...(spotted.length ? { spotted } : null) });
   }
   return out;
 }

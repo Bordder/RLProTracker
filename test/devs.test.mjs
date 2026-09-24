@@ -111,8 +111,8 @@ test("Steam presence marks a public profile running Rocket League as in game", (
     { steamid: "76561197977628909", communityvisibilitystate: 1, gameid: "252950" },
   ], prev, "T");
   assert.deepEqual(f.devs, {
-    "steam/76561198053067202": { steam: "in", inGameAt: "T" },
-    "steam/bboysca": { steam: "out", inGameAt: "EARLIER" },
+    "steam/76561198053067202": { steam: "in", inGameAt: "T", steamId: "76561198053067202" },
+    "steam/bboysca": { steam: "out", inGameAt: "EARLIER", steamId: "76561198000000001" },
     "steam/76561197977628909": { steam: "private", inGameAt: null },
   }, "a vanity link uses the profile's id, one never read is skipped, Epic has no Steam");
 });
@@ -122,5 +122,12 @@ test("an Epic developer can carry a Steam id for the presence check", () => {
   assert.equal(devs[0].steam, "76561198077880164");
   assert.equal(devs[1].steam, undefined, "a malformed id is ignored");
   const f = steamFeed(devs, {}, [{ steamid: "76561198077880164", communityvisibilitystate: 3, gameid: "252950" }], null, "T");
-  assert.deepEqual(f.devs, { "epic/massivewoolf": { steam: "in", inGameAt: "T" } });
+  assert.deepEqual(f.devs, { "epic/massivewoolf": { steam: "in", inGameAt: "T", steamId: "76561198077880164" } });
+});
+
+test("where a developer has been spotted is carried from devs.json to the feed", () => {
+  const devs = loadDevs({ devs: [{ tracker: "epic/Retrogue", spotted: [" US-West 4v4 ", "", "US-East 3v3"] }, { tracker: "epic/Other" }] });
+  const f = alphaFeed(devs, {}, "t");
+  assert.deepEqual(f.devs[0].spotted, ["US-West 4v4", "US-East 3v3"]);
+  assert.deepEqual(f.devs[1].spotted, []);
 });
