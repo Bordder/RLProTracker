@@ -580,8 +580,10 @@ function groupEl(ml, table) {
     const wa = done && a !== null && b !== null && a > b, wb = done && a !== null && b !== null && b > a;
     // Crest, name, score, name, crest: the same reading order as a match box
     // in the bracket above, so the two do not have to be learned separately.
+    // A forfeit has no score, only the letters Liquipedia writes in its place.
+    const shown = (x, i) => esc(x ?? m.marks?.[i] ?? "·");
     const score = played
-      ? `<b class="${wa ? "w" : ""}">${a}</b><i>&ndash;</i><b class="${wb ? "w" : ""}">${b}</b>`
+      ? `<b class="${wa || m.winner === 0 ? "w" : ""}">${shown(a, 0)}</b><i>&ndash;</i><b class="${wb || m.winner === 1 ? "w" : ""}">${shown(b, 1)}</b>`
       : `<span class="vs">vs</span>`;
     m._stage = STAGE;
     rows.push(`<div class="gm" data-mi="${m._i}" tabindex="0">` +

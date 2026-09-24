@@ -791,3 +791,41 @@ test("a name that is already a name is not an unresolved code", () => {
     assert.equal(looksLikeCode(name), false, name);
   }
 });
+
+// ---- forfeits ----------------------------------------------------------------
+
+test("a forfeit is a finished match with a winner and no score", () => {
+  // Liquipedia marks a walkover with a letter where the score goes (W against
+  // FF, DQ or L), or with walkover=<winner>. Reading the letters as "no score"
+  // made the match upcoming and finished at once, which the live check reports
+  // as a match in two states and the group card printed as null-null.
+  const [b] = parseBrackets(`{{Bracket|Bracket/2|id=x
+|R1M1={{Match
+    |opponent1={{TeamOpponent|A|score=W}}
+    |opponent2={{TeamOpponent|B|score=FF}}
+    |finished=true
+}}
+|R1M2={{Match
+    |opponent1={{TeamOpponent|C|score=}}
+    |opponent2={{TeamOpponent|D|score=}}
+    |walkover=2
+}}
+}}`);
+  const [a, c] = b.matches;
+  assert.deepEqual([a.finished, a.upcoming, a.live, a.winner], [true, false, false, 0]);
+  assert.deepEqual(a.scores, [null, null]);
+  assert.deepEqual(a.marks, ["W", "FF"]);
+  assert.deepEqual([c.finished, c.upcoming, c.live, c.winner], [true, false, false, 1]);
+});
+
+test("an ordinary match carries no forfeit fields", () => {
+  const [b] = parseBrackets(`{{Bracket|Bracket/2|id=x
+|R1M1={{Match
+    |opponent1={{TeamOpponent|A|score=3}}
+    |opponent2={{TeamOpponent|B|score=1}}
+    |finished=true
+}}
+}}`);
+  assert.equal("winner" in b.matches[0], false);
+  assert.equal("marks" in b.matches[0], false);
+});
