@@ -12,6 +12,12 @@
 //
 // Needs GH_TOKEN (fine-grained PAT with Issues: write) as a Pages secret:
 //   npx wrangler pages secret put GH_TOKEN --project-name=rlprotracker
+//
+// Reports from the Alpha Boost page do NOT become issues. The repo is public,
+// and a report names the person sending it, so those go to a private Discord
+// channel instead, through a webhook held as its own Pages secret. The address
+// never reaches a browser:
+//   npx wrangler pages secret put REPORT_WEBHOOK --project-name=rlprotracker
 
 const OWNER = "Bordder";
 const REPO = "RLProTracker";
@@ -25,7 +31,9 @@ const REPO = "RLProTracker";
 const MAX_MESSAGE = 500;
 const MIN_MESSAGE = 25;
 const MAX_USER = 60;
-const TYPES = ["Feedback", "Feature request", "Bug", "Other"];
+// "Alpha Boost report" comes from the report bar on /alphaboost.
+const REPORT_TYPE = "Alpha Boost report";
+const TYPES = ["Feedback", "Feature request", "Bug", "Other", REPORT_TYPE];
 // The largest body the form can send is well under 4KB: the message and name
 // at their limits, every character escaped. Anything bigger is not a
 // submission, and is turned away before it is parsed.
@@ -66,7 +74,7 @@ const noMention = (s) => s.replace(/@(?=[A-Za-z0-9])/g, "@\u200b");
 
 async function handlePost(context) {
   const { request, env } = context;
-  if (!env.GH_TOKEN) return json({ error: "not-configured" }, 503);
+  if (!env.GH_TOKEN && !env.REPORT_WEBHOOK) return json({ error: "not-configured" }, 503);
 
   // Only this site's own pages. request.json() parses whatever the content
   // type, and a text/plain POST needs no CORS preflight, so any other site
@@ -108,6 +116,48 @@ async function handlePost(context) {
     return json({ error: "too-many", retryAfter: SUBMIT_COOLDOWN }, 429);
   }
 
+  const res = type === REPORT_TYPE ? await sendReport(env, user, message) : await fileIssue(env, type, user, message);
+  if (!res) return json({ error: "not-configured" }, 503);
+  if (!res.ok) {
+    // 403 from GitHub usually means the token lacks Issues: write; 404 from
+    // Discord means the webhook was deleted.
+    console.log(`feedback -> ${res.status}`);
+    return json({ error: "upstream" }, 502);
+  }
+  // Only a submission that actually went somewhere starts the clock, so a
+  // failed upstream does not lock the person out of retrying.
+  if (key) {
+    const mark = new Response("1", { headers: { "cache-control": `public, max-age=${SUBMIT_COOLDOWN}` } });
+    if (typeof context.waitUntil === "function") context.waitUntil(caches.default.put(key, mark));
+    else await caches.default.put(key, mark);
+  }
+  return json({ ok: true });
+}
+
+// An Alpha Boost report, to the private Discord channel. allowed_mentions is
+// empty so nothing in a message can ping anyone, @everyone included.
+async function sendReport(env, user, message) {
+  if (!env.REPORT_WEBHOOK) return null;
+  const res = await fetch(env.REPORT_WEBHOOK.trim(), {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      allowed_mentions: { parse: [] },
+      embeds: [{
+        title: "Alpha Boost report",
+        description: message,
+        color: 0x0b8a8f,
+        fields: [{ name: "From", value: user || "anonymous" }],
+        timestamp: new Date().toISOString(),
+      }],
+    }),
+  });
+  return { ok: res.status === 204 || res.status === 200, status: res.status };
+}
+
+// Everything else, as a GitHub issue on the repo.
+async function fileIssue(env, type, user, message) {
+  if (!env.GH_TOKEN) return null;
   const title = `${type}${user ? ` from ${user}` : ""}: ${message.split("\n")[0].slice(0, 60)}`;
   const body = [
     message,
@@ -129,19 +179,7 @@ async function handlePost(context) {
     },
     body: JSON.stringify({ title, body, labels: ["feedback"] }),
   });
-  if (res.status !== 201) {
-    // 403 here usually means the token lacks Issues: write.
-    console.log(`feedback -> ${res.status}`);
-    return json({ error: "upstream" }, 502);
-  }
-  // Only a submission that actually filed something starts the clock, so a
-  // failed upstream does not lock the person out of retrying.
-  if (key) {
-    const mark = new Response("1", { headers: { "cache-control": `public, max-age=${SUBMIT_COOLDOWN}` } });
-    if (typeof context.waitUntil === "function") context.waitUntil(caches.default.put(key, mark));
-    else await caches.default.put(key, mark);
-  }
-  return json({ ok: true });
+  return { ok: res.status === 201, status: res.status };
 }
 
 // One entry point rather than onRequest plus onRequestPost: exporting both makes

@@ -115,6 +115,38 @@ async function load() {
   if (base || !last) render(base && { ...base, devs: base.devs.map((d) => ({ ...d, ...(steam[d.key] ?? {}) })) });
 }
 
+// ---- Report bar ------------------------------------------------------------
+// The same relay as the board's feedback form, which files a GitHub issue.
+// The floor and ceiling are that relay's (functions/feedback.js), checked
+// here first so a short report fails with a reason rather than a 400.
+const RP_MIN = 25, RP_MAX = 500;
+const rp = $("rpForm");
+if (rp) {
+  const res = $("rpRes"), btn = $("rpBtn"), msgEl = $("rpMsg");
+  const say = (text, err) => { res.textContent = text; res.className = "rp-res" + (err ? " err" : ""); };
+  rp.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const user = ($("rpUser").value || "").trim().slice(0, 60);
+    const message = (msgEl.value || "").trim().slice(0, RP_MAX);
+    if (message.length < RP_MIN) {
+      say(message ? `A little more detail please: ${RP_MIN - message.length} more character${RP_MIN - message.length === 1 ? "" : "s"}.` : "Add what you are reporting first.", true);
+      msgEl.focus();
+      return;
+    }
+    btn.disabled = true;
+    say("Sending…");
+    fetch("/feedback", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ user, type: "Alpha Boost report", message, hp: $("rpHp").value }),
+    })
+      .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json(); })
+      .then(() => { say("Sent. Thanks!"); rp.reset(); })
+      .catch((err) => say(err.message === "429" ? "One report a minute, please. Try again shortly." : "Could not send it. Try again in a minute.", true))
+      .finally(() => { btn.disabled = false; });
+  });
+}
+
 $("yr").textContent = new Date().getFullYear();
 load();
 setInterval(() => (document.hidden ? null : load()), REFRESH_MS);

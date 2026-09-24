@@ -49,3 +49,37 @@ test("a message cannot mention GitHub users", async () => {
   assert.equal(res.status, 200);
   assert.ok(!/(^|[^​])@[a-z]/i.test(sent.title + sent.body), sent.title + sent.body);
 });
+
+test("an Alpha Boost report goes to the private Discord webhook, never to a GitHub issue", async () => {
+  let url = null, sent = null;
+  globalThis.fetch = async (u, init) => { url = String(u); sent = JSON.parse(init.body); return new Response(null, { status: 204 }); };
+  const res = await onRequest({
+    request: new Request("https://198x.online/feedback", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "https://198x.online" },
+      body: JSON.stringify({ type: "Alpha Boost report", user: "Bordder", message: "Woolf is on US-West 4v4 right now @everyone" }),
+    }),
+    env: { GH_TOKEN: "t", REPORT_WEBHOOK: "https://discord.com/api/webhooks/1/x" },
+    waitUntil: () => {},
+  });
+  assert.equal(res.status, 200);
+  assert.equal(url, "https://discord.com/api/webhooks/1/x");
+  assert.deepEqual(sent.allowed_mentions, { parse: [] }, "a report can never ping anyone");
+  assert.equal(sent.embeds[0].fields[0].value, "Bordder");
+});
+
+test("without the webhook, a report is refused rather than filed publicly", async () => {
+  let called = false;
+  globalThis.fetch = async () => { called = true; return new Response("{}", { status: 201 }); };
+  const res = await onRequest({
+    request: new Request("https://198x.online/feedback", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: "https://198x.online" },
+      body: JSON.stringify({ type: "Alpha Boost report", message: "Woolf is on US-West 4v4 right now, go" }),
+    }),
+    env: { GH_TOKEN: "t" },
+    waitUntil: () => {},
+  });
+  assert.equal(res.status, 503);
+  assert.equal(called, false);
+});
