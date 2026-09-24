@@ -14,7 +14,7 @@
 // under node, where the tests import this file directly.
 import { crest, hasLogo, teamSlug, teamName } from "./crest.mjs?v=3d51b913";
 import { flagSVG } from "./flags.mjs?v=d67b29cc";
-import { matchesOf, whenWords, zoneLabel, ordinal, isLive, eventRunning } from "./fixtures.mjs?v=3bc2d3dd";
+import { matchesOf, whenWords, zoneLabel, ordinal, isLive, eventRunning } from "./fixtures.mjs?v=ad9e89c5";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 

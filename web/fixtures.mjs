@@ -174,8 +174,10 @@ export function fixturesFrom(ev, nowMs) {
   const today = day(nowMs);
 
   const live = all.filter((m) => isLive(m, nowMs))
-    .sort((a, b) => (Date.parse(a.startsAt ?? "") || 0) - (Date.parse(b.startsAt ?? "") || 0))
-    .slice(0, MAX_LIVE);
+    .sort((a, b) => (Date.parse(a.startsAt ?? "") || 0) - (Date.parse(b.startsAt ?? "") || 0));
+  // Not cut here. A started match is neither "next" nor undated, so one cut
+  // from this list was on no list at all; past MAX_LIVE they are folded behind
+  // a disclosure when drawn instead.
   const liveSet = new Set(live);
 
   const next = all
@@ -372,7 +374,8 @@ export function panelHTML(ev, nowMs, { compact = false, locale = undefined } = {
 
   const multi = f.formats.length > 1;
   const zone = zoneLabel(nowMs);
-  // What is on now is never folded away, however small the screen.
+  // What is on now is not cut down to the phone's cap, however small the
+  // screen. Only past MAX_LIVE at once do the rest go behind a disclosure.
   const cap = compact ? 3 : 0;
   const liveRows = f.live.map((m) => matchEl(m, whenWords(m.startsAt, nowMs) ?? "on now", "live", multi));
   const nextRows = f.next.map((m) => matchEl(m, whenWords(m.startsAt, nowMs), "", multi));
@@ -398,7 +401,7 @@ export function panelHTML(ev, nowMs, { compact = false, locale = undefined } = {
     // Naming the zone is what makes that checkable against a stream overlay.
     (f.live.length ? '<span class="fxon"><i class="fxpip" aria-hidden="true"></i>On now</span>' : "") +
     (zone ? '<span class="fxtz">' + esc(zone) + "</span>" : "") + "</div>" +
-    group("Live", liveRows) +
+    group("Live", liveRows, MAX_LIVE) +
     group("Next", nextRows, cap) +
     group("Later today", [...laterRows, ...todayRows], cap) +
     group("To come", soonRows) +

@@ -355,3 +355,16 @@ test("the page and the collector pad an event by the same amount", () => {
   assert.equal(eventRunning(e, T("2026-09-15T00:00:00Z") - PAD), true);
   assert.equal(eventRunning(e, T("2026-09-15T00:00:00Z") - PAD - 1), false);
 });
+
+test("every live match is listed, however many are on at once", () => {
+  // The live bucket was cut to four, and a fifth started match is neither
+  // next nor undated, so it fell out of the panel altogether.
+  const d = ev();
+  const now = T("2026-09-16T12:00:00Z");
+  d.stages[0].brackets[0].matches = Array.from({ length: 6 }, (_, i) => ({
+    label: `Match ${i + 1}`, teams: [`T${i}a`, `T${i}b`], scores: [1, 0], finished: false, live: true,
+    startsAt: "2026-09-16T11:30:00.000Z",
+  }));
+  const html = panelHTML(d, now, { locale: GB });
+  for (let i = 1; i <= 6; i++) assert.ok(html.includes(`Match ${i}`), `Match ${i}`);
+});
