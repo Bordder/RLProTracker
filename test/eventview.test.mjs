@@ -39,3 +39,41 @@ test("the champion comes from the grand final once it is finished", () => {
   const f = finalOf(playoff({ scores: [2, 4], finished: true }));
   assert.equal(f.label, "Grand Final");
 });
+
+// ---- who is still in it ------------------------------------------------------
+
+import { teamsOf } from "../web/eventview.mjs";
+
+const NOW = Date.parse("2026-09-18T12:00:00Z");
+const running = (brackets, matchlists = [], tables = []) =>
+  ({ starts: "2026-09-15", ends: "2026-09-20", stages: [{ brackets, matchlists, tables }] });
+const outOf = (ev, now = NOW) => Object.fromEntries(teamsOf(ev, now).map((t) => [t.name, t.out]));
+
+test("losing in the upper bracket is not being knocked out", () => {
+  // B drops to the lower bracket, whose slot Liquipedia has not written yet.
+  const ev = running([{ matches: [
+    { round: 1, position: 1, section: "upper", teams: ["A", "B"], scores: [3, 1], finished: true },
+    { round: 2, position: 1, section: "lower", teams: [null, "C"], scores: [null, null], finished: false },
+  ] }]);
+  assert.equal(outOf(ev).B, false);
+});
+
+test("losing a group match before the next round is drawn is not being knocked out", () => {
+  const ev = running([], [{ matches: [{ teams: ["A", "B"], scores: [3, 0], finished: true }] }]);
+  assert.equal(outOf(ev).B, false);
+});
+
+test("a lower-bracket loss, a final loss and a group table's 'down' are all out", () => {
+  const ev = running([{ matches: [
+    { round: 3, position: 1, section: "lower", teams: ["C", "D"], scores: [3, 2], finished: true },
+    { round: 5, position: 1, section: "final", teams: ["A", "C"], scores: [4, 1], finished: true },
+  ] }], [{ matches: [{ teams: ["E", "F"], scores: [3, 1], finished: true }] }],
+  [{ rows: [{ team: "F", outcome: "down" }] }]);
+  const out = outOf(ev);
+  assert.deepEqual([out.A, out.C, out.D, out.F], [false, true, true, true]);
+});
+
+test("once the event is over, everyone who lost is out", () => {
+  const ev = running([], [{ matches: [{ teams: ["A", "B"], scores: [3, 0], finished: true }] }]);
+  assert.equal(outOf(ev, Date.parse("2026-10-01T12:00:00Z")).B, true);
+});

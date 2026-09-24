@@ -14,7 +14,7 @@
 // under node, where the tests import this file directly.
 import { crest, hasLogo, teamSlug, teamName } from "./crest.mjs?v=3d51b913";
 import { flagSVG } from "./flags.mjs?v=d67b29cc";
-import { matchesOf, whenWords, zoneLabel, ordinal, isLive } from "./fixtures.mjs?v=3bc2d3dd";
+import { matchesOf, whenWords, zoneLabel, ordinal, isLive, eventRunning } from "./fixtures.mjs?v=3bc2d3dd";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -221,26 +221,43 @@ export function scheduleHTML(ev, nowMs, tab = "upcoming") {
 /**
  * Every team in the event, and whether they are still in it.
  *
- * Out means eliminated: they appear in a finished match and lost it, and no
- * unfinished match still names them. That is derivable from the bracket alone,
- * which is the point - nothing here needs a second source.
+ * Out takes evidence that the team is finished, and no unfinished match still
+ * naming them. A loss alone is not that evidence: a team beaten in the upper
+ * bracket drops to the lower one, and a team beaten in a group or Swiss round
+ * plays again, but Liquipedia writes their next slot only once it is decided,
+ * so for a while nothing names them and they used to read as out. The evidence
+ * is a loss in the lower bracket or the finals, a group table marking their
+ * place as eliminated, or the event being over.
  */
-export function teamsOf(ev) {
+export function teamsOf(ev, nowMs = Date.now()) {
   const all = matchesOf(ev).filter((m) => !m.format || m.format === "3v3");
+  const over = !eventRunning(ev, nowMs) && Date.parse(`${ev?.ends}T00:00:00Z`) < nowMs;
+  const down = new Set();
+  for (const s of ev?.stages ?? []) {
+    if (s.format && s.format !== "3v3") continue;
+    for (const t of s.tables ?? []) {
+      for (const r of t.rows ?? []) if (r.team && r.outcome === "down") down.add(r.team.toLowerCase());
+    }
+  }
   const seen = new Map();
   for (const m of all) {
     (m.teams ?? []).forEach((name, i) => {
       if (!name || m.seeds?.[i]) return;
-      if (!seen.has(name)) seen.set(name, { name, playing: false, lost: false });
+      if (!seen.has(name)) seen.set(name, { name, playing: false, lost: false, knocked: false });
       const t = seen.get(name);
       if (!m.finished) { t.playing = true; return; }
       const [a, b] = m.scores ?? [null, null];
       if (a === null || b === null) return;
       const won = i === 0 ? a > b : b > a;
-      if (!won) t.lost = true;
+      if (won) return;
+      t.lost = true;
+      if (m.section === "lower" || m.section === "final") t.knocked = true;
     });
   }
-  const list = [...seen.values()].map((t) => ({ name: t.name, out: t.lost && !t.playing }));
+  const list = [...seen.values()].map((t) => ({
+    name: t.name,
+    out: !t.playing && (t.knocked || down.has(t.name.toLowerCase()) || (over && t.lost)),
+  }));
   return list.sort((x, y) => Number(x.out) - Number(y.out) || x.name.localeCompare(y.name));
 }
 
