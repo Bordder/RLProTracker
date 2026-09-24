@@ -738,6 +738,7 @@
 
       players.length=0; Array.prototype.push.apply(players,nextPlayers);
       teams.length=0;   Array.prototype.push.apply(teams,nextTeams);
+      indexTeams();
 
       // Re-derive on every update, not just at load: a roster change can add a
       // team while the page is open, and without this it would render with the
@@ -1251,7 +1252,14 @@
     };
 
     // Roster-comparison panel for a team (players side by side, best per row highlighted).
-    var byTeam={}; players.forEach(function(p){ (byTeam[p.team]=byTeam[p.team]||[]).push(p); });
+    //
+    // Rebuilt by hydrate() on every refresh. It was built once, here, from the
+    // first load, and hydrate replaces every player object, so the team panel,
+    // the team copy line and the partial marker on team games went on showing
+    // the numbers from when the page was opened.
+    var byTeam={};
+    function indexTeams(){ byTeam={}; players.forEach(function(p){ (byTeam[p.team]=byTeam[p.team]||[]).push(p); }); }
+    indexTeams();
     var teamPanel=function(name){
       var roster=(byTeam[name]||[]).slice();
       if(!roster.length)return '<div class="exp-wrap"><div class="exp-h">No player data yet</div></div>';
