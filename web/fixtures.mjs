@@ -56,6 +56,34 @@ export const isLive = (m, nowMs) => Boolean(m?.live) ||
   Boolean(m?.startsAt && !m.finished &&
     nowMs >= Date.parse(m.startsAt) && nowMs - Date.parse(m.startsAt) < LIVE_FOR);
 
+/**
+ * Is this event being played at `nowMs`?
+ *
+ * Its published dates are the venue's, and every "is it on today" check used
+ * to compare them against the UTC date. A North American grand final runs
+ * past midnight UTC, so for its last hours the event read as over: the bracket
+ * page crowned the semifinal winner, the board lost its LAN note and the cron
+ * Worker slowed the bracket collector to twice an hour.
+ *
+ * So an event is running inside its dates padded a day either side (the same
+ * pad scripts/events.mjs gives the collector, and a test holds the two
+ * together), or while any of its matches is live. A live match only counts if
+ * it started within LIVE_FOR, so a score left on a page nobody finished cannot
+ * keep an old event running forever.
+ */
+export const EVENT_PAD = 86400e3;
+export function eventRunning(ev, nowMs) {
+  const from = Date.parse(`${ev?.starts}T00:00:00Z`) - EVENT_PAD;
+  const to = Date.parse(`${ev?.ends}T00:00:00Z`) + 86400e3 + EVENT_PAD;
+  if (nowMs >= from && nowMs <= to) return true;
+  return (ev?.stages ?? []).some((s) =>
+    [...(s.brackets ?? []), ...(s.matchlists ?? [])].some((g) =>
+      (g.matches ?? []).some((m) => {
+        const at = Date.parse(m.startsAt ?? "");
+        return !m.finished && nowMs >= at && nowMs - at < LIVE_FOR;
+      })));
+}
+
 const windowOf = (st) => (st?.from ? { from: st.from, to: st.to || st.from } : null);
 
 // Which section a bracket is, the same way the bracket page names it: from the

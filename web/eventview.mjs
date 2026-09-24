@@ -14,7 +14,7 @@
 // under node, where the tests import this file directly.
 import { crest, hasLogo, teamSlug, teamName } from "./crest.mjs?v=3d51b913";
 import { flagSVG } from "./flags.mjs?v=d67b29cc";
-import { matchesOf, whenWords, zoneLabel, ordinal, isLive } from "./fixtures.mjs?v=5b6fa514";
+import { matchesOf, whenWords, zoneLabel, ordinal, isLive } from "./fixtures.mjs?v=3bc2d3dd";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -318,4 +318,28 @@ export function prizesHTML(ev) {
   const label = order.length > 1;
   return `<h3 class="eph">Prize pool</h3>` + order.map((k) =>
     (label ? `<h4 class="esub">${esc(k)}</h4>` : "") + prizeTable(groups.get(k))).join("");
+}
+
+// ---- the result -------------------------------------------------------------
+
+/**
+ * The grand final of a finished event, or null.
+ *
+ * The TEAM event's last bracket: the 2026 Worlds runs a 1v1 and a 2v2 title
+ * alongside the 3v3, and those stages come after it on the page, so taking the
+ * last bracket of all of them put the 2v2 winners under "Champion".
+ *
+ * The grand final is the last match of that bracket, and it has to be FINISHED
+ * itself. This used to take the last match that had finished, which during a
+ * grand final is the match before it: at 00:30 UTC in the Worlds 2024 final it
+ * named the semifinal's winner Champion while the final was being played.
+ */
+export function finalOf(ev) {
+  const team = (ev?.stages ?? []).filter((s) => !s.format || s.format === "3v3");
+  const brackets = (team.length ? team : ev?.stages ?? []).flatMap((s) => s.brackets ?? []);
+  const last = brackets[brackets.length - 1];
+  if (!last?.matches?.length) return null;
+  const gf = [...last.matches].sort((a, b) => a.round - b.round || a.position - b.position).pop();
+  const [a, b] = gf.scores ?? [null, null];
+  return gf.finished && a !== null && b !== null ? gf : null;
 }

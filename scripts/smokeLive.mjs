@@ -25,6 +25,7 @@
 // Exits 1 when anything fails, so the workflow goes red as well as posting.
 
 import { postEmbed } from "./discordPost.mjs";
+import { eventRunning } from "../web/fixtures.mjs";
 
 const SITE = process.env.SITE ?? "https://198x.online";
 
@@ -120,8 +121,10 @@ export function auditFeed(feed, doc, now) {
 /** The coherence checks a stale-or-fresh test cannot make. */
 export function auditBracket(doc, now) {
   const problems = [];
-  const today = new Date(now).toISOString().slice(0, 10);
-  const running = (doc.events ?? []).filter((e) => e.starts && e.ends && e.starts <= today && today <= e.ends);
+  // The page's own rule for "being played", so this check is on exactly when
+  // the page says the event is. The UTC date switched it off during a North
+  // American grand final.
+  const running = (doc.events ?? []).filter((e) => eventRunning(e, now));
 
   // Freshness, but only while it means something.
   if (running.length) {

@@ -7,7 +7,8 @@
 // with missing information lands in.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { matchesOf, sectionName, fixturesFrom, whenWords, ordinal, spanWords, zoneLabel, panelHTML } from "../web/fixtures.mjs";
+import { matchesOf, sectionName, fixturesFrom, whenWords, ordinal, spanWords, zoneLabel, panelHTML, eventRunning } from "../web/fixtures.mjs";
+import { PAD } from "../scripts/events.mjs";
 
 const T = (iso) => Date.parse(iso);
 
@@ -332,4 +333,25 @@ test("the panel names the reader's timezone", () => {
   // would only offer an offset.
   assert.ok(label === expected || !/^GMT|^UTC/.test(label), label);
   assert.ok(panelHTML(ev(), now).includes(label), "and it reaches the panel");
+});
+
+test("an event is running inside its dates padded a day either side", () => {
+  const e = { starts: "2026-09-15", ends: "2026-09-20", stages: [] };
+  assert.equal(eventRunning(e, T("2026-09-21T00:30:00Z")), true, "a venue evening past midnight UTC");
+  assert.equal(eventRunning(e, T("2026-09-14T06:00:00Z")), true);
+  assert.equal(eventRunning(e, T("2026-09-22T06:00:00Z")), false);
+});
+
+test("a live match keeps an event running past its window, a stale one does not", () => {
+  const e = (m) => ({ starts: "2026-09-15", ends: "2026-09-20", stages: [{ brackets: [{ matches: [m] }], matchlists: [] }] });
+  const at = T("2026-09-23T00:30:00Z");
+  assert.equal(eventRunning(e({ live: true, finished: false, startsAt: "2026-09-22T23:30:00Z" }), at), true);
+  // A score left on a page nobody finished is not a tournament running forever.
+  assert.equal(eventRunning(e({ live: true, finished: false, startsAt: "2026-09-18T23:30:00Z" }), at), false);
+});
+
+test("the page and the collector pad an event by the same amount", () => {
+  const e = { starts: "2026-09-15", ends: "2026-09-15", stages: [] };
+  assert.equal(eventRunning(e, T("2026-09-15T00:00:00Z") - PAD), true);
+  assert.equal(eventRunning(e, T("2026-09-15T00:00:00Z") - PAD - 1), false);
 });

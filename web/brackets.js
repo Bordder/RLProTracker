@@ -1,7 +1,7 @@
 import { crest, assignHues, hasLogo, teamName } from "/crest.mjs?v=3d51b913";
 import { standings, pairGroups } from "/standings.mjs?v=733b8667";
-import { panelHTML, ordinal, spanWords } from "/fixtures.mjs?v=5b6fa514";
-import { headerHTML, scheduleHTML, prizesHTML, teamsHTML } from "/eventview.mjs?v=c584d927";
+import { panelHTML, ordinal, spanWords, eventRunning } from "/fixtures.mjs?v=3bc2d3dd";
+import { headerHTML, scheduleHTML, prizesHTML, teamsHTML, finalOf } from "/eventview.mjs?v=8b74f593";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 // "23:00" today, "17th 23:00" on another day. Same wording as the schedule
@@ -612,10 +612,12 @@ let EVENTS = byNewest(doc.events);
 
 const startMs = (e) => Date.parse(`${e.starts}T00:00:00Z`);
 const endMs = (e) => Date.parse(`${e.ends}T23:59:59Z`);
+// Running is decided by eventRunning, not by the UTC date: the dates are the
+// venue's, and a North American final runs past midnight UTC.
 const stateOf = (e, now = Date.now()) => {
+  if (eventRunning(e, now)) return "running";
   if (!Number.isFinite(startMs(e))) return "tbd";
   if (now > endMs(e)) return "past";
-  if (now >= startMs(e)) return "running";
   return "future";
 };
 
@@ -733,21 +735,6 @@ function countEl(ev) {
   // and the schedule column both already carry, and which was the last piece
   // of the banner that sat between the event tabs and the first bracket.
   return "";
-}
-
-// The grand final: the last played match of the last bracket on the page.
-//
-// The TEAM event's last bracket. The 2026 Worlds runs a 1v1 and a 2v2 title
-// alongside the 3v3, and those stages come after it on the page, so taking
-// the last bracket of all of them put the 2v2 winners under "Champion" of
-// the World Championship the moment the event finished.
-function finalOf(ev) {
-  const team = ev.stages.filter((s) => !s.format || s.format === "3v3");
-  const brackets = (team.length ? team : ev.stages).flatMap((s) => s.brackets);
-  const last = brackets[brackets.length - 1];
-  if (!last) return null;
-  const played = last.matches.filter((m) => m.finished && m.scores[0] !== null && m.scores[1] !== null);
-  return played.sort((a, b) => a.round - b.round || a.position - b.position).pop() ?? null;
 }
 
 // The schedule column, for the event on screen.

@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { parsePage } from "./parseBracket.mjs";
 import { codeOf } from "./countries.mjs";
+import { eventRunning } from "../web/fixtures.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..");
@@ -222,9 +223,16 @@ export async function parseEvent(event) {
  * necessarily the roster's. The page reconciles them through the same slug and
  * alias pair the crests already use, which is why they are published raw here
  * rather than mapped against a roster this script does not read.
+ *
+ * "Being played" is eventRunning, the rule the bracket page uses: the dates
+ * padded a day either side, or a match live. It used to be the UTC date inside
+ * the published dates, which dropped a North American event at midnight UTC
+ * while its grand final was still on. `now` is epoch ms, or a YYYY-MM-DD date
+ * read as midday UTC.
  */
-export function eventNow(doc, today = new Date().toISOString().slice(0, 10)) {
-  const ev = (doc.events ?? []).find((e) => e.starts && e.ends && e.starts <= today && today <= e.ends);
+export function eventNow(doc, now = Date.now()) {
+  const nowMs = typeof now === "string" ? Date.parse(`${now}T12:00:00Z`) : now;
+  const ev = (doc.events ?? []).find((e) => eventRunning(e, nowMs));
   if (!ev) return { generatedAt: doc.generatedAt, event: null, teams: [] };
 
   const teams = new Set();

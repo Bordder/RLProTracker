@@ -737,10 +737,24 @@ test("between events it answers null rather than the nearest one", () => {
   assert.deepEqual(now.teams, []);
 });
 
-test("the window includes both its end days", () => {
+test("the window includes both its end days, padded a day either side", () => {
   assert.equal(eventNow(lanDoc, "2026-09-15").event.slug, "worlds-2026");
   assert.equal(eventNow(lanDoc, "2026-09-20").event.slug, "worlds-2026");
-  assert.equal(eventNow(lanDoc, "2026-09-21").event, null);
+  // The published dates are the venue's. A Fort Worth final that starts at
+  // 22:10 UTC is still being played on the 21st in UTC, and dropping the event
+  // at midnight UTC took the LAN note off the board mid grand final.
+  assert.equal(eventNow(lanDoc, "2026-09-21").event.slug, "worlds-2026");
+  assert.equal(eventNow(lanDoc, "2026-09-22").event, null);
+  assert.equal(eventNow(lanDoc, "2026-09-13").event, null);
+});
+
+test("an event stays on while a match is live, even past its padded window", () => {
+  const late = structuredClone(lanDoc);
+  late.events[1].stages[0].brackets[0].matches[0] = {
+    teams: ["Team Vitality", "NRG"], scores: [2, 2], live: true, finished: false,
+    startsAt: "2026-09-22T23:30:00.000Z",
+  };
+  assert.equal(eventNow(late, Date.parse("2026-09-23T00:30:00Z")).event.slug, "worlds-2026");
 });
 
 test("it stays small enough for the board to fetch", () => {
