@@ -2455,11 +2455,13 @@
           })
           .catch(function(){
             // Last resort: hand the user the prefilled issue rather than dropping
-            // what they wrote.
+            // what they wrote. As a link they click, not window.open: this runs
+            // after the request failed, long after the click that sent it, and
+            // popup blockers refuse a window opened then.
             var title=type+(user?(' from '+user):'')+': '+msg.split('\n')[0].slice(0,60);
             var body=msg+'\n\n---\nType: '+type+'\nFrom: '+(user||'anonymous')+'\nVia: RL Pro Tracker feedback form';
-            window.open(REPO+'/issues/new?title='+encodeURIComponent(title)+'&body='+encodeURIComponent(body),'_blank','noopener,noreferrer');
-            fbRes.textContent='Could not send directly - opening GitHub instead.'; fbRes.className='msg err';
+            var url=REPO+'/issues/new?title='+encodeURIComponent(title)+'&body='+encodeURIComponent(body);
+            fbRes.innerHTML='Could not send directly. <a href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">Open it as a GitHub issue instead</a>.'; fbRes.className='msg err';
           })
           .then(function(){ fbBtn.disabled=false; });
       });
