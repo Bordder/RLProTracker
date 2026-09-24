@@ -100,8 +100,13 @@ for (const [i, proxy] of proxies.entries()) {
       row.exitIp = JSON.parse(await r.text()).ip;
       row.tunnel = "alive";
     } catch (e) {
+      // Printed like every other row. This used to push the result and
+      // `continue` past the print below, so a dead tunnel - the thing this
+      // tool is run to find - never appeared in the per-proxy list.
       row.tunnel = e.message.match(/net::(\w+)/)?.[1] ?? e.message.slice(0, 30);
-      results.push(row); await ctx.close(); continue;
+      results.push(row); await ctx.close();
+      console.log(`  index ${String(i).padStart(2)}  ${label.padEnd(24)} tunnel=${row.tunnel.padEnd(22)} exit=${row.exitIp.padEnd(16)} tracker=${row.tracker}`);
+      continue;
     }
     row.ms = Date.now() - t0;
 
