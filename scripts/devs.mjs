@@ -135,9 +135,12 @@ export function nextDevState(prev, reading, at, games = null) {
   };
 }
 
-// The Steam id each Steam developer's presence is read by: the link's own id
-// when it is numeric, otherwise the one their profile reported.
+// The Steam id each developer's presence is read by: one given in devs.json
+// as "steam" (for someone whose tracker.gg profile is on Epic but who plays
+// through Steam), else the link's own id when it is numeric, else the one
+// their profile reported.
 export function steamIdOf(d, state) {
+  if (d.steam) return d.steam;
   if (d.platform !== "steam") return null;
   return /^\d{17}$/.test(d.id) ? d.id : state[d.key]?.steamId ?? null;
 }
@@ -219,7 +222,8 @@ export function loadDevs(file) {
     const key = `${who.platform}/${who.id.toLowerCase()}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({ key, name: d.name || null, ...who });
+    const steam = /^\d{17}$/.test(String(d.steam ?? "")) ? String(d.steam) : null;
+    out.push({ key, name: d.name || null, ...who, ...(steam ? { steam } : null) });
   }
   return out;
 }

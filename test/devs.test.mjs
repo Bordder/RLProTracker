@@ -116,3 +116,11 @@ test("Steam presence marks a public profile running Rocket League as in game", (
     "steam/76561197977628909": { steam: "private", inGameAt: null },
   }, "a vanity link uses the profile's id, one never read is skipped, Epic has no Steam");
 });
+
+test("an Epic developer can carry a Steam id for the presence check", () => {
+  const devs = loadDevs({ devs: [{ tracker: "epic/MassiveWoolf", steam: "76561198077880164" }, { tracker: "epic/NoSteam", steam: "not-an-id" }] });
+  assert.equal(devs[0].steam, "76561198077880164");
+  assert.equal(devs[1].steam, undefined, "a malformed id is ignored");
+  const f = steamFeed(devs, {}, [{ steamid: "76561198077880164", communityvisibilitystate: 3, gameid: "252950" }], null, "T");
+  assert.deepEqual(f.devs, { "epic/massivewoolf": { steam: "in", inGameAt: "T" } });
+});
