@@ -23,15 +23,22 @@ const API_BASE = "https://api.github.com/repos/Bordder/RLProTracker/contents/dat
 // its history is readable. Both URLs below have to point at the same branch.
 const RAW_BASE = "https://raw.githubusercontent.com/Bordder/RLProTracker/data/data/derived";
 
-async function fetchDerived(file, env) {
+// `etag`, when given, is the one the copy already held here was served with.
+// GitHub answers an unchanged file with a 304 and no body, and a 304 to an
+// authorised conditional request is not counted against the rate limit: most
+// of these reads are of a file that has not moved since the last one. The
+// 304 is returned as it is, never sent on to the raw fallback, because the
+// caller has the bytes it stands for.
+export async function fetchDerived(file, env, etag = null) {
   const headers = {
     Accept: "application/vnd.github.raw",
     "User-Agent": "rlprotracker-site",
     "X-GitHub-Api-Version": "2022-11-28",
   };
   if (env && env.GH_TOKEN) headers.Authorization = `Bearer ${env.GH_TOKEN.trim()}`;
+  if (etag) headers["If-None-Match"] = etag;
   const res = await fetch(`${API_BASE}/${file}?ref=data`, { headers, cf: { cacheTtl: 20 } });
-  if (res.ok) return { res, from: "github-api" };
+  if (res.ok || (etag && res.status === 304)) return { res, from: "github-api" };
   // The API can rate limit an unauthenticated caller; raw is stale but better
   // than nothing, so it stays as the fallback rather than the default.
   const raw = await fetch(`${RAW_BASE}/${file}`, {
@@ -93,9 +100,17 @@ const BOARD_FILE = "board.json";
  * One derived file's bytes, through the hot cache, the upstream, and then the
  * long-lived backup copy, in that order.
  *
+ * The backup copy is also what the upstream read is made against. It carries
+ * the ETag GitHub served it with, so the read is conditional: a file that has
+ * not changed comes back as a 304, which GitHub does not count against
+ * GH_TOKEN's 5000 an hour, and the bytes already held here are served. Over
+ * three hours of the data branch, tracker.json changed 91 times and
+ * steam-hours.json 4, so at one read per file every 20 seconds per colo
+ * nearly every read was of bytes this cache already had.
+ *
  * @returns { body, from } or null when every one of those failed.
  */
-async function loadFile(file, context, request) {
+export async function loadFile(file, context, request) {
   const cache = caches.default;
   const cacheKey = new Request(new URL(`/__data/${file}`, request.url).toString(), { method: "GET" });
   const hotKey = new Request(new URL(`/__hot/${file}`, request.url).toString(), { method: "GET" });
@@ -103,30 +118,48 @@ async function loadFile(file, context, request) {
   const hot = await cache.match(hotKey);
   if (hot) return { body: await hot.arrayBuffer(), from: "hot" };
 
+  const kept = await cache.match(cacheKey);
+  const keptTag = kept ? kept.headers.get("etag") : null;
+
   let upstream = null;
   try {
-    upstream = await fetchDerived(file, context.env);
+    upstream = await fetchDerived(file, context.env, keptTag);
   } catch {
     upstream = null; // network failure - fall through to the cached copy
   }
 
+  const store = (body, etag, ttl) => new Response(body, {
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      "cache-control": `public, max-age=${ttl}`,
+      ...(etag ? { etag } : null),
+    },
+  });
+
+  if (upstream && upstream.res.status === 304 && kept) {
+    // Unchanged upstream: the copy held here IS the current file. Both entries
+    // are rewritten so the hot one is armed again and the backup keeps its day.
+    const body = await kept.arrayBuffer();
+    context.waitUntil(cache.put(cacheKey, store(body, keptTag, 86400)));
+    context.waitUntil(cache.put(hotKey, store(body, keptTag, HOT_TTL)));
+    return { body, from: "github-api-304" };
+  }
+
   if (upstream && upstream.res.ok) {
     const body = await upstream.res.arrayBuffer();
-    const store = (ttl) => new Response(body, {
-      headers: {
-        "content-type": "application/json; charset=utf-8",
-        "cache-control": `public, max-age=${ttl}`,
-      },
-    });
-    // Keep a long-lived copy purely as a fallback. It is only ever read when
-    // upstream fails, so its age does not affect normal serving.
-    context.waitUntil(cache.put(cacheKey, store(86400)));
-    context.waitUntil(cache.put(hotKey, store(HOT_TTL)));
+    // Only the API's ETag is kept. raw.githubusercontent's is a different
+    // validator for a different URL, and sending it to the API would only
+    // ever miss.
+    const etag = upstream.from === "github-api" ? upstream.res.headers.get("etag") : null;
+    // Keep a long-lived copy as the fallback and as the base for the next
+    // conditional read. Its age does not affect normal serving: a changed
+    // file comes back as a 200 and replaces it.
+    context.waitUntil(cache.put(cacheKey, store(body, etag, 86400)));
+    context.waitUntil(cache.put(hotKey, store(body, etag, HOT_TTL)));
     return { body, from: upstream.from };
   }
 
-  const stale = await cache.match(cacheKey);
-  if (stale) return { body: await stale.arrayBuffer(), from: "stale", stale: true };
+  if (kept) return { body: await kept.arrayBuffer(), from: "stale", stale: true };
   return null;
 }
 
