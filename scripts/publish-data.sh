@@ -39,11 +39,17 @@ BOT=(-c user.name=rl-tracker-bot -c user.email=actions@github.com)
 for attempt in 1 2 3 4 5; do
   # Start each attempt from the current remote tip, so a push that lost a race
   # is retried against what actually landed.
-  if [ "$attempt" -gt 1 ]; then
-    git -C "$WORK" fetch --depth=1 origin "$BRANCH" || true
-    git -C "$WORK" reset -q --hard FETCH_HEAD || true
-    git -C "$WORK" clean -qfd || true
-  fi
+  #
+  # The first attempt too. The workflow checked the branch out when the job
+  # started, and by the time a tracker run reaches this step that checkout is
+  # a minute and a half old; presence publishes every two minutes, so the tip
+  # had nearly always moved. Every sampled tracker run lost its first push,
+  # slept 3-10s and fetched anyway: the publish step took 8-11s where the
+  # second attempt alone took under 3. Fetching first costs about a second
+  # and makes the first push the one that normally lands.
+  git -C "$WORK" fetch --depth=1 origin "$BRANCH" || true
+  git -C "$WORK" reset -q --hard FETCH_HEAD || true
+  git -C "$WORK" clean -qfd || true
 
   for p in "$@"; do
     [ -e "$p" ] || continue
