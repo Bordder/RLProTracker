@@ -71,6 +71,18 @@ export function updatePeaks(store, snaps, opts = {}) {
     for (const row of snap.rows) {
       if (!row.playlists) continue;
       for (const [key, snapKey] of Object.entries(PLAYLISTS)) {
+        // The career best tracker.gg reports, kept beside what we observed
+        // ourselves. It is the account's own record rather than a reading, so
+        // the jump test below does not apply to it: a best of 3,016 against a
+        // current 1,841 is exactly what a season reset looks like, not a bad
+        // row. Forward only, like everything else here.
+        const best = row.playlists[snapKey]?.best;
+        if (Number.isFinite(best?.rating)) {
+          const held = players[row.id] ?? (players[row.id] = {});
+          const had = held[`${key}Best`];
+          if (!had || best.rating > had.rating) held[`${key}Best`] = { rating: best.rating, season: best.season ?? null };
+        }
+
         const rating = row.playlists[snapKey]?.rating;
         if (!Number.isFinite(rating)) continue;
 
@@ -98,12 +110,29 @@ export function peakFor(store, id) {
   const held = store?.players?.[id];
   if (!held) return null;
   const out = {};
-  for (const key of Object.keys(PLAYLISTS)) if (held[key]) out[key] = held[key].rating;
-  return Object.keys(out).length ? { ...out, at: newest(held) } : null;
+  const season = {};
+  for (const key of Object.keys(PLAYLISTS)) {
+    const seen = held[key]?.rating ?? null;
+    const best = held[`${key}Best`] ?? null;
+    // Whichever is higher. The career best normally is; ours wins only when a
+    // player has just set a new high that tracker.gg has not folded in yet,
+    // and then there is no season to name but the current one.
+    if (best && (seen == null || best.rating >= seen)) {
+      out[key] = best.rating;
+      if (best.season) season[key] = best.season;
+    } else if (seen != null) {
+      out[key] = seen;
+    }
+  }
+  if (!Object.keys(out).length) return null;
+  return { ...out, ...(Object.keys(season).length ? { season } : null), at: newest(held) };
 }
 
+// When we last saw a new high ourselves. Career bests carry a season, not a
+// time, so they do not count here.
 const newest = (held) =>
-  Object.values(held).map((v) => v.at).filter(Boolean).sort().pop() ?? null;
+  Object.entries(held).filter(([k]) => !k.endsWith("Best"))
+    .map(([, v]) => v.at).filter(Boolean).sort().pop() ?? null;
 
 export const readStore = async (path = STORE) => {
   try { return JSON.parse(await readFile(path, "utf8")); } catch { return { players: {} }; }

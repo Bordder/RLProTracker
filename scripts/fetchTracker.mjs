@@ -74,13 +74,35 @@ export function nextActivity(prev, curMatches) {
 // Pull the three ranked playlists out of an API profile payload. The API
 // returns the same segment shape the page's embedded state used to carry, so
 // the keys downstream (computeTrackerDeltas) are unchanged.
-function pickPlaylists(json, names) {
+export function pickPlaylists(json, names) {
   const segments = json?.data?.segments;
   if (!Array.isArray(segments)) return null;
+  // The career best for a playlist, which tracker.gg publishes in the same
+  // response as a "peak-rating" segment: the highest rating the account has
+  // ever reached in that playlist and the season it happened in. Without it
+  // the board's peak could only ever be the highest rating seen since
+  // tracking began on 29 August 2026, which put Zen's 1v1 peak at 1,639 when
+  // his real one is 1,808 from Season 17.
+  //
+  // The season label arrives as "Season 17 (31)", the public number and then
+  // Psyonix's internal one; only the public half means anything to a reader.
+  const best = (name) => {
+    const s = segments.find((x) => x.type === "peak-rating" && x.metadata?.name === name);
+    const v = s?.stats?.peakRating?.value;
+    if (!Number.isFinite(v)) return null;
+    const season = String(s.stats.peakRating.metadata?.season ?? "").replace(/\s*\(.*\)\s*$/, "").trim();
+    return { rating: v, season: season || null };
+  };
   const pick = (name) => {
     const s = segments.find((x) => x.type === "playlist" && x.metadata?.name === name);
     if (!s) return null;
-    return { rating: s.stats?.rating?.value ?? null, matches: s.stats?.matchesPlayed?.value ?? null, tier: s.stats?.tier?.metadata?.name ?? null };
+    const b = best(name);
+    return {
+      rating: s.stats?.rating?.value ?? null,
+      matches: s.stats?.matchesPlayed?.value ?? null,
+      tier: s.stats?.tier?.metadata?.name ?? null,
+      ...(b ? { best: b } : null),
+    };
   };
   const out = {};
   for (const [k, n] of Object.entries(names)) out[k] = pick(n);

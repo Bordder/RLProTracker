@@ -100,3 +100,45 @@ test("a season boundary does not touch the peaks", () => {
   assert.deepEqual(purged.players.p1.readings, []);
   assert.equal(updatePeaks(store, []).players.p1.twos.rating, 2680);
 });
+
+// ---- career bests, from tracker.gg's own "peak-rating" segment ------------
+
+const bestSnap = (h, rating, best, season = "Season 17") => ({
+  t: at(h),
+  rows: [{ id: "p1", playlists: { d1: { rating, matches: 5, tier: "Supersonic Legend", best: { rating: best, season } } } }],
+});
+
+test("a career best above anything seen becomes the published peak, with its season", () => {
+  // Zen, 24 September 2026: seen at 1,639 since tracking began, but his 1v1
+  // best is 1,808 from Season 17.
+  const store = updatePeaks({ players: {} }, [bestSnap(0, 1568, 1808)]);
+  const out = peakFor(store, "p1");
+  assert.equal(out.ones, 1808);
+  assert.deepEqual(out.season, { ones: "Season 17" });
+});
+
+test("a career best is not refused as a jump", () => {
+  // Far above the current rating is what a soft reset looks like, not a bad row.
+  assert.ok(3016 - 1841 > MAX_JUMP);
+  const store = updatePeaks({ players: {} }, [bestSnap(0, 1841, 3016)]);
+  assert.equal(peakFor(store, "p1").ones, 3016);
+});
+
+test("a new high we saw ourselves beats a stale career best, and names no season", () => {
+  const store = updatePeaks({ players: {} }, [bestSnap(0, 1850, 1808)]);
+  const out = peakFor(store, "p1");
+  assert.equal(out.ones, 1850);
+  assert.equal(out.season, undefined);
+});
+
+test("a career best is never lowered by a later response", () => {
+  const first = updatePeaks({ players: {} }, [bestSnap(0, 1568, 1808)]);
+  const second = updatePeaks(first, [bestSnap(1, 1568, 1700, "Season 20")]);
+  assert.equal(peakFor(second, "p1").ones, 1808);
+  assert.deepEqual(peakFor(second, "p1").season, { ones: "Season 17" });
+});
+
+test("the peak's date is our own last new high, not the career best", () => {
+  const store = updatePeaks({ players: {} }, [bestSnap(0, 1568, 1808)]);
+  assert.equal(peakFor(store, "p1").at, new Date(at(0)).toISOString());
+});
