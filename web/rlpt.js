@@ -941,8 +941,15 @@
       // refresh. Only when the SERVER's own data has gone cold is something
       // actually broken.
       var pageBehind = serverAt!=null && collectedAt!=null && serverAt>collectedAt+60e3;
-      var age = Date.now() - (serverAt!=null ? Math.max(serverAt,collectedAt) : collectedAt);
-      var state = pageBehind ? 'behind' : (age>=HALTED_MS ? 'halted' : (age>=LATE_MS ? 'late' : 'ok'));
+      // "Behind" is only quiet while the refetch it waits on can be expected
+      // to land. If the server's newer data never arrives - the status probe
+      // answers but the data request keeps failing - the numbers on screen go
+      // on ageing, and staying quiet about that forever hid exactly the stale
+      // board this line exists to call out. Past LATE_MS it is judged on the
+      // age of what is actually shown.
+      var shownAge = Date.now() - collectedAt;
+      var age = pageBehind ? shownAge : Date.now() - (serverAt!=null ? Math.max(serverAt,collectedAt) : collectedAt);
+      var state = pageBehind && shownAge<LATE_MS ? 'behind' : (age>=HALTED_MS ? 'halted' : (age>=LATE_MS ? 'late' : 'ok'));
 
       meta.classList.toggle('is-late',state==='late');
       meta.classList.toggle('is-halted',state==='halted');
