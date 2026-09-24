@@ -52,7 +52,9 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        # No install scripts, as in tracker.yml: this job holds the proxy
+        # secrets.
+        run: npm ci --no-audit --no-fund --ignore-scripts
 
       - name: Cache Chromium
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

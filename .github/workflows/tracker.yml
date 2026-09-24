@@ -77,8 +77,12 @@ jobs:
           # dispatch interval and left GitHub cancelling the queued one.
           cache: npm
 
+      # --ignore-scripts: no package in the lockfile needs an install script
+      # (the browser comes from `playwright install` below), and this job holds
+      # the proxy secrets and a token that can push, so a dependency bump that
+      # adds one does not get to run it here.
       - name: Install dependencies
-        run: npm ci --no-audit --no-fund
+        run: npm ci --no-audit --no-fund --ignore-scripts
 
       # Chromium is 22s of a ~65s run, which is the single biggest fixed cost in
       # the cadence. The browser binaries are cached on the Playwright version, so
