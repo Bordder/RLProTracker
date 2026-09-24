@@ -62,7 +62,7 @@ jobs:
           # in the publish step, or it silently starts from nothing every run.
           # proxy-history.json was published but not restored, so its rolling
           # 24-hour window only ever held the run that had just written it.
-          for p in data/tracker-history.json data/tracker-state.json data/peak-mmr.json data/derived/tracker.json data/derived/team-tracker.json data/derived/uptime.json data/proxy-use.json data/proxy-history.json; do
+          for p in data/tracker-history.json data/tracker-state.json data/peak-mmr.json data/derived/tracker.json data/derived/team-tracker.json data/derived/uptime.json data/proxy-use.json data/proxy-history.json data/devs-state.json data/derived/alpha.json data/derived/devs-steam.json; do
             if [ -e ".databranch/$p" ]; then
               mkdir -p "$(dirname "$p")"
               cp -r ".databranch/$p" "$p"
@@ -153,3 +153,5 @@ jobs:
           data/derived/uptime.json
           data/proxy-use.json
           data/proxy-history.json
+          data/devs-state.json
+          data/derived/alpha.json

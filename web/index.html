@@ -1465,8 +1465,10 @@
     /* The top bar's pill, the same equal shares as the bars below. Two
        classes, to beat the desktop padding set on .kicker .seg. */
     .kicker{gap:12px}
-    .kicker .seg{width:100%}
-    .kicker .seg button,.kicker .seg .segout{padding:8px 2px;font-size:clamp(9px,2.7vw,12px);letter-spacing:.04em}
+    /* Six tabs do not fit one row at phone width, so the pill wraps, as it
+       does on the other pages' top bar. */
+    .kicker .seg{width:100%;flex-wrap:wrap;border-radius:14px;gap:3px}
+    .kicker .seg button,.kicker .seg .segout{flex:1 1 auto;padding:8px 6px;font-size:clamp(9px,2.7vw,12px);letter-spacing:.04em}
   }
 
   @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
@@ -1486,6 +1488,7 @@
         <a class="segout" href="/compare">Compare</a>
         <button id="tabRatings" role="tab" aria-selected="false">Ratings</button>
         <a class="segout" href="/brackets">Brackets</a>
+        <a class="segout" href="/alpha-boost">Alpha Boost</a>
       </div>
     </div>
     <h1 class="headline">Who&rsquo;s Grinding<span class="accent">?</span></h1>

@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Alpha Boost &middot; RL Pro Tracker</title>
+<meta name="description" content="Which Psyonix developers are playing Rocket League right now. Beat one to unlock the teal Alpha Boost.">
+<link rel="canonical" href="https://198x.online/alpha-boost">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="favicon-16.png" sizes="16x16" type="image/png">
+<link rel="icon" href="favicon-48.png" sizes="48x48" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="site.webmanifest">
+<meta name="theme-color" content="#0C0E13">
+<style>
+  /* The developers, most recently in Casual first. Same flat system as the
+     compare and bracket pages. Teal is this page's one colour, because the
+     boost it is about is teal; it marks a developer who is playing now. */
+  :root{
+    --pitch:#f2f4f7; --deck:#ffffff; --deck-2:#e9edf2;
+    --chalk:#0f151b; --steel:#5b6673; --faint:#6f7a86; --rule:#d3dae1;
+    --boost:#d8471a; --turf:#15855a;
+    --alpha:#0b8a8f; --alpha-soft:rgba(11,138,143,.10);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --pitch:#0a0e13; --deck:#161c23; --deck-2:#0f151c;
+      --chalk:#eaeff4; --steel:#9aa6b2; --faint:#828d9b; --rule:#262f39;
+      --boost:#ff5f2d; --turf:#39c58b;
+      --alpha:#3fd6d0; --alpha-soft:rgba(63,214,208,.09);
+    }
+  }
+  *{box-sizing:border-box}
+  a{color:var(--chalk);font-weight:700;text-decoration:none}
+  a:hover,a:focus-visible{text-decoration:underline;text-decoration-color:var(--boost);text-underline-offset:2px}
+  body{margin:0;background:var(--pitch);color:var(--chalk);
+       font:15px/1.5 Archivo,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  .page{max-width:980px;margin:0 auto;padding:0 20px 90px}
+
+  /* ---- Site chrome: the same top bar as the bracket page ---- */
+  header.top{padding:22px 0 13px;border-bottom:1px solid var(--rule);display:flex;gap:18px;
+             align-items:center;flex-wrap:wrap;justify-content:space-between}
+  .brand{font-family:"Big Shoulders Display",Impact,sans-serif;font-weight:800;text-transform:uppercase;
+         letter-spacing:.02em;font-size:19px;color:var(--chalk);text-decoration:none}
+  .brand:hover{text-decoration:none}
+  .brand span{color:var(--boost)}
+  .seg{display:inline-flex;background:var(--deck);border:1px solid var(--rule);
+       border-radius:999px;padding:3px;gap:2px}
+  .seg a{display:inline-flex;align-items:center;border-radius:999px;text-decoration:none;
+         font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:12px;
+         color:var(--steel);padding:7px 15px;transition:color .15s,background .15s;white-space:nowrap}
+  .seg a:hover{color:var(--chalk)}
+  .seg a[aria-current="page"]{background:var(--boost);color:#0a0e13}
+  @media (max-width:620px){
+    .seg{width:100%;flex-wrap:wrap;justify-content:center;border-radius:14px;gap:3px}
+    .seg a{flex:1 1 auto;justify-content:center;padding:8px 10px;font-size:11px}
+  }
+  @media (max-width:430px){
+    .seg a{flex:1 1 0;padding:8px 2px;font-size:9.5px;letter-spacing:.04em}
+  }
+  .mast{padding:18px 0 16px;border-bottom:2px solid var(--chalk)}
+  .mast h1{font-family:"Big Shoulders Display",Impact,sans-serif;font-weight:800;
+           font-size:clamp(32px,5.2vw,52px);line-height:.92;margin:0;text-transform:uppercase}
+  .seg a[aria-current="page"]{background:var(--alpha)}
+  .dek{margin:12px 0 0;color:var(--steel);max-width:62ch}
+  .dek b{color:var(--chalk)}
+
+  /* ---- The table ---- */
+  .wrap{margin-top:22px;overflow-x:auto;border:1px solid var(--rule);background:var(--deck)}
+  table{width:100%;border-collapse:collapse;min-width:0}
+  th{font:700 10.5px "JetBrains Mono",ui-monospace,monospace;letter-spacing:.1em;text-transform:uppercase;
+     color:var(--steel);text-align:left;padding:10px 14px;border-bottom:1px solid var(--rule);background:var(--deck-2);white-space:nowrap}
+  th.num,td.num{text-align:right}
+  td{padding:11px 14px;border-bottom:1px solid var(--rule);vertical-align:middle}
+  tr:last-child td{border-bottom:0}
+  tr.on td{background:var(--alpha-soft)}
+  tr.on td:first-child{box-shadow:inset 3px 0 0 var(--alpha)}
+  .nm{font-family:"Big Shoulders Display",Impact,sans-serif;font-weight:800;text-transform:uppercase;font-size:20px;line-height:1}
+  .pf{display:block;margin-top:3px;font:600 11px "JetBrains Mono",ui-monospace,monospace;color:var(--faint);letter-spacing:.04em}
+  .who{display:flex;align-items:center;flex-wrap:wrap;gap:4px 0}
+  .last{font-weight:600;white-space:nowrap}
+  .last.na{color:var(--faint)}
+  /* The board's two marks. Playing is the page's teal and pulses; In game is
+     hollow and still, so a row that only has the app open never reads as one
+     that is playing. */
+  .pmark,.gmark{display:inline-flex;align-items:center;gap:5px;margin-left:9px;
+    font:700 9.5px "JetBrains Mono",ui-monospace,monospace;text-transform:uppercase;letter-spacing:.1em;
+    border-radius:5px;padding:2px 6px;white-space:nowrap;cursor:help}
+  .pmark{color:var(--alpha);border:1px solid var(--alpha);background:var(--alpha-soft)}
+  .pmark::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--alpha);flex:none;animation:pulse 2.2s ease-out infinite}
+  .gmark{color:var(--steel);border:1px solid var(--rule);background:transparent}
+  .gmark::before{content:"";width:5px;height:5px;border-radius:50%;flex:none;border:1px solid var(--steel);box-sizing:border-box}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 var(--alpha)}100%{box-shadow:0 0 0 7px transparent}}
+  .mmr{font:700 17px "JetBrains Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+  .na{color:var(--faint);font-weight:600}
+  a.nm{display:inline-block;text-decoration:none}
+  a.nm:hover,a.nm:focus-visible{text-decoration:underline;text-decoration-color:var(--alpha);text-underline-offset:3px}
+  @media (max-width:520px){th,td{padding:10px}.nm{font-size:17px}.last{white-space:normal}}
+  .note{margin:10px 0 0;color:var(--faint);font-size:12px}
+
+  .msg{margin:20px 0 0;padding:14px 16px;background:var(--deck);border:1px solid var(--rule);color:var(--steel)}
+  .msg[hidden]{display:none}
+  footer.legal{margin-top:52px;padding-top:18px;border-top:1px solid var(--rule);color:var(--steel);font-size:13px}
+  footer.legal .links{display:flex;flex-wrap:wrap;gap:8px 16px}
+  footer.legal .links a:hover{color:var(--boost)}
+  footer.legal .copyright{margin:16px 0 0;padding-top:14px;border-top:1px solid var(--rule);
+                          display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 28px;
+                          color:var(--faint);font-size:11.5px;line-height:1.6}
+  footer.legal .copyright h4{font-family:"Big Shoulders Display",Impact,sans-serif;text-transform:uppercase;
+                             letter-spacing:.12em;font-size:11px;font-weight:700;color:var(--steel);margin:0 0 5px}
+  footer.legal .copyright p{margin:0}
+  footer.legal .byline{margin:16px 0 0;padding-top:12px;border-top:1px solid var(--rule);color:var(--faint);font-size:11.5px}
+  footer.legal .byline b{color:var(--steel);font-weight:600}
+  @media (max-width:860px){ footer.legal .copyright{grid-template-columns:1fr;gap:14px} }
+  .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  @media (prefers-reduced-motion:reduce){.pmark::before{animation:none}}
+</style>
+<link rel="stylesheet" href="fonts/fonts.css?v=3395e810">
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <a class="brand" href="/">RL Pro Tracker<span>.</span></a>
+    <nav class="seg" aria-label="View">
+      <a href="/">Players</a>
+      <a href="/?tab=teams">Teams</a>
+      <a href="/compare">Compare</a>
+      <a href="/?tab=ratings">Ratings</a>
+      <a href="/brackets">Brackets</a>
+      <a href="/alpha-boost" aria-current="page">Alpha Boost</a>
+    </nav>
+  </header>
+  <header class="mast">
+    <h1>Alpha Boost</h1>
+    <p class="dek">Beat a <b>Psyonix developer</b> to unlock the teal Alpha Boost. Most common way to find them is to queue casual 3v3 or 4v4 on US-West servers.</p>
+  </header>
+
+  <p class="msg" id="msg" hidden></p>
+  <div id="out"></div>
+
+  <footer class="legal">
+    <div class="links"><a href="/status">Status</a><a href="/how-it-works">How it works</a><a href="/faq">FAQ</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a></div>
+    <div class="copyright">
+      <section>
+        <h4>Not affiliated</h4>
+        <p>A fan-made project, with no connection to and no endorsement from Psyonix, Epic Games, RLCS or any team. Rocket League is a trademark of Psyonix LLC.</p>
+      </section>
+      <section>
+        <h4>Team logos</h4>
+        <p>The property of their respective owners, used here only to identify the teams. Any owner who would rather their mark was not shown can email <a href="mailto:contact@198x.online">contact@198x.online</a> and it will be removed.</p>
+      </section>
+    </div>
+    <p class="byline">Built and maintained by <b>Bordder</b>. &copy; <span id="yr">2026</span>.</p>
+  </footer>
+</div>
+<script type="module" src="alpha-boost.js?v=3038551f"></script>
+</body>
+</html>

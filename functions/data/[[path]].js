@@ -112,6 +112,8 @@ const PUBLISHED = new Set([
   "uptime.json",
   "uptime-steam.json",
   "uptime-presence.json",
+  "alpha.json",
+  "devs-steam.json",
 ]);
 
 /**
