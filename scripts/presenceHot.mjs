@@ -55,12 +55,15 @@ export function classifyPresence(summary) {
 
 const readJson = async (f, fallback) => { try { return JSON.parse(await readFile(f, "utf8")); } catch { return fallback; } };
 
-async function main() {
-  const KEY = process.env.STEAM_API_KEY;
+const KEY = process.env.STEAM_API_KEY;
 
 // Strip the API key from anything we print - it travels in the query string and
-// these logs are public.
+// these logs are public. At module scope, because the handler at the bottom of
+// this file uses it too: declared inside main(), that handler threw a
+// ReferenceError of its own and the real error was never printed.
 const redact = (text) => (KEY ? text.split(KEY).join("***") : text);
+
+async function main() {
   if (!KEY) { console.log("presenceHot: no STEAM_API_KEY - skipping"); return; }
 
   const roster = await readJson(join(ROOT, "data", "roster.json"), { players: [] });
