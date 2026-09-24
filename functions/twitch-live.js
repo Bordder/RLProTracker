@@ -79,6 +79,9 @@ export function chunk(list, n = MAX_LOGINS) {
  * The stream TITLE is deliberately dropped. It is arbitrary text the streamer
  * controls, it would be the only free-form string on the board, and a badge
  * does not need it. Nothing here is worth the escaping it would require.
+ *
+ * Viewer counts and start times are dropped for the same reason: the page
+ * only asks whether a channel is live, so they would be published unused.
  */
 export function liveFrom(streams, game = null) {
   const live = {};
@@ -90,8 +93,6 @@ export function liveFrom(streams, game = null) {
     if (game && fold(s?.game_name) !== fold(game)) continue;
     live[login] = {
       game: typeof s.game_name === "string" ? s.game_name : null,
-      viewers: Number.isFinite(s.viewer_count) ? s.viewer_count : null,
-      startedAt: typeof s.started_at === "string" ? s.started_at : null,
     };
   }
   return live;
