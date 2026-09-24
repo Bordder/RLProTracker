@@ -54,7 +54,10 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-1.62.1
+          # Keyed on the lockfile, not a version typed by hand. The hand-typed key
+          # stayed at 1.62.1 after the lockfile moved to 1.63.0, so every run hit
+          # the stale entry, downloaded the new browser again, and never saved it.
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
       # Mirrors tracker.yml: fetch the browser, try to launch it, and only pay
       # for the apt install when that actually fails.

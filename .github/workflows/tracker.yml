@@ -88,7 +88,10 @@ jobs:
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-1.62.1
+          # Keyed on the lockfile, not a version typed by hand. The hand-typed key
+          # stayed at 1.62.1 after the lockfile moved to 1.63.0, so every run hit
+          # the stale entry, downloaded the new browser again, and never saved it.
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
 
       # install-deps is an apt install and costs ~15s of every run, but the
       # runner image may already carry Chromium's libraries. Rather than assume
