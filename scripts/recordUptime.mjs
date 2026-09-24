@@ -60,7 +60,16 @@ if (!produced || !produced.computedAt) {
   process.exit(0);
 }
 
-const at = Date.parse(produced.computedAt);
+// The tracker rebuilds tracker.json on every run, whether or not a single
+// player was read, so its computedAt says the run finished, not that the
+// board got new numbers. Its newest player reading is what does. The other
+// feeds only write when they collected, so computedAt is right for them.
+const newestReading = (players) => {
+  const list = Array.isArray(players) ? players : Object.values(players ?? {});
+  const ts = list.map((x) => Date.parse(x?.updatedAt)).filter(Number.isFinite);
+  return ts.length ? Math.max(...ts) : NaN;
+};
+const at = which === "tracker" ? newestReading(produced.players) : Date.parse(produced.computedAt);
 if (Number.isNaN(at)) {
   console.log(`unparseable computedAt: ${produced.computedAt}`);
   process.exit(0);
