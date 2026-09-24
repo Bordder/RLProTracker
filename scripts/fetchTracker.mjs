@@ -641,10 +641,15 @@ async function main() {
       await sleep(PER_PROXY_DELAY);
     }
   }
+  // Developers first, while every proxy is still in the rotation. Read after
+  // the roster, they met a fleet already benched down to its last two
+  // proxies, and on 24 September 2026 got 0 of 8 reads run after run while
+  // the roster in the same runs got up to half through. The Alpha Boost page
+  // is only as live as these reads.
+  if (devs.length) await readDevs(devs, devState, contexts, order, health, pool);
+
   console.log(`pool: ${pool} concurrent`);
   await Promise.all(Array.from({ length: pool }, () => worker()));
-
-  if (devs.length) await readDevs(devs, devState, contexts, order, health, pool);
 
   // Also written to data/proxy-use.json, because the Actions log needs auth to
   // read and the whole point is to be able to check the split without waiting
