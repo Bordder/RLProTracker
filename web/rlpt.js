@@ -1092,7 +1092,10 @@
         tb.innerHTML=arr.length?arr.map(rowFn).join(''):'';
         // The phone list shows the ordered figure beside the name, and CSS can
         // only pick that cell if the table says which one it is.
-        tbl.dataset.sort=sk;
+        // Peaks are read per playlist, so the phone needs to know which one
+        // too: with only "peak" it went on showing the 2v2 cell beside a list
+        // ordered by the 1v1 or 3v3 peak.
+        tbl.dataset.sort=sk==='peak'?('peak-'+mmrKey):sk;
         trh.querySelectorAll('th').forEach(function(th){ th.classList.remove('s-asc','s-desc'); if(th.dataset.k===sk)th.classList.add(sd==='asc'?'s-asc':'s-desc'); });
 
         // Every control that changes what is on screen repaints, so this is the
