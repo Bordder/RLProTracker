@@ -60,7 +60,7 @@ function mmrCell(d, on) {
   const inMode = on && d.mode && d.mode !== "Casual" ? d.ratings?.[d.mode] : null;
   const v = inMode ?? d.rating;
   if (v == null) return '<span class="na">-</span>';
-  const label = inMode != null ? short(d.mode).replace(/^Ranked /, "") : "Casual";
+  const label = inMode != null ? short(d.mode) : "Casual";
   return `<span class="mmr">${nf(v)}</span><span class="mmrl">${esc(label)}</span>`;
 }
 
@@ -97,7 +97,8 @@ function render(feed) {
     <div class="wrap"><table>
       <thead><tr><th scope="col">Developer</th><th scope="col">Last game</th><th scope="col" class="num">MMR</th></tr></thead>
       <tbody>${list.map(row).join("")}</tbody>
-    </table></div>`;
+    </table></div>
+    <p class="note">The server region a developer is playing on, and which Casual playlist, cannot be tracked, so use public knowledge.</p>`;
 }
 
 // Steam's answer is joined on by key. Either file failing leaves the other
