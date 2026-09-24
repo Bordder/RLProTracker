@@ -12,6 +12,13 @@ import { PAD } from "../scripts/events.mjs";
 
 const T = (iso) => Date.parse(iso);
 
+// The zone is pinned, as the locale is below: "today" and "later" are the
+// reader's days, so a test written against UTC failed on a machine in New
+// Zealand, where 18:00 UTC on the 15th is already the 16th. Each test file
+// runs in its own process, so this reaches no other file. The test that is
+// ABOUT the reader's zone sets its own and puts this one back.
+process.env.TZ = "UTC";
+
 // The event the panel is shown for, shaped the way a Worlds page parses: a
 // dated play-in bracket, an undated group matchlist, and an undated playoff
 // bracket.
