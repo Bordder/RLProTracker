@@ -97,8 +97,7 @@ function render(feed) {
     <div class="wrap"><table>
       <thead><tr><th scope="col">Developer</th><th scope="col">Last game</th><th scope="col" class="num">MMR</th></tr></thead>
       <tbody>${list.map(row).join("")}</tbody>
-    </table></div>
-    <p class="note">The server region a developer is playing on, and which Casual playlist, cannot be tracked, so use public knowledge.</p>`;
+    </table></div>`;
 }
 
 // Steam's answer is joined on by key. Either file failing leaves the other
