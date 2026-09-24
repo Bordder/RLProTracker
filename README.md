@@ -211,3 +211,7 @@ collector holds to both, and its output carries the attribution CC BY-SA require
 ## License
 
 Released under the MIT License. See [LICENSE](LICENSE).
+
+---
+
+<p align="center"><sub>Built with Claude Opus 5.5.</sub></p>
