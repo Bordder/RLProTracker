@@ -602,7 +602,25 @@ function groupEl(ml, table) {
 const load = async () =>
   (await fetch("/data/bracket.json?v=" + Date.now(), { cache: "no-store" })).json();
 
-let doc = await load();
+// The first read has to succeed before anything can be drawn, and it used to
+// be a bare await: a 502, or Cloudflare answering a burst with an HTML error
+// page, made res.json() throw, the module stopped there and the page sat on
+// "Loading" with nothing to say why. So it says so in the site notice bar and
+// keeps asking on the page's ordinary live cadence until the feed answers.
+let doc = null;
+while (!doc) {
+  try {
+    doc = await load();
+    if (!Array.isArray(doc?.events)) doc = null;
+  } catch {
+    doc = null;
+  }
+  if (!doc) {
+    document.getElementById("notice").textContent = "The bracket data did not load. Trying again every 30 seconds.";
+    await new Promise((r) => setTimeout(r, 30_000));
+  }
+}
+document.getElementById("notice").textContent = "";
 
 // Newest first. An event with no dates yet sorts to the front rather than
 // vanishing off the end.
