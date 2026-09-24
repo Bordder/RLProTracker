@@ -19,6 +19,7 @@
 // says which one it was. A fresh log undercounts the hidden-hours estimates
 // until it has built up two weeks again, which is the whole cost.
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { gzipSync, gunzipSync } from "node:zlib";
 import { readFile, writeFile, mkdir, rm } from "node:fs/promises";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
@@ -32,11 +33,19 @@ const TAG = 16;
 // AES-256 takes. It is expected to be long and random (openssl rand -hex 32).
 const keyOf = (secret) => createHash("sha256").update(String(secret)).digest();
 
-/** The log, sealed under the secret. A fresh nonce on every call. */
+/**
+ * The log, compressed and then sealed under the secret. A fresh nonce on
+ * every call.
+ *
+ * Compressed first because a new cache entry is saved on every run, every
+ * two minutes, and the log is about 2.6 MB of repetitive JSON lines: gzip
+ * takes it to roughly a tenth. Encrypting first would leave nothing for gzip
+ * to find.
+ */
 export function seal(plain, secret) {
   const nonce = randomBytes(NONCE);
   const cipher = createCipheriv("aes-256-gcm", keyOf(secret), nonce);
-  const body = Buffer.concat([cipher.update(plain), cipher.final()]);
+  const body = Buffer.concat([cipher.update(gzipSync(plain)), cipher.final()]);
   return Buffer.concat([MAGIC, nonce, cipher.getAuthTag(), body]);
 }
 
@@ -50,7 +59,7 @@ export function unseal(sealed, secret) {
   try {
     const decipher = createDecipheriv("aes-256-gcm", keyOf(secret), nonce);
     decipher.setAuthTag(tag);
-    return Buffer.concat([decipher.update(body), decipher.final()]);
+    return gunzipSync(Buffer.concat([decipher.update(body), decipher.final()]));
   } catch {
     return null;
   }
@@ -70,7 +79,19 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     await rm(LOG, { force: true });
     await mkdir(dirname(LOG), { recursive: true });
     const sealed = await readFile(SEALED).catch(() => null);
-    if (!secret) {
+    // A one-time handover. Before this change the log lived on the data
+    // branch, so the first run after it has no cached copy yet. Starting
+    // fresh then would throw away two weeks of polls and blank the
+    // hidden-hours estimates for a fortnight. PRESENCE_LOG_SEED names the data
+    // branch's last copy; it is only read when there is no cached copy at all,
+    // and once that copy is deleted from the branch this does nothing.
+    const seed = process.env.PRESENCE_LOG_SEED
+      ? await readFile(join(ROOT, process.env.PRESENCE_LOG_SEED)).catch(() => null)
+      : null;
+    if (!sealed && seed) {
+      await writeFile(LOG, seed);
+      console.log(`presence log: no cached copy yet; took over the data branch copy, ${seed.toString("utf8").split("\n").filter(Boolean).length} polls`);
+    } else if (!secret) {
       console.log("presence log: PRESENCE_LOG_KEY is not set, so the cached log cannot be opened; starting a fresh log");
     } else if (!sealed) {
       console.log("presence log: no cached copy found; starting a fresh log");

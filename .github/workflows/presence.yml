@@ -77,6 +77,9 @@ jobs:
       - name: Open the presence log
         env:
           PRESENCE_LOG_KEY: ${{ secrets.PRESENCE_LOG_KEY }}
+          # Read only when the cache has no copy: the one-time handover from
+          # the data branch, which still holds the log until it is cleaned.
+          PRESENCE_LOG_SEED: .databranch/data/presence/log.jsonl
         run: node scripts/presenceLogCache.mjs open
 
       - name: Poll live presence
