@@ -16,10 +16,18 @@
 //
 // Prints counts only, never an address.
 //
+// Repeats are held back by scripts/alertCooldown.mjs: once when it starts,
+// again if it worsens, otherwise every 12 hours at most.
+//
 // Usage:  node scripts/alertScrapeRate.mjs
 //   env:  REPO, DISCORD_WEBHOOK, RUN_URL, FAIL_PCT (default 50)
 
+import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { postEmbed } from "./discordPost.mjs";
+import { shouldPost } from "./alertCooldown.mjs";
+
+const STATE = ".alert-state/scrape.json";
+const readState = async () => { try { return JSON.parse(await readFile(STATE, "utf8")); } catch { return null; } };
 
 const REPO = process.env.REPO ?? "Bordder/RLProTracker";
 const THRESHOLD = Number(process.env.FAIL_PCT ?? 50);
@@ -46,7 +54,23 @@ if (!attempts) { console.log("no attempts recorded in the last run; skipping"); 
 const pct = Math.round((fails / attempts) * 100);
 console.log(`scrape failure ${pct}%, ${dead}/${total} proxies failing every attempt, as of ${d.at}`);
 
-if (pct < THRESHOLD) { console.log(`below the ${THRESHOLD}% threshold; no alert`); process.exit(0); }
+if (pct < THRESHOLD) {
+  // Recovered: forget the last alert, so the next degradation is announced.
+  // Written rather than deleted, because the workflow only saves a file that
+  // exists, and an unsaved run would restore the older alert next time.
+  await mkdir(".alert-state", { recursive: true });
+  await writeFile(STATE, JSON.stringify({ at: null, level: 0 }) + "\n");
+  console.log(`below the ${THRESHOLD}% threshold; no alert`);
+  process.exit(0);
+}
+
+// 1 degraded, 2 severe (the red embed).
+const level = pct >= 80 ? 2 : 1;
+const prev = await readState();
+if (!shouldPost(prev, level, Date.now())) {
+  console.log(`already alerted at ${prev.at} at this level or worse; not repeating yet`);
+  process.exit(0);
+}
 
 const embed = {
   title: `Collection degraded: ${pct}% of scrapes failing`,
@@ -69,3 +93,5 @@ const embed = {
 };
 
 await postEmbed(embed);
+await mkdir(".alert-state", { recursive: true });
+await writeFile(STATE, JSON.stringify({ at: new Date().toISOString(), level }) + "\n");

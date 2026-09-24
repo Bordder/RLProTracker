@@ -75,6 +75,24 @@
     .seg{width:100%;border-radius:14px}
     .seg a{flex:1 1 0;justify-content:center;padding:8px 2px;font-size:clamp(9px,2.7vw,11px);letter-spacing:.04em}
   }
+
+  /* ---- The Players menu: Compare and Ratings, under a caret beside Players.
+     A <details>, so it works with no script; nav.js closes it on a click
+     outside or Escape. While Compare or Ratings is the page, Players is lit. */
+  .navdd{position:relative;display:inline-flex;align-items:center}
+  .navdd details{display:flex;align-self:stretch}
+  .navdd summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+                 width:24px;border-radius:999px;color:var(--slate)}
+  .navdd summary::-webkit-details-marker{display:none}
+  .navdd summary:hover{color:var(--bone)}
+  .navdd summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .navdd summary svg{width:10px;height:6px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
+  .navdd details[open] summary svg{transform:rotate(180deg)}
+  .ddmenu{position:absolute;top:calc(100% + 8px);left:0;z-index:40;min-width:160px;display:flex;flex-direction:column;gap:2px;
+          padding:4px;background:#14171F;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.28)}
+  .seg .ddmenu a{flex:none;justify-content:flex-start;border-radius:8px;padding:9px 12px}
+  .navdd:has(.ddmenu [aria-current="page"])>a{background:var(--accent);color:#0a0e13}
+  @media (max-width:620px){ .seg>.navdd{flex:1 1 auto} .navdd>a{flex:1 1 auto;justify-content:center} }
 </style>
 </head>
 <body>
@@ -82,10 +100,17 @@
   <header class="top">
     <a class="brand" href="/">RL Pro Tracker<span>.</span></a>
     <nav class="seg" aria-label="View">
-      <a href="/">Players</a>
+      <span class="navdd">
+        <a href="/">Players</a>
+        <details>
+          <summary aria-label="Compare and Ratings" title="Compare and Ratings"><svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></summary>
+          <div class="ddmenu">
+            <a href="/compare">Compare</a>
+            <a href="/?tab=ratings">Ratings</a>
+          </div>
+        </details>
+      </span>
       <a href="/?tab=teams">Teams</a>
-      <a href="/compare">Compare</a>
-      <a href="/?tab=ratings">Ratings</a>
       <a href="/brackets">Brackets</a>
       <a href="/alphaboost">Alpha Boost</a>
     </nav>
@@ -178,5 +203,6 @@
     <p class="byline">Built and maintained by <b>Bordder</b>. &copy; 2026. <a href="https://github.com/Bordder/RLProTracker" target="_blank" rel="noopener noreferrer">Source on GitHub</a>.</p>
   </footer>
 </div>
+<script src="nav.js?v=abea178b" defer></script>
 </body>
 </html>

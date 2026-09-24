@@ -65,6 +65,17 @@ jobs:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: node scripts/alertBuildBehind.mjs
 
+      # What the scrape-rate alert last posted, so a condition that stays true
+      # is not posted again every run (scripts/alertCooldown.mjs). A cache
+      # entry cannot be overwritten, so each run saves its own and restores the
+      # newest.
+      - name: Restore the last alert
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .alert-state
+          key: alert-state-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: alert-state-
+
       - name: Warn when the collector's scrape success rate drops
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
@@ -72,6 +83,13 @@ jobs:
           REPO: ${{ github.repository }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: node scripts/alertScrapeRate.mjs
+
+      - name: Save the last alert
+        if: always() && hashFiles('.alert-state/scrape.json') != ''
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .alert-state
+          key: alert-state-${{ github.run_id }}-${{ github.run_attempt }}
 
       # Last, and with if: always(), so a failure in either check above still
       # leaves the site itself checked. This is the one that goes red: the

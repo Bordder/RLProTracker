@@ -1471,6 +1471,26 @@
     .kicker .seg button,.kicker .seg .segout{flex:1 1 auto;padding:8px 6px;font-size:clamp(9px,2.7vw,12px);letter-spacing:.04em}
   }
 
+  /* ---- The Players menu: Compare and Ratings, under a caret beside Players.
+     A <details>, so it works with no script; nav.js closes it on a click
+     outside or Escape. While Ratings is the tab, Players is lit. */
+  .navdd{position:relative;display:inline-flex;align-items:center}
+  .navdd details{display:flex;align-self:stretch}
+  .navdd summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;
+                 width:24px;border-radius:999px;color:var(--slate)}
+  .navdd summary::-webkit-details-marker{display:none}
+  .navdd summary:hover{color:var(--bone)}
+  .navdd summary:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  .navdd summary svg{width:10px;height:6px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;transition:transform .15s}
+  .navdd details[open] summary svg{transform:rotate(180deg)}
+  .ddmenu{position:absolute;top:calc(100% + 8px);left:0;z-index:40;min-width:160px;display:flex;flex-direction:column;gap:2px;
+          padding:4px;background:var(--surface);border:1px solid var(--line2);border-radius:12px;box-shadow:0 12px 28px rgba(0,0,0,.35)}
+  .kicker .seg .ddmenu button,.kicker .seg .ddmenu .segout{flex:none;justify-content:flex-start;text-align:left;border-radius:8px;padding:9px 12px}
+  .navdd:has(#tabRatings[aria-selected="true"])>button{background:var(--accent);color:var(--ink)}
+  /* The pill scrolls sideways on narrow screens, which would clip the menu. */
+  .kicker .seg{overflow:visible}
+  @media (max-width:700px){ .kicker .seg>.navdd{flex:1 1 auto} .kicker .seg .navdd>button{flex:1 1 auto} }
+
   @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
 </style>
 </head>
@@ -1483,10 +1503,17 @@
         <span class="kick-meta"><span class="live-dot" aria-hidden="true"></span><span id="updated">loading&hellip;</span></span>
       </span>
       <div class="seg" role="tablist" aria-label="View">
-        <button id="tabPlayers" role="tab" aria-selected="true">Players</button>
+        <span class="navdd">
+          <button id="tabPlayers" role="tab" aria-selected="true">Players</button>
+          <details>
+            <summary aria-label="Compare and Ratings" title="Compare and Ratings"><svg viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></summary>
+            <div class="ddmenu">
+              <a class="segout" href="/compare">Compare</a>
+              <button id="tabRatings" role="tab" aria-selected="false">Ratings</button>
+            </div>
+          </details>
+        </span>
         <button id="tabTeams" role="tab" aria-selected="false">Teams</button>
-        <a class="segout" href="/compare">Compare</a>
-        <button id="tabRatings" role="tab" aria-selected="false">Ratings</button>
         <a class="segout" href="/brackets">Brackets</a>
         <a class="segout" href="/alphaboost">Alpha Boost</a>
       </div>
@@ -1599,5 +1626,6 @@
 </div>
 
 <script src="rlpt.js?v=16c2763b" defer></script>
+<script src="nav.js?v=abea178b" defer></script>
 </body>
 </html>
