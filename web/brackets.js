@@ -777,6 +777,11 @@ function paintPanes() {
   const head = document.getElementById("ehead");
   if (head) head.innerHTML = headerHTML(ev);
   const sched = document.getElementById("paneFixtures");
+  // The pane is rebuilt every 15 seconds, which detaches the card an open
+  // series card is anchored to: the next scroll measured a detached node,
+  // got all zeros, and pinned the card to the top-left of the screen. Carry
+  // the card over to the new copy of the same match instead.
+  const openMi = cardFor && sched?.contains(cardFor) ? cardFor.dataset.mi : null;
   if (sched) sched.innerHTML = scheduleHTML(ev, Date.now(), WHEN);
   const teams = document.getElementById("paneTeams");
   if (teams) teams.innerHTML = teamsHTML(ev);
@@ -785,6 +790,10 @@ function paintPanes() {
   // The cards are new nodes every paint, so they are wired here rather than in
   // wire(), which runs once per render.
   if (sched) for (const el of sched.querySelectorAll("[data-mi]")) bindMatch(el);
+  if (openMi !== null) {
+    const again = sched.querySelector(`[data-mi="${CSS.escape(openMi)}"]`);
+    if (again) { cardFor = again; place(again); } else hideCard();
+  }
   showPane(PANE);
 }
 
