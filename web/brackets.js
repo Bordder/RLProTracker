@@ -1107,8 +1107,11 @@ function wire() {
     el.addEventListener("mouseleave", () => { if (!held) trace(null); });
     el.addEventListener("blur", () => { if (!held) trace(null); });
     el.addEventListener("click", (e) => { e.stopPropagation(); held = held === t ? null : t; trace(held); });
+    // stopPropagation, the same as the click above: the row sits inside a
+    // match box that opens the series card on Enter, so without it one key
+    // press traced the team AND opened the card, moving focus into it.
     el.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); held = held === t ? null : t; trace(held); }
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); held = held === t ? null : t; trace(held); }
     });
   }
   // The card: every match box and every group row.
