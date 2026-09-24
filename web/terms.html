@@ -62,12 +62,32 @@
   footer.legal .byline b{color:var(--slate);font-weight:600}
   @media (max-width:860px){ footer.legal .copyright{grid-template-columns:1fr;gap:14px} }
   .handle{font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;font-size:13.5px;color:var(--slate)}
+  /* The top bar every page shares, as on the bracket page: brand left, the
+     site's views right as one pill. None is marked current here, because
+     this page is not one of the views. */
+  header.top{align-items:center;justify-content:space-between;padding:22px 0 13px}
+  .seg{display:inline-flex;background:#14171F;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px}
+  .seg a{display:inline-flex;align-items:center;border-radius:999px;text-decoration:none;
+    font-family:var(--body);font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:12px;
+    color:var(--slate);padding:7px 14px;transition:color .15s,background .15s;white-space:nowrap}
+  .seg a:hover{color:var(--bone)}
+  @media (max-width:620px){
+    .seg{width:100%;border-radius:14px}
+    .seg a{flex:1 1 0;justify-content:center;padding:8px 2px;font-size:clamp(9px,2.7vw,11px);letter-spacing:.04em}
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="top">
     <a class="brand" href="/">RL Pro Tracker<span>.</span></a>
+    <nav class="seg" aria-label="View">
+      <a href="/">Players</a>
+      <a href="/?tab=teams">Teams</a>
+      <a href="/compare">Compare</a>
+      <a href="/?tab=ratings">Ratings</a>
+      <a href="/brackets">Brackets</a>
+    </nav>
   </header>
   <nav class="crumbs" aria-label="Breadcrumb">
     <a href="/">homepage</a> <span aria-hidden="true">/</span> <span aria-current="page">terms of service</span>

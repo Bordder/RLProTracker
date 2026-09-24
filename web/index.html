@@ -66,7 +66,6 @@
   body{
     color:var(--bone);font-family:var(--body);font-size:14px;line-height:1.45;
     -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
-    background-image:repeating-linear-gradient(115deg,rgba(255,90,31,.016) 0 2px,transparent 2px 26px);
   }
   .wrap{max-width:1220px;margin:0 auto;padding:0 22px 80px}
 
@@ -76,8 +75,18 @@
     font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;color:var(--slate);
     border-bottom:1px solid var(--line);padding:22px 0 14px;
   }
-  .kick-brand{color:var(--bone);font-weight:700;letter-spacing:.14em}
+  .kick-brand{color:var(--bone);font-family:var(--display);font-weight:800;font-size:19px;
+    letter-spacing:.02em;line-height:1}
   .kick-brand .dot{color:var(--accent)}
+  /* The top bar the bracket page has: brand on the left, the site's views on
+     the right as one pill. The views used to sit down by the search box,
+     under the headline and the four figures, which is a long way to travel
+     to reach the Teams tab. The freshness line rides beside the brand. */
+  .kicker{align-items:center;padding:22px 0 13px}
+  .kick-left{display:inline-flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .kick-left .kick-meta{min-width:0;justify-content:flex-start}
+  .kicker .seg{border-radius:999px;padding:3px;gap:2px;min-height:0}
+  .kicker .seg button,.kicker .seg .segout{border-radius:999px;padding:7px 17px;font-size:12px;letter-spacing:.1em}
   /* min-width holds the timestamp's box at the width of its longest form.
      Without it "loading..." fits beside the brand and the real timestamp does
      not, so the kicker went from one line to two the moment the fetch
@@ -197,7 +206,7 @@
   .card .s b{color:var(--bone);font-weight:600}
 
   /* ---- Controls: view toggle + search ---- */
-  .controls{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:26px 0 12px}
+  .controls{display:flex;align-items:center;justify-content:flex-end;gap:14px;flex-wrap:wrap;margin:26px 0 12px}
   /* Same shape as the metric and region bars below: 8px on the rail, 6px on
      the items, 2px of padding between. Three segmented controls stacked on a
      phone, one of them a pill and two of them rounded rectangles, read as
@@ -791,7 +800,8 @@
        their own: .seg replaces the 14px .controls had on top, and .search
        carries the space that used to be the gap between them. */
     .controls{display:contents}
-    .controls .seg{order:7; margin:14px 0 0}
+    /* The views are in the top bar now, so the only thing left in .controls
+       is the search. */
     .wrow{order:8}
     /* Specificity, not source order: the 560px block sets .search{order:3} for
        the old wrapper, and it sits later in this file. Two classes beat one
@@ -1441,6 +1451,11 @@
     #metricSeg button{font-size:clamp(7.4px,2.35vw,11px);letter-spacing:0}
     #regionSeg button{font-size:clamp(8.6px,2.7vw,12px);letter-spacing:.02em}
     #regionSeg button .rn{font-size:clamp(7px,2.2vw,10px);margin-left:2px}
+    /* The top bar's pill, the same equal shares as the bars below. Two
+       classes, to beat the desktop padding set on .kicker .seg. */
+    .kicker{gap:12px}
+    .kicker .seg{width:100%}
+    .kicker .seg button,.kicker .seg .segout{padding:8px 2px;font-size:clamp(9px,2.7vw,12px);letter-spacing:.04em}
   }
 
   @media (prefers-reduced-motion:reduce){ *{animation:none!important;transition:none!important} }
@@ -1450,8 +1465,17 @@
 <div class="wrap">
   <header>
     <div class="kicker">
-      <span class="kick-brand">RL Pro Tracker<span class="dot">.</span></span>
-      <span class="kick-meta"><span class="live-dot" aria-hidden="true"></span><span id="updated">loading&hellip;</span></span>
+      <span class="kick-left">
+        <span class="kick-brand">RL Pro Tracker<span class="dot">.</span></span>
+        <span class="kick-meta"><span class="live-dot" aria-hidden="true"></span><span id="updated">loading&hellip;</span></span>
+      </span>
+      <div class="seg" role="tablist" aria-label="View">
+        <button id="tabPlayers" role="tab" aria-selected="true">Players</button>
+        <button id="tabTeams" role="tab" aria-selected="false">Teams</button>
+        <a class="segout" href="/compare">Compare</a>
+        <button id="tabRatings" role="tab" aria-selected="false">Ratings</button>
+        <a class="segout" href="/brackets">Brackets</a>
+      </div>
     </div>
     <h1 class="headline">Who&rsquo;s Grinding<span class="accent">?</span></h1>
     <p class="dek" id="dek">Ranked-ladder activity for RLCS pros <b>outside</b> official tournaments: who&rsquo;s actually queuing, ranked by <b>2v2 MMR</b>, with games this season and MMR per playlist.</p>
@@ -1479,12 +1503,6 @@
   </header>
 
   <div class="controls">
-    <div class="seg" role="tablist" aria-label="View">
-      <button id="tabPlayers" role="tab" aria-selected="true">Players</button>
-      <button id="tabTeams" role="tab" aria-selected="false">Teams</button>
-      <button id="tabRatings" role="tab" aria-selected="false">Ratings</button>
-      <a class="segout" href="/brackets">Brackets</a>
-    </div>
     <div class="search" id="searchWrap">
       <svg viewBox="0 0 24 24" fill="none" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
       <input id="search" type="search" placeholder="Search player or team&hellip;" autocomplete="off" aria-label="Search player or team" />
