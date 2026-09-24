@@ -208,3 +208,14 @@ test("an ordinary player page is not reported", () => {
   assert.equal(looksWrongPerson({ title: "X", revisions: [] }), null);
   assert.equal(looksWrongPerson(undefined), null);
 });
+
+import { codeOf as codeOfName } from "../scripts/countries.mjs";
+
+test("a two-letter code an infobox wrote is taken as the code it is", () => {
+  // Event infoboxes sometimes write "de" for Germany; the parser upper-cases
+  // two letters as a code, and only US, USA and UK used to be understood.
+  assert.equal(codeOfName("DE"), "DE");
+  assert.equal(codeOfName("GB"), "GB");
+  // Two letters that are not a country this table knows stay unknown.
+  assert.equal(codeOfName("ZZ"), null);
+});
