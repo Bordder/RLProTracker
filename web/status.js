@@ -312,11 +312,21 @@
     loading = true;
     // Feeds first, then each one's history, so render() can index straight
     // into the second half with FEEDS.length + i.
-    Promise.all(
-      FEEDS.map(function (f) { return getJson("/data/" + f.file); })
-        .concat(FEEDS.map(function (f) { return getJson("/data/" + f.up); }))
-    )
-      .then(function (all) { render(all); })
+    //
+    // Fetched as the board fetches them: the four feeds in the one merged
+    // board.json, and each uptime file once. It was eight requests every 30
+    // seconds, uptime.json twice, and a burst of requests is what Cloudflare's
+    // rate limit answers with error 1015.
+    var ups = [];
+    FEEDS.forEach(function (f) { if (ups.indexOf(f.up) < 0) ups.push(f.up); });
+    Promise.all([getJson("/data/board.json")].concat(ups.map(function (u) { return getJson("/data/" + u); })))
+      .then(function (got) {
+        var board = got[0] || {};
+        var byUp = {};
+        ups.forEach(function (u, i) { byUp[u] = got[i + 1]; });
+        render(FEEDS.map(function (f) { return board[f.file] || null; })
+          .concat(FEEDS.map(function (f) { return byUp[f.up]; })));
+      })
       .catch(function () {})
       .then(function () { loading = false; });
   };
