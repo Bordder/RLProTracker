@@ -300,7 +300,14 @@
     'geng':'geng-mobil1-racing',
     'geng-esports':'geng-mobil1-racing',
     'helfie-chiefs':'chiefs-esports-club',
-    'virtus-pro':'virtuspro'
+    'virtus-pro':'virtuspro',
+    // Spellings the live bracket feed carries that web/crest.mjs already knew
+    // and this map did not: a LAN listing "Vitality" missed every Team
+    // Vitality row. test/logo-alias.test.mjs keeps the two maps in step.
+    'vitality':'team-vitality',
+    'ssg':'spacestation-gaming',
+    'kc':'karmine-corp',
+    'tm':'twisted-minds'
   };
   var LOGO_DIR='img/teams/';
 
