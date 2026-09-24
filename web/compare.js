@@ -44,6 +44,7 @@ let players = [];
 let byId = new Map();
 let collectedAt = null;
 let history = null;      // mmr-history.json, once it arrives
+let historyFailed = false;
 let chartPl = "twos";
 let pair = [null, null]; // two player ids
 
@@ -241,7 +242,10 @@ function paintChart() {
   if (!box) return;
   const W = 900, H = 300, L = 52, R = 14, T = 12, B = 30;
   if (!history) {
-    box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Loading rating history"><text class="empty" x="${W / 2}" y="${H / 2}" text-anchor="middle">Loading rating history</text></svg>`;
+    // A failed fetch comes back as null, which is also "not here yet", so the
+    // chart used to say it was loading for as long as the page stayed open.
+    const words = historyFailed ? "The rating history did not load. Reload the page to try again." : "Loading rating history";
+    box.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${words}"><text class="empty" x="${W / 2}" y="${H / 2}" text-anchor="middle">${words}</text></svg>`;
     return;
   }
   const base = history.base;
@@ -333,6 +337,7 @@ async function start() {
   paint();
 
   history = await getJson("mmr-history.json");
+  historyFailed = !history;
   paintChart();
 }
 
