@@ -51,7 +51,11 @@ export async function loadTeams(slug) {
       const low = t.toLowerCase();
       // "falcons" against "Team Falcons": Liquipedia's short form is FLCN, so
       // the alias is a word inside the name rather than any listed variant.
-      const inside = names.find((n) => n.toLowerCase().includes(low));
+      // A whole word of three letters or more, the same rule as the other
+      // direction below: any substring renamed "ar" to Five Fears and "m" to
+      // Mate y Tapa, and a renamed code no longer reads as unresolved.
+      const word = new RegExp(`(^|\\W)${low.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(\\W|$)`, "i");
+      const inside = low.length >= 3 ? names.find((n) => word.test(n)) : undefined;
       if (inside) return inside;
       // And the other direction: a group table writes "NRG Esports" where the
       // bracket writes "NRG", so the LONGER string is the one to fold. Three

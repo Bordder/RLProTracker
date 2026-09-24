@@ -829,3 +829,17 @@ test("an ordinary match carries no forfeit fields", () => {
   assert.equal("winner" in b.matches[0], false);
   assert.equal("marks" in b.matches[0], false);
 });
+
+// ---- the alias fallback ------------------------------------------------------
+
+import { loadTeams } from "../scripts/assemble.mjs";
+
+test("an unknown short code is not renamed to whatever org contains its letters", async () => {
+  // "ar" came out as Five Fears and "m" as Mate y Tapa, and a renamed code
+  // counts as resolved, so it was never flagged for the resolver either.
+  const t = await loadTeams("worlds-2026");
+  assert.equal(t.name("ar"), "ar");
+  assert.equal(t.name("m"), "m");
+  // The case the fallback exists for still works: a word of the full name.
+  assert.equal(t.name("falcons"), "Team Falcons");
+});
