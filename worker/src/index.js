@@ -79,6 +79,12 @@ async function dispatchBracket(env, event) {
 }
 
 async function dispatch(env, workflow) {
+  // Said plainly, the way check() says it. Without this, env.GH_TOKEN.trim()
+  // below threw a TypeError on every dispatch and the log held only that.
+  if (!env.GH_TOKEN) {
+    console.log(`${workflow} -> not dispatched: GH_TOKEN binding missing`);
+    return null;
+  }
   const url = `https://api.github.com/repos/${env.GH_OWNER}/${env.GH_REPO}` +
     `/actions/workflows/${workflow}/dispatches`;
   const res = await fetch(url, {

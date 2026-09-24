@@ -24,3 +24,23 @@ test("the Worker and the page agree about when a LAN is on", () => {
   ];
   for (const [e, at] of cases) assert.equal(lanRunning({ events: [e] }, T(at)), eventRunning(e, T(at)), at);
 });
+
+// ---- the scheduled handler -----------------------------------------------------
+
+import worker from "../worker/src/index.js";
+
+test("a Worker with no GH_TOKEN bound says so instead of throwing", async () => {
+  // env.GH_TOKEN.trim() threw a TypeError on every dispatch, so the log showed
+  // rejections rather than the missing binding the health check names.
+  const logs = [];
+  const log = console.log;
+  console.log = (m) => logs.push(String(m));
+  globalThis.fetch = async () => new Response("{}", { status: 404 });
+  let job;
+  try {
+    await worker.scheduled({ cron: "7 * * * *", scheduledTime: Date.now() }, { GH_OWNER: "o", GH_REPO: "r", GH_REF: "main" },
+      { waitUntil: (p) => { job = p; } });
+    await assert.doesNotReject(job);
+  } finally { console.log = log; }
+  assert.ok(logs.some((l) => /GH_TOKEN/.test(l)), logs.join("\n"));
+});
