@@ -74,8 +74,23 @@
     });
   };
 
+  // A feed with players is as fresh as its newest reading, not as the run
+  // that rebuilt it. The tracker rebuilds tracker.json every run, reading or
+  // no reading, so on 24 September 2026, with tracker.gg refusing every
+  // request, computedAt stayed two minutes old and this page said everything
+  // was running while no player had been read for half an hour.
   var parseAt = function (o) {
-    if (!o || !o.computedAt) return null;
+    if (!o) return null;
+    var list = o.players && (Array.isArray(o.players) ? o.players : Object.values(o.players));
+    if (list && list.length && list[0] && list[0].updatedAt !== undefined) {
+      var best = null;
+      list.forEach(function (x) {
+        var u = x && x.updatedAt ? Date.parse(x.updatedAt) : NaN;
+        if (!isNaN(u) && (best == null || u > best)) best = u;
+      });
+      return best;
+    }
+    if (!o.computedAt) return null;
     var t = Date.parse(o.computedAt);
     return isNaN(t) ? null : t;
   };
