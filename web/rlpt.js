@@ -731,7 +731,10 @@
       var nextTeams=teamNames.map(function(name){
         var t=thByTeam[name]||{team:name,players:(ttByTeam[name]||{}).players||0,tracked:0,steam2wkHours:null,totalHours:null};
         var tt=ttByTeam[name]||{};
-        return { team:t.team, region:REGION[t.team]||null, players:t.players, tracked:t.tracked, ranked:tt.ranked||0,
+        return { team:t.team, region:REGION[t.team]||null, players:t.players, tracked:t.tracked,
+          // How many players' fortnight Steam actually measured, which a frozen
+          // or stated total does not give. Older feeds lack it; fall back.
+          tracked2wk:t.tracked2wk!=null?t.tracked2wk:t.tracked, ranked:tt.ranked||0,
           avgMmr:tt.avgMmr||null, seasonGames:tt.seasonGames!=null?tt.seasonGames:null, games:tt.games||null,
           hours2wk:t.steam2wkHours, totalHours:t.totalHours };
       });
@@ -1169,11 +1172,14 @@
     // Team totals only sum the players who publish hours. Printing 0 for a team
   // where nobody does reads as "this team never plays", and a partial sum needs
   // saying so or it looks like the whole roster.
-  var teamHoursCell=function(t,v,fmt){
-    if(!t.tracked)return'<span class="na" title="Every player on this team keeps their hours private, so there is nothing to add up.">hidden</span>';
+  // `n` is how many players the figure actually covers: every tracked player
+  // for the total, only those with a measured fortnight for the two weeks.
+  var teamHoursCell=function(t,v,fmt,n){
+    if(n==null)n=t.tracked;
+    if(!n)return'<span class="na" title="No player on this team has Steam hours to add up for this figure.">hidden</span>';
     if(v==null)return'<span class="dash">&middot;</span>';
     var body=fmt(v);
-    if(t.tracked<t.players)return'<span class="part" title="'+t.tracked+' of '+t.players+' players publish hours; the rest keep them private.">'+body+'</span>';
+    if(n<t.players)return'<span class="part" title="'+n+' of '+t.players+' players have Steam hours in this figure; the rest keep them private or only have an older total.">'+body+'</span>';
     return body;
   };
 
@@ -1205,7 +1211,7 @@
         mmrCell(a.ones,'m1')+mmrCell(a.twos,'m2')+mmrCell(a.threes,'m3')+
         '<td class="c-sg" data-l="season">'+(t.seasonGames!=null?'<span class="sgv">'+nf(t.seasonGames)+'</span>':'<span class="dash">&middot;</span>')+'</td>'+
         '<td class="c-g14" data-l="24h games">'+teamGamesCell(t)+'</td>'+
-        '<td class="c-hr c-hr2" data-l="2wk h">'+teamHoursCell(t,t.hours2wk,hf)+'</td>'+
+        '<td class="c-hr c-hr2" data-l="2wk h">'+teamHoursCell(t,t.hours2wk,hf,t.tracked2wk)+'</td>'+
         '<td class="c-hr c-hrt" data-l="total h">'+teamHoursCell(t,t.totalHours,function(x){return nf(Math.round(x));})+'</td>'+
         '<td class="c-cp">'+copyBtn(t.team)+'</td></tr>';
     };
@@ -1250,7 +1256,7 @@
       var bits=[t.team+(t.region?(' ('+t.region+')'):'')], m=mmrBit(t.avgMmr,'avg ');
       if(m)bits=bits.concat(m);
       if(t.seasonGames!=null)bits.push(nf(t.seasonGames)+' games this season');
-      if(t.tracked&&t.hours2wk!=null)bits.push(hf(t.hours2wk)+'h in 2wk');
+      if(t.tracked2wk&&t.hours2wk!=null)bits.push(hf(t.hours2wk)+'h in 2wk');
       if(t.tracked&&t.totalHours!=null)bits.push(nf(Math.round(t.totalHours))+'h total');
       var out=[bits.join(SEP)];
       var roster=(byTeam[t.team]||[]).slice();

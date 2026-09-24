@@ -31,16 +31,21 @@ export function teamHours(players) {
   const teams = [];
   for (const [team, roster] of byTeam) {
     const tracked = roster.filter((p) => p.totalHours != null); // public + on Steam
+    // The fortnight has its own count. A frozen or player-stated total makes a
+    // player "tracked", but Steam gives no two-week figure for them, and
+    // summing their null as 0 printed one player's fortnight as the roster's.
+    const measured2wk = roster.filter((p) => p.steam2wkHours != null);
     teams.push({
       team,
       players: roster.length,
       tracked: tracked.length, // how many actually return Steam data
+      tracked2wk: measured2wk.length,
       windows: {
         d1: +sum(tracked.map((p) => p.windows?.d1?.hours)).toFixed(1),
         d7: +sum(tracked.map((p) => p.windows?.d7?.hours)).toFixed(1),
         d14: +sum(tracked.map((p) => p.windows?.d14?.hours)).toFixed(1),
       },
-      steam2wkHours: +sum(tracked.map((p) => p.steam2wkHours)).toFixed(1),
+      steam2wkHours: +sum(measured2wk.map((p) => p.steam2wkHours)).toFixed(1),
       totalHours: +sum(tracked.map((p) => p.totalHours)).toFixed(0),
     });
   }
