@@ -63,6 +63,15 @@ export const MAX_JUMP = 300;
 // with no account, so nothing already earned disappears.
 const bucketFor = (held, who) => (who ? ((held.accounts ??= {})[who] ??= {}) : held);
 
+// A player's entries, copied, so that writing to them never reaches the store
+// the caller passed in. Only the players map used to be copied and each
+// player's entries were written in place, so the CLI's "set or raised" count
+// compared the new store with itself.
+const copyHeld = (held) => ({
+  ...held,
+  ...(held?.accounts ? { accounts: Object.fromEntries(Object.entries(held.accounts).map(([w, a]) => [w, { ...a }])) } : null),
+});
+
 /**
  * The store, with anything higher in `snaps` folded in.
  *
@@ -72,7 +81,7 @@ const bucketFor = (held, who) => (who ? ((held.accounts ??= {})[who] ??= {}) : h
 export function updatePeaks(store, snaps, opts = {}) {
   const maxJump = opts.maxJump ?? MAX_JUMP;
   const sorted = [...snaps].sort((a, b) => a.t - b.t);
-  const players = { ...(store?.players ?? {}) };
+  const players = Object.fromEntries(Object.entries(store?.players ?? {}).map(([id, h]) => [id, copyHeld(h)]));
 
   // The previous accepted reading per player, account and playlist, for the
   // jump test. Seeded from nothing rather than from the store: the store holds
