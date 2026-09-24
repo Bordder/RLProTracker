@@ -40,7 +40,13 @@ export function records(matches) {
     const [x, y] = m.scores;
     // An unplayed match contributes nothing. It must not count as a 0-0 draw:
     // most of a group is unplayed for most of its life.
-    if (!a || !b || x === null || y === null) continue;
+    //
+    // Nor does one being played. Liquipedia fills the score in game by game
+    // and sets finished= only when the series ends, so a Bo5 at 2-1 has two
+    // scores and no result: counting it gave the leader a win in the table
+    // while the series was live. The finished flag decides, as it does in the
+    // bracket (see parseMatch in scripts/parseBracket.mjs).
+    if (!a || !b || x === null || y === null || !m.finished) continue;
     const ra = get(a), rb = get(b);
     ra.played++; rb.played++;
     ra.gamesFor += x; ra.gamesAgainst += y;

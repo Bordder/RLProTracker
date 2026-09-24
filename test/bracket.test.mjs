@@ -414,7 +414,7 @@ test("the real Worlds playoff shape is not a binary tree", () => {
 
 import { records, standings, pairGroups } from "../web/standings.mjs";
 
-const played = (a, b, x, y) => ({ teams: [a, b], scores: [x, y], upcoming: false });
+const played = (a, b, x, y) => ({ teams: [a, b], scores: [x, y], upcoming: false, finished: true });
 
 test("a record counts series and games, not matches on the page", () => {
   const r = records([played("A", "B", 3, 1), played("A", "C", 3, 0), played("B", "C", 2, 3)]);
@@ -422,6 +422,16 @@ test("a record counts series and games, not matches on the page", () => {
     { ...r.get("a") },
     { team: "A", won: 2, lost: 0, played: 2, gamesFor: 6, gamesAgainst: 1, diff: 5 }
   );
+});
+
+test("a series still being played is not a result yet", () => {
+  // A Bo5 at 2-1 with no finished flag. Counting it gave the leader a win in
+  // the group table while the series was live: the same mistake that once
+  // qualified Virtus.pro out of a play-in series they were still playing.
+  const r = records([{ teams: ["A", "B"], scores: [2, 1], finished: false, live: true }]);
+  assert.equal(r.get("a")?.won ?? 0, 0);
+  assert.equal(r.get("b")?.lost ?? 0, 0);
+  assert.equal(r.get("a")?.played ?? 0, 0);
 });
 
 test("an unplayed match is not a nil-nil draw", () => {

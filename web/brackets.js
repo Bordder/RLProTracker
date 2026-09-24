@@ -1,5 +1,5 @@
 import { crest, assignHues, hasLogo, teamName } from "/crest.mjs?v=3d51b913";
-import { standings, pairGroups } from "/standings.mjs?v=733b8667";
+import { standings, pairGroups } from "/standings.mjs?v=5df49caf";
 import { panelHTML, ordinal, spanWords, eventRunning } from "/fixtures.mjs?v=3bc2d3dd";
 import { headerHTML, scheduleHTML, prizesHTML, teamsHTML, finalOf } from "/eventview.mjs?v=8b74f593";
 
