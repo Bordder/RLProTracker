@@ -22,7 +22,6 @@ import { dirname, join } from "node:path";
 import { appendRows, countReadings } from "./trackerHistory.mjs";
 import { parseProxies as parseProxyList, unauthenticatedIndices } from "./proxies.mjs";
 import { recordRun } from "./proxyHistory.mjs";
-import { loadDevs, pickDevs, apiUrl, pickCasual, lastGames, nextDevState, alphaFeed } from "./devs.mjs";
 import { chromium } from "playwright-extra";
 import stealth from "puppeteer-extra-plugin-stealth";
 
@@ -43,8 +42,6 @@ const API = (who) => typeof who === "string"
   : `https://api.tracker.gg/api/v2/rocket-league/standard/profile/${who.platform}/${encodeURIComponent(who.id)}`;
 const PLAYLISTS = { d1: "Ranked Duel 1v1", d2: "Ranked Doubles 2v2", d3: "Ranked Standard 3v3" };
 const STATE_FILE = join(ROOT, "data", "tracker-state.json");
-const DEV_STATE_FILE = join(ROOT, "data", "devs-state.json");
-const ALPHA_FILE = join(ROOT, "data", "derived", "alpha.json");
 const ATTEMPTS = 5; // capped at proxy count in scrapePlayer; try every proxy before giving up
 const NAV_TIMEOUT = 45000;
 const API_TIMEOUT = 30000; // per-player API call; a warm profile answers in ~0.5-1.3s
@@ -183,25 +180,6 @@ async function scrapeOnce(ctx, id) {
   const data = pickPlaylists(json, PLAYLISTS); // may be null
   if (data && Object.values(data).every((v) => v == null)) throw new Error("no-playlists");
   return data;
-}
-
-// One developer's Casual rating and recent matches, for the Alpha Boost page.
-// The matches are what say when they last played (see lastGames); they are a
-// second request, and a failure there keeps the rating rather than the row.
-async function devOnce(ctx, dev) {
-  const page = await warmPage(ctx);
-  const { status, text } = await apiFetch(page, apiUrl(dev), API_TIMEOUT);
-  if (status !== 200) throw new Error(`api-${status}`);
-  let json;
-  try { json = JSON.parse(text); } catch { throw new Error("api-bad-json"); }
-  const reading = pickCasual(json);
-  if (!reading) return null;
-  let games = null;
-  try {
-    const s = await apiFetch(page, `${apiUrl(dev)}/sessions`, API_TIMEOUT);
-    if (s.status === 200) games = lastGames(JSON.parse(s.text));
-  } catch { /* the rating stands without it */ }
-  return { reading, games };
 }
 
 // Which proxy a given attempt uses. Pure, so the rotation can be tested without
@@ -354,7 +332,7 @@ export function attemptOrder(order, startIdx, tries, isBenched = () => false) {
   return out;
 }
 
-async function scrapePlayer(contexts, order, startIdx, id, health, once = scrapeOnce) {
+async function scrapePlayer(contexts, order, startIdx, id, health) {
   let lastErr;
   const tries = Math.min(ATTEMPTS, contexts.length);
   let plan = attemptOrder(order, startIdx, tries, (i) => health.isBenched(i));
@@ -365,7 +343,7 @@ async function scrapePlayer(contexts, order, startIdx, id, health, once = scrape
     noteUse(ctxIdx, attempted > 0);
     attempted++;
     try {
-      const d = await once(ctx, id);
+      const d = await scrapeOnce(ctx, id);
       if (d) { health.ok(ctxIdx); return d; }
       // A 200 that carries no playlists is the profile's answer, not the
       // tunnel's, so it counts as a miss without counting against the proxy.
@@ -519,41 +497,6 @@ function selectDue(players, prio, state, now) {
   return [...taken.filter((x) => !inGame(x)), ...taken.filter(inGame)].map((x) => x.p);
 }
 
-// Read every developer and write the Alpha Boost feed. Each developer starts
-// on a different proxy, offset from the roster's, and a failed read leaves
-// their previous state standing, so one refusal costs a reading, not the row.
-async function readDevs(devs, devState, contexts, order, health, pool) {
-  const at = new Date().toISOString();
-  // Steam's view comes from the every-minute job (scripts/devsSteam.mjs); here
-  // it only moves a developer with the game open to the front of the queue.
-  const steam = (await readJson(join(ROOT, "data", "derived", "devs-steam.json"), {}))?.devs ?? {};
-  const batch = pickDevs(devs, devState, Date.now(), +(process.env.DEVS_PER_RUN ?? 8), steam);
-  let next = 0, ok = 0;
-  async function worker() {
-    while (next < batch.length) {
-      const i = next++;
-      const d = batch[i];
-      try {
-        const got = await scrapePlayer(contexts, order, i + 7, d, health, devOnce);
-        devState[d.key] = nextDevState(devState[d.key], got.reading, at, got.games);
-        ok++;
-        console.log(`  dev ${(d.name ?? d.id).padEnd(14)} casual:${got.reading.rating ?? "-"} last unranked:${got.games?.casualAt ?? "-"}`);
-      } catch (e) {
-        console.log(`  dev ${(d.name ?? d.id).padEnd(14)} error: ${String(e.message).split("\n")[0].slice(0, 50)}`);
-      }
-      await sleep(PER_PROXY_DELAY);
-    }
-  }
-  await Promise.all(Array.from({ length: Math.min(pool, batch.length) }, () => worker()));
-  // Developers taken out of devs.json leave the state with them.
-  const keep = new Set(devs.map((d) => d.key));
-  for (const k of Object.keys(devState)) if (!keep.has(k)) delete devState[k];
-  await writeFile(DEV_STATE_FILE, JSON.stringify(devState, null, 2) + "\n");
-  await mkdir(dirname(ALPHA_FILE), { recursive: true });
-  await writeFile(ALPHA_FILE, JSON.stringify(alphaFeed(devs, devState, at)) + "\n");
-  console.log(`developers: ${ok}/${batch.length} read ok (${devs.length} listed)`);
-}
-
 async function main() {
   const roster = await readJson(join(ROOT, "data", "roster.json"), { players: [] });
   const prio = await readJson(join(ROOT, "data", "priorities.json"), {});
@@ -563,15 +506,11 @@ async function main() {
   const players = selectDue(all, prio, state, now);
   const takenAt = new Date(now).toISOString();
   console.log(`selected ${players.length}/${all.length} due players`);
-  // Developers are read every run, whatever the roster's schedule says: the
-  // Alpha Boost page is only useful if it can say who is playing now.
-  const devs = loadDevs(await readJson(join(ROOT, "data", "devs.json"), {}));
-  const devState = await readJson(DEV_STATE_FILE, {});
 
   // Nothing due (common now that intervals are tripled): skip the browser +
   // proxy contexts entirely and write no snapshot, so the run is a true no-op
   // (no commit, no wasted contexts).
-  if (players.length === 0 && devs.length === 0) {
+  if (players.length === 0) {
     console.log("no players due this run - skipping browser/scrape");
     return;
   }
@@ -641,13 +580,6 @@ async function main() {
       await sleep(PER_PROXY_DELAY);
     }
   }
-  // Developers first, while every proxy is still in the rotation. Read after
-  // the roster, they met a fleet already benched down to its last two
-  // proxies, and on 24 September 2026 got 0 of 8 reads run after run while
-  // the roster in the same runs got up to half through. The Alpha Boost page
-  // is only as live as these reads.
-  if (devs.length) await readDevs(devs, devState, contexts, order, health, pool);
-
   console.log(`pool: ${pool} concurrent`);
   await Promise.all(Array.from({ length: pool }, () => worker()));
 

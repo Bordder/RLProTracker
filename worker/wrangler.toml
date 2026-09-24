@@ -36,9 +36,8 @@ custom_domain = true
 [triggers]
 # */2 drives BOTH presence and tracker (the handler dispatches both on it);
 # hourly drives steam. Presence left */5 on 10 September 2026 because idle
-# players are now deferred and presence is what wakes them. The every-minute
-# one drives devs.yml, the Alpha Boost page's Steam check.
-crons = ["*/2 * * * *", "7 * * * *", "* * * * *"]
+# players are now deferred and presence is what wakes them.
+crons = ["*/2 * * * *", "7 * * * *"]
 
 # GH_TOKEN is a fine-grained PAT (Actions: read and write) and is NOT declared
 # here - add it as a Secret in the dashboard. Secrets survive a deploy; the vars

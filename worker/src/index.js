@@ -44,10 +44,6 @@ import { lanRunning } from "./lanRunning.js";
 const PRESENCE_CRON = "*/2 * * * *";
 const TRACKER_CRON = "*/2 * * * *";
 const STEAM_CRON = "7 * * * *";
-// Every minute: the Alpha Boost page's Steam check (devs.yml). One Steam
-// request for about a dozen developers, no proxies, ~15s of runner time, so
-// it can run twice as often as the collectors and the page stays near live.
-const DEVS_CRON = "* * * * *";
 
 // brackets.yml rides the */2 trigger for the same reason everything else does.
 //
@@ -191,7 +187,6 @@ export default {
       if (wanted === "steam") jobs.push(dispatch(env, "steam.yml"));
       if (wanted === "brackets") jobs.push(dispatch(env, "brackets.yml"));
       if (wanted === "alerts") jobs.push(dispatch(env, "alerts.yml"));
-      if (wanted === "devs") jobs.push(dispatch(env, "devs.yml"));
       const codes = await Promise.all(jobs);
       return Response.json({ dispatched: codes.length, codes });
     }
@@ -243,7 +238,6 @@ export default {
     if (event.cron === TRACKER_CRON) jobs.push(dispatch(env, "tracker.yml"));
     if (event.cron === TRACKER_CRON) jobs.push(dispatchBracket(env, event));
     if (event.cron === STEAM_CRON) jobs.push(dispatch(env, "steam.yml"));
-    if (event.cron === DEVS_CRON) jobs.push(dispatch(env, "devs.yml"));
     // alerts.yml asks for "23 * * * *" and GitHub gives it a few runs a day,
     // which is not a watchdog. It rides the hourly tick for the same reason
     // every collector does.
