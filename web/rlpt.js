@@ -890,11 +890,15 @@
     }
 
     // "15-20 September", or one date when a LAN runs a single day.
+    // formatRange, in UTC: gluing a day number to a formatted end date read
+    // "15–September 20" in en-US, dropped the first month of a range that
+    // crosses one, and a local zone put the end a day late east of UTC+12.
     function lanWindow(l){
-      var d=function(iso){ return new Date(iso+'T12:00:00Z').toLocaleDateString([],{day:'numeric',month:'long'}); };
       if(!l.starts)return '';
-      if(!l.ends||l.ends===l.starts)return d(l.starts);
-      return new Date(l.starts+'T12:00:00Z').getUTCDate()+'–'+d(l.ends);
+      var fmt=new Intl.DateTimeFormat(undefined,{day:'numeric',month:'long',timeZone:'UTC'});
+      var at=function(iso){ return new Date(iso+'T12:00:00Z'); };
+      if(!l.ends||l.ends===l.starts)return fmt.format(at(l.starts));
+      return fmt.formatRange(at(l.starts),at(l.ends));
     }
 
     // The highest rating ever reached in the playlist being read. The figure

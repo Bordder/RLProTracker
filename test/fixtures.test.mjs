@@ -138,10 +138,38 @@ test("ordinals are ordinals, including the teens", () => {
     ["1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "18th", "21st", "22nd", "23rd", "30th"]);
 });
 
+// The locale is passed in rather than left to the machine running the tests:
+// GitHub's runners report en-US, a British laptop en-GB, and a test that only
+// passes on one of them says nothing about the code.
+const GB = "en-GB";
+// formatRange spaces its dash with whatever space the locale data uses (a thin
+// or narrow no-break space on some ICU builds), so compare on plain spaces.
+const plain = (s) => s.replace(/\s/g, " ");
+
 test("a day range reads as one", () => {
-  assert.equal(spanWords({ from: "2026-09-18", to: "2026-09-20" }), "18–20 Sept");
-  assert.equal(spanWords({ from: "2026-09-17", to: "2026-09-17" }), "17 Sept");
-  assert.equal(spanWords(null), "");
+  assert.equal(plain(spanWords({ from: "2026-09-18", to: "2026-09-20" }, GB)), "18 – 20 Sept");
+  assert.equal(spanWords({ from: "2026-09-17", to: "2026-09-17" }, GB), "17 Sept");
+  assert.equal(spanWords(null, GB), "");
+});
+
+test("a day range reads as one in a month-first locale too", () => {
+  // Built by hand as "day, dash, formatted end", en-US came out "18–Sep 20".
+  assert.equal(plain(spanWords({ from: "2026-09-18", to: "2026-09-20" }, "en-US")), "Sep 18 – 20");
+});
+
+test("a range across two months names both", () => {
+  // "30–2 Oct" dropped September entirely.
+  assert.equal(plain(spanWords({ from: "2026-09-30", to: "2026-10-02" }, GB)), "30 Sept – 2 Oct");
+});
+
+test("a date is the same date whatever zone the reader is in", () => {
+  // Midday UTC is already the next day at UTC+13, which put the end of a
+  // range a day late for a reader in New Zealand.
+  const saved = process.env.TZ;
+  process.env.TZ = "Pacific/Auckland";
+  try {
+    assert.equal(plain(spanWords({ from: "2026-09-18", to: "2026-09-20" }, GB)), "18 – 20 Sept");
+  } finally { process.env.TZ = saved; }
 });
 
 test("the markup escapes what Liquipedia supplies", () => {
@@ -263,7 +291,7 @@ test("a round with one named match shows the match, not the round", () => {
   const f = fixturesFrom(d, T("2026-09-16T12:00:00Z"));
   const final = f.soon.find((s) => s.stage === "Final");
   assert.deepEqual(final.match.teams, ["Nwpo", "nass"]);
-  const html = panelHTML(d, T("2026-09-16T12:00:00Z"));
+  const html = panelHTML(d, T("2026-09-16T12:00:00Z"), { locale: GB });
   assert.ok(html.includes("Nwpo") && html.includes("nass"), html);
   // Still says when, because that is the only timing the page has published.
   assert.ok(html.includes("18 Sept"), html);

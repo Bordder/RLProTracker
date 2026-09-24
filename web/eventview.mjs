@@ -11,7 +11,7 @@
 // published something rather than filling the gap.
 import { crest, hasLogo, teamSlug, teamName } from "/crest.mjs?v=3d51b913";
 import { flagSVG } from "/flags.mjs?v=d67b29cc";
-import { matchesOf, whenWords, zoneLabel, ordinal, isLive } from "/fixtures.mjs?v=94128e9f";
+import { matchesOf, whenWords, zoneLabel, ordinal, isLive } from "/fixtures.mjs?v=5b6fa514";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -42,17 +42,19 @@ const money = (usd) => {
   return "$" + usd;
 };
 
-/** "15 - 20 September 2026", or one date for a single day. */
-export function dateRange(ev) {
+/**
+ * "15 - 20 September 2026", or one date for a single day.
+ *
+ * formatRange, in UTC, for the same reasons as spanWords: a day number glued
+ * to a formatted end date read "15 – September 20, 2026" in en-US, and a local
+ * zone moved the end a day late east of UTC+12.
+ */
+export function dateRange(ev, locale = undefined) {
   if (!ev?.starts) return "";
-  const d = (iso, opts) => new Date(iso + "T12:00:00Z").toLocaleDateString([], opts);
-  const full = { day: "numeric", month: "long", year: "numeric" };
-  if (!ev.ends || ev.ends === ev.starts) return d(ev.starts, full);
-  const sameMonth = ev.starts.slice(0, 7) === ev.ends.slice(0, 7);
-  const from = sameMonth
-    ? new Date(ev.starts + "T12:00:00Z").getUTCDate()
-    : d(ev.starts, { day: "numeric", month: "long" });
-  return `${from} – ${d(ev.ends, full)}`;
+  const fmt = new Intl.DateTimeFormat(locale, { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" });
+  const at = (iso) => new Date(iso + "T12:00:00Z");
+  if (!ev.ends || ev.ends === ev.starts) return fmt.format(at(ev.starts));
+  return fmt.formatRange(at(ev.starts), at(ev.ends));
 }
 
 /** The header block: what the event is, when, what it is worth, and where. */

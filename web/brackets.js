@@ -1,7 +1,7 @@
 import { crest, assignHues, hasLogo, teamName } from "/crest.mjs?v=3d51b913";
 import { standings, pairGroups } from "/standings.mjs?v=733b8667";
-import { panelHTML, ordinal } from "/fixtures.mjs?v=94128e9f";
-import { headerHTML, scheduleHTML, prizesHTML, teamsHTML } from "/eventview.mjs?v=d38fa8c8";
+import { panelHTML, ordinal, spanWords } from "/fixtures.mjs?v=5b6fa514";
+import { headerHTML, scheduleHTML, prizesHTML, teamsHTML } from "/eventview.mjs?v=237424f8";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 // "23:00" today, "17th 23:00" on another day. Same wording as the schedule
@@ -15,7 +15,8 @@ const timeOf = (iso) => {
   return sameDay ? clock : `${ordinal(at.getDate())} ${clock}`;
 };
 const dayOf = (iso) => iso ? new Date(iso).toLocaleDateString([], { month: "long", day: "numeric", year: "numeric" }) : null;
-const shortDay = (d) => d ? new Date(`${d}T12:00:00Z`).toLocaleDateString([], { day: "numeric", month: "short" }) : "";
+// UTC: a calendar date, not an instant, so it must not shift with the reader.
+const shortDay = (d) => d ? new Date(`${d}T12:00:00Z`).toLocaleDateString([], { day: "numeric", month: "short", timeZone: "UTC" }) : "";
 const clockOf = (iso) => iso ? new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : null;
 
 const BOX_W = 200, GUTTER = 44, ROW_H = 26, BOX_H = ROW_H * 2 + 2;
@@ -72,11 +73,11 @@ let STAGE = null;
 let FORMAT = null;
 const teamMark = (name) => (!FORMAT || FORMAT === "3v3" || hasLogo(name) ? crest(name) : "");
 
-// "18-20 Sept", or "15 Sept" for a single day.
+// "18-20 Sept", or "15 Sept" for a single day. The schedule column's own
+// wording, so the two never disagree about how a range reads.
 function windowOf(st) {
   if (!st?.from) return null;
-  const d = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString([], { day: "numeric", month: "short" });
-  return st.to && st.to !== st.from ? `${new Date(`${st.from}T12:00:00Z`).getUTCDate()}–${d(st.to)}` : d(st.from);
+  return spanWords({ from: st.from, to: st.to });
 }
 
 // Match a section to its line in the Format section. The names line up
@@ -672,10 +673,7 @@ function railEl(current) {
     const items = evs.map((e) => {
       const st = stateOf(e);
       const cls = st === "running" ? " islive" : st === "future" ? " isnext" : "";
-      const day = (d) => d ? new Date(`${d}T12:00:00Z`).toLocaleDateString([], { day: "numeric", month: "short" }) : "";
-      const span = e.starts && e.ends
-        ? (e.starts === e.ends ? day(e.starts) : `${new Date(`${e.starts}T12:00:00Z`).getUTCDate()}–${day(e.ends)}`)
-        : "dates TBC";
+      const span = e.starts && e.ends ? spanWords({ from: e.starts, to: e.ends }) : "dates TBC";
       const label = st === "running" ? "On now"
         : st === "future" ? `${span} &middot; upcoming`
         : `${span} &middot; ${esc(cityOf(e) ?? "")}`;

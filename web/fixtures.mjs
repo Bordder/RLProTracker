@@ -257,13 +257,20 @@ export function zoneLabel(nowMs = Date.now()) {
   }
 }
 
-/** "18-20 Sept", or "17 Sept" for a single day. */
-export function spanWords(w) {
+/**
+ * "18-20 Sept", or "17 Sept" for a single day.
+ *
+ * formatRange rather than a day number glued to a formatted end date: the glue
+ * assumed the day comes first, so en-US read "18–Sep 20", and a range across
+ * two months lost the first one ("30–2 Oct"). UTC because these are calendar
+ * dates, not instants: in the reader's own zone, midday UTC is already the next
+ * day east of UTC+12. `locale` is for the tests; the page uses the reader's.
+ */
+export function spanWords(w, locale = undefined) {
   if (!w?.from) return "";
-  const d = (iso) => new Date(iso + "T12:00:00Z").toLocaleDateString([], { day: "numeric", month: "short" });
-  return w.to && w.to !== w.from
-    ? new Date(w.from + "T12:00:00Z").getUTCDate() + "–" + d(w.to)
-    : d(w.from);
+  const fmt = new Intl.DateTimeFormat(locale, { day: "numeric", month: "short", timeZone: "UTC" });
+  const at = (iso) => new Date(iso + "T12:00:00Z");
+  return w.to && w.to !== w.from ? fmt.formatRange(at(w.from), at(w.to)) : fmt.format(at(w.from));
 }
 
 // ---- drawing ---------------------------------------------------------------
@@ -320,7 +327,7 @@ const group = (title, items, limit = 0) => {
  * what is on and what is next, and folds the undated matches of a stage back
  * into the one line they all share, rather than quietly hiding rows with CSS.
  */
-export function panelHTML(ev, nowMs, { compact = false } = {}) {
+export function panelHTML(ev, nowMs, { compact = false, locale = undefined } = {}) {
   const f = fixturesFrom(ev, nowMs);
   if (!f) return "";
   if (compact && f.later.length) {
@@ -345,7 +352,7 @@ export function panelHTML(ev, nowMs, { compact = false } = {}) {
   // days before it is played, so this is the normal state of a round that has
   // not been scheduled yet rather than a gap in the data.
   const laterRows = f.later.map((m) => matchEl(m, whenWords(m.startsAt, nowMs) ?? "TBD", "soft", multi));
-  const stageWords = (s) => (s.today ? "today, " + spanWords(s.window) : spanWords(s.window));
+  const stageWords = (s) => (s.today ? "today, " : "") + spanWords(s.window, locale);
   // A round with one named match shows the match; otherwise the round's name
   // and the days it runs, which is all the page has published about it.
   const stageLine = (s) => (s.match ? matchEl(s.match, stageWords(s), "soft", multi) : '<li class="fxs">' +
