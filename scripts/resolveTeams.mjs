@@ -28,6 +28,7 @@
 import { readFile, writeFile, rename, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { FIXTURE_DIR, UA } from "./assemble.mjs";
+import { pathToFileURL } from "node:url";
 
 const attr = (s, k) => new RegExp(`data-team-${k}="([^"]*)"`).exec(s)?.[1] ?? null;
 
@@ -54,7 +55,10 @@ export function teamsFromRender(html) {
   return { teams, alias };
 }
 
-if (!import.meta.main) {
+// Run only when invoked directly. Not import.meta.main, which needs Node 22.18
+// or 24.2: package.json allows Node 20, where it is undefined and this script
+// exited 0 having done nothing.
+if (!(process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href)) {
   // Imported for teamsFromRender alone: no page to fetch, nothing to write.
 } else {
 

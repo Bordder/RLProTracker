@@ -26,6 +26,7 @@
 
 import { postEmbed } from "./discordPost.mjs";
 import { eventRunning } from "../web/fixtures.mjs";
+import { pathToFileURL } from "node:url";
 
 const SITE = process.env.SITE ?? "https://198x.online";
 
@@ -324,7 +325,10 @@ export function problemsFor(feed, res, now) {
 export const shouldAnnounceBlind = (now, hour = 7) => new Date(now).getUTCHours() === hour;
 
 // Imported for auditFeed alone by the tests: nothing to fetch, nothing to post.
-if (import.meta.main) {
+// Run only when invoked directly. Not import.meta.main, which needs Node 22.18
+// or 24.2: package.json allows Node 20, where it is undefined and this script
+// exited 0 having done nothing.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
 
 const now = Date.now();
 

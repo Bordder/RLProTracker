@@ -12,9 +12,13 @@
 import { access } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { fileURLToPath } from "node:url";
 import { join } from "node:path";
 import { loadEvents } from "./events.mjs";
 import { FIXTURE_DIR, sleep } from "./assemble.mjs";
+
+// This script's own folder. import.meta.dirname would do, from Node 20.11.
+const HERE_DIR = fileURLToPath(new URL(".", import.meta.url));
 
 const run = promisify(execFile);
 const ALL = process.argv.includes("--all");
@@ -31,7 +35,7 @@ console.log(`${todo.length} of ${events.length} event(s) to resolve, ~${Math.rou
 for (const [n, e] of todo.entries()) {
   if (n) await sleep(GAP);
   try {
-    const { stdout } = await run(process.execPath, ["resolveTeams.mjs", e.titles[0].title, e.slug], { cwd: import.meta.dirname });
+    const { stdout } = await run(process.execPath, ["resolveTeams.mjs", e.titles[0].title, e.slug], { cwd: HERE_DIR });
     process.stdout.write(`${e.slug}: ${stdout}`);
   } catch (err) {
     // One refusal must not abandon the rest; the missing file just means that

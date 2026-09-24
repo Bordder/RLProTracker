@@ -28,7 +28,7 @@
 // collector maintains it on every run and there is nothing to run by hand.
 
 import { readFile, writeFile, mkdir } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 import { historyToSnaps } from "./trackerHistory.mjs";
 
@@ -179,7 +179,10 @@ export const writeStore = async (store, path = STORE) => {
   await writeFile(path, `${JSON.stringify(store, null, 1)}\n`);
 };
 
-if (import.meta.main) {
+// Run only when invoked directly. Not import.meta.main, which needs Node 22.18
+// or 24.2: package.json allows Node 20, where it is undefined and this script
+// exited 0 having done nothing.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
 
 const apply = process.argv.includes("--apply");
 const store = await readStore();

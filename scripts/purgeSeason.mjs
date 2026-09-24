@@ -38,7 +38,7 @@
 // months to accumulate.
 
 import { readFile, writeFile, copyFile, stat } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join, isAbsolute } from "node:path";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -82,7 +82,10 @@ export function resetState(doc) {
 
 // Imported for the transforms alone by the tests: nothing read, nothing
 // written, and above all nothing purged.
-if (import.meta.main) {
+// Run only when invoked directly. Not import.meta.main, which needs Node 22.18
+// or 24.2: package.json allows Node 20, where it is undefined and this script
+// exited 0 having done nothing.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
 
 const readJson = async (path) => JSON.parse(await readFile(path, "utf8"));
 const kb = (n) => `${Math.round(n / 1024)} KB`;

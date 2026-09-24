@@ -24,7 +24,7 @@
 
 import { readdir, readFile, writeFile, unlink, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const DIR = join(fileURLToPath(new URL("..", import.meta.url)), "web", "img", "teams");
 
@@ -53,7 +53,10 @@ export function sniff(buf) {
   return null;
 }
 
-if (import.meta.main) {
+// Run only when invoked directly. Not import.meta.main, which needs Node 22.18
+// or 24.2: package.json allows Node 20, where it is undefined and this script
+// exited 0 having done nothing.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const apply = process.argv.includes("--apply");
   const { chromium } = await import("playwright");
 
