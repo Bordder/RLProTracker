@@ -215,8 +215,20 @@ jobs:
           days=$(printf '%s' "$health" | sed -n 's/.*"tokenDaysLeft":\([0-9-]*\).*/\1/p')
           expires=$(printf '%s' "$health" | sed -n 's/.*"tokenExpires":"\([^"]*\)".*/\1/p')
 
+          # An unreadable expiry is not "fine". The Worker only reports it to a
+          # caller holding its run key, and none is passed here, so this step
+          # used to log a line and exit 0 on every run: the one warning it
+          # exists to give could never fire. Say so, once a day rather than
+          # every five minutes - only in the 07:00-07:04 UTC slot, which one
+          # */5 firing at most can land in.
           if [ -z "$days" ]; then
             echo "could not read token expiry from the Worker"
+            if [ "$(date -u +%H)" = "07" ] && [ "$(date -u +%-M)" -lt 5 ] && [ -n "${DISCORD_WEBHOOK:-}" ]; then
+              text="**RL Pro Tracker: cannot read the dispatch token's expiry.** The Worker at cron.198x.online reports it only to a caller holding its run key, and this workflow has none, so nothing will warn before the token lapses and every collector stops. Check the token's expiry in GitHub, and give this step the key."
+              curl -sS --max-time 20 -H 'content-type: application/json' \
+                -d "$(printf '{"content":%s}' "$(printf '%s' "$text" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')")" \
+                "$DISCORD_WEBHOOK" >/dev/null && echo "said so on Discord"
+            fi
             exit 0
           fi
           echo "dispatch token expires ${expires} (${days} days left)"
