@@ -1,7 +1,7 @@
 import { crest, assignHues, hasLogo, teamName } from "/crest.mjs?v=3d51b913";
 import { standings, pairGroups } from "/standings.mjs?v=733b8667";
 import { panelHTML, ordinal, spanWords } from "/fixtures.mjs?v=5b6fa514";
-import { headerHTML, scheduleHTML, prizesHTML, teamsHTML } from "/eventview.mjs?v=237424f8";
+import { headerHTML, scheduleHTML, prizesHTML, teamsHTML } from "/eventview.mjs?v=c584d927";
 
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 // "23:00" today, "17th 23:00" on another day. Same wording as the schedule
