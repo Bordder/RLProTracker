@@ -114,9 +114,16 @@ export function computeTrackerPlayers(snaps, rosterIds) {
       }
     }
 
+    // The total is still filling if ANY playlist is. It used to take the flag
+    // from 1v1 alone, so a 2v2 window thrown out as implausible left the
+    // other two summed and published as if they were the whole count.
     for (const wk of Object.keys(WINDOWS)) {
-      const vals = ["ones", "twos", "threes"].map((k) => games[k][wk].games).filter((v) => v != null);
-      games.total[wk] = { games: vals.length ? vals.reduce((a, b) => a + b, 0) : null, partial: games.ones[wk].partial };
+      const pls = ["ones", "twos", "threes"];
+      const vals = pls.map((k) => games[k][wk].games).filter((v) => v != null);
+      games.total[wk] = {
+        games: vals.length ? vals.reduce((a, b) => a + b, 0) : null,
+        partial: pls.some((k) => games[k][wk].partial),
+      };
     }
     const sVals = ["ones", "twos", "threes"].map((k) => seasonGames[k]).filter((v) => v != null);
     seasonGames.total = sVals.length ? sVals.reduce((a, b) => a + b, 0) : null;
