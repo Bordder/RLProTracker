@@ -374,6 +374,10 @@ async function main() {
   const seasonStartedAt = (await readJson(HISTORY_FILE))?.seasonStartedAt ?? null;
 
   await mkdir(join(ROOT, "data", "derived"), { recursive: true });
+  // Written without indentation. Every reader parses it, none reads it by eye,
+  // and indenting doubled it: 222 KB against 109 KB for the same document. It
+  // is rewritten on nearly every run, so the difference was committed to the
+  // data branch hundreds of times a day and parsed by every board load.
   await writeFile(
     join(ROOT, "data", "derived", "tracker.json"),
     JSON.stringify({
@@ -381,7 +385,7 @@ async function main() {
       ...(seasonStartedAt ? { seasonStartedAt } : null),
       snapshotCount: snaps.length,
       players,
-    }, null, 2)
+    })
   );
   // A freshness-only companion to tracker.json.
   //

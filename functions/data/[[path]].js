@@ -183,7 +183,7 @@ const asJson = (body) => {
  * The six feeds as one document, keyed by the file each came from.
  *
  * Assembled as text rather than parsed and re-serialised: the six come to
- * about 290KB, and there is nothing to be gained from turning that into
+ * about 150KB, and there is nothing to be gained from turning that into
  * objects at the edge and straight back into the same bytes.
  */
 function assembleBoard(parts) {

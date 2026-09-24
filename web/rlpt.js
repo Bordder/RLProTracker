@@ -345,7 +345,7 @@
   // event-now.json is the bracket collector's small companion: a few hundred
   // bytes naming the event running today and the teams in it, or an explicit
   // null for the eleven months of the year when there is none. bracket.json
-  // itself is over half a megabyte of nine events and has no business being
+  // itself is over 200 KB of nine events and has no business being
   // fetched by this page.
   var LAN=null;
 
