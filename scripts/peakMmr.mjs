@@ -50,6 +50,19 @@ export const PLAYLISTS = { ones: "d1", twos: "d2", threes: "d3" };
 // it is the one number worth refusing outright.
 export const MAX_JUMP = 300;
 
+// WHICH ACCOUNT. A player is sometimes read from the wrong account for a while
+// - a Steam id Liquipedia attached to somebody else, before the right Epic
+// profile is set - and a store that never goes down kept that account's best as
+// the player's peak forever. So every entry belongs to the account it was read
+// from (the reading's `who`), under `accounts`, and only the player's current
+// account is published. Within one account a peak still never goes down.
+//
+// Entries with no account (recorded before readings carried one, or a reading
+// that still has none) live at the top level, as they always did, and count as
+// the current account's: the same rule computeTrackerDeltas applies to readings
+// with no account, so nothing already earned disappears.
+const bucketFor = (held, who) => (who ? ((held.accounts ??= {})[who] ??= {}) : held);
+
 /**
  * The store, with anything higher in `snaps` folded in.
  *
@@ -61,15 +74,17 @@ export function updatePeaks(store, snaps, opts = {}) {
   const sorted = [...snaps].sort((a, b) => a.t - b.t);
   const players = { ...(store?.players ?? {}) };
 
-  // The previous accepted reading per player and playlist, for the jump test.
-  // Seeded from nothing rather than from the store: the store holds a maximum,
-  // not a last value, and a peak set weeks ago says nothing about whether this
-  // reading is a plausible step from the one before it.
+  // The previous accepted reading per player, account and playlist, for the
+  // jump test. Seeded from nothing rather than from the store: the store holds
+  // a maximum, not a last value, and a peak set weeks ago says nothing about
+  // whether this reading is a plausible step from the one before it. Keyed by
+  // account too, because two accounts are two ratings, not a jump between them.
   const last = new Map();
 
   for (const snap of sorted) {
     for (const row of snap.rows) {
       if (!row.playlists) continue;
+      const who = row.who ?? null;
       for (const [key, snapKey] of Object.entries(PLAYLISTS)) {
         // The career best tracker.gg reports, kept beside what we observed
         // ourselves. It is the account's own record rather than a reading, so
@@ -78,7 +93,7 @@ export function updatePeaks(store, snaps, opts = {}) {
         // row. Forward only, like everything else here.
         const best = row.playlists[snapKey]?.best;
         if (Number.isFinite(best?.rating)) {
-          const held = players[row.id] ?? (players[row.id] = {});
+          const held = bucketFor(players[row.id] ?? (players[row.id] = {}), who);
           const had = held[`${key}Best`];
           if (!had || best.rating > had.rating) held[`${key}Best`] = { rating: best.rating, season: best.season ?? null };
         }
@@ -86,7 +101,7 @@ export function updatePeaks(store, snaps, opts = {}) {
         const rating = row.playlists[snapKey]?.rating;
         if (!Number.isFinite(rating)) continue;
 
-        const seen = `${row.id}|${key}`;
+        const seen = `${row.id}|${who ?? ""}|${key}`;
         const prev = last.get(seen);
         // A first reading has nothing to be a jump from, so it is taken as is.
         // Otherwise a leap upward is refused and does not become the new
@@ -94,7 +109,7 @@ export function updatePeaks(store, snaps, opts = {}) {
         if (prev != null && rating - prev > maxJump) continue;
         last.set(seen, rating);
 
-        const held = players[row.id] ?? (players[row.id] = {});
+        const held = bucketFor(players[row.id] ?? (players[row.id] = {}), who);
         if (!held[key] || rating > held[key].rating) {
           held[key] = { rating, at: new Date(snap.t).toISOString() };
         }
@@ -105,15 +120,31 @@ export function updatePeaks(store, snaps, opts = {}) {
   return { ...store, updatedAt: new Date().toISOString(), players };
 }
 
-/** Just the ratings, in the shape a published player row wants. */
-export function peakFor(store, id) {
+/**
+ * Just the ratings, in the shape a published player row wants.
+ *
+ * `who` is the player's current account. Only its entries are published, with
+ * the entries that carry no account counted as its own (see bucketFor).
+ */
+export function peakFor(store, id, who = null) {
   const held = store?.players?.[id];
   if (!held) return null;
+  const mine = who ? held.accounts?.[who] ?? {} : {};
+  // The higher of the account's entry and the unattributed one, per key.
+  const pick = (k, cmp = (e) => e?.rating) => {
+    const a = held[k], b = mine[k];
+    if (!a) return b ?? null;
+    if (!b) return a;
+    return cmp(b) > cmp(a) ? b : a;
+  };
   const out = {};
   const season = {};
+  const dates = [];
   for (const key of Object.keys(PLAYLISTS)) {
-    const seen = held[key]?.rating ?? null;
-    const best = held[`${key}Best`] ?? null;
+    const obs = pick(key);
+    if (obs?.at) dates.push(obs.at);
+    const seen = obs?.rating ?? null;
+    const best = pick(`${key}Best`);
     // Whichever is higher. The career best normally is; ours wins only when a
     // player has just set a new high that tracker.gg has not folded in yet,
     // and then there is no season to name but the current one.
@@ -125,14 +156,10 @@ export function peakFor(store, id) {
     }
   }
   if (!Object.keys(out).length) return null;
-  return { ...out, ...(Object.keys(season).length ? { season } : null), at: newest(held) };
+  // When we last saw a new high ourselves. Career bests carry a season, not a
+  // time, so they do not count here.
+  return { ...out, ...(Object.keys(season).length ? { season } : null), at: dates.sort().pop() ?? null };
 }
-
-// When we last saw a new high ourselves. Career bests carry a season, not a
-// time, so they do not count here.
-const newest = (held) =>
-  Object.entries(held).filter(([k]) => !k.endsWith("Best"))
-    .map(([, v]) => v.at).filter(Boolean).sort().pop() ?? null;
 
 export const readStore = async (path = STORE) => {
   try { return JSON.parse(await readFile(path, "utf8")); } catch { return { players: {} }; }

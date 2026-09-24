@@ -177,6 +177,17 @@ export function computeTrackerPlayers(snaps, rosterIds) {
   return { now, players };
 }
 
+// Each player's current account: the one their newest reading came from, or
+// null for a reading that carries none. Which peak is published depends on it
+// (see peakFor in peakMmr.mjs).
+export function currentAccounts(snaps) {
+  const out = new Map();
+  for (const snap of [...snaps].sort((a, b) => a.t - b.t)) {
+    for (const row of snap.rows) if (row.playlists) out.set(row.id, row.who ?? null);
+  }
+  return out;
+}
+
 // Steam's live answer, attached to the rows about to be published.
 //
 // The board's "Playing" mark is proof: a cumulative match count that moved, so
@@ -366,8 +377,9 @@ async function main() {
   // rating set on this very run is already the peak it produced.
   const peaks = updatePeaks(await readStore(), snaps);
   await writeStore(peaks);
+  const accounts = currentAccounts(snaps);
   const players = withSteam.map((p) => {
-    const peak = peakFor(peaks, p.id);
+    const peak = peakFor(peaks, p.id, accounts.get(p.id) ?? null);
     const profile = profiles.get(p.id);
     return { ...p, ...(peak ? { peak } : null), ...profile };
   });

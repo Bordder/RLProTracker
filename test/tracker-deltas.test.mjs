@@ -288,3 +288,15 @@ test("a complete total is not marked partial because 1v1 is", () => {
   const [p] = computeTrackerPlayers(snaps).players;
   assert.equal(p.games.total.d1.partial, p.games.ones.d1.partial || p.games.twos.d1.partial);
 });
+
+import { currentAccounts } from "../scripts/computeTrackerDeltas.mjs";
+
+test("a player's current account is the one their newest reading came from", () => {
+  const snaps = [
+    { t: T25, rows: [{ id: "p", who: "epic:right", playlists: {} }] },
+    { t: T0, rows: [{ id: "p", who: "steam:wrong", playlists: {} }, { id: "q", playlists: {} }] },
+  ];
+  const acc = currentAccounts(snaps);
+  assert.equal(acc.get("p"), "epic:right");
+  assert.equal(acc.get("q"), null);
+});
