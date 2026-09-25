@@ -56,6 +56,12 @@ const DEFAULT_POOL = 5;
 // so refresh them fast (their MMR is moving) until they stop.
 const HOT_THRESHOLD = 2; // new ranked games since last scrape that flags an active session
 const COOL_AFTER = 2;    // consecutive scrapes with no new games before a hot player cools off
+// Consecutive failed reads after which a run stops reading anyone who is not in
+// a game. See runBreaker.
+const BREAKER_AFTER = 8;
+// A player whose read failed waits this many runs, doubling per failure in a
+// row, before being tried again. See errorBackoff.
+const ERR_BACKOFF_MAX_RUNS = 4;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // Given a player's previous activity state and their current cumulative ranked
@@ -410,6 +416,48 @@ function playerRanks(players, prio) {
   return rank;
 }
 
+// True while a player whose last read failed should be left alone.
+//
+// A failed read (the proxy refused, timed out, or tracker.gg blocked it) used
+// to leave the player's state untouched, so they stayed due and were tried
+// again on every run. Since 23 September 2026 tracker.gg refuses most proxy
+// reads, and that retried the same failing requests run after run. Now each
+// failure in a row doubles the wait: 2 runs, then 4, capped at
+// ERR_BACKOFF_MAX_RUNS. A successful read clears it.
+//
+// Never for a player who is in a game (Steam says so, or their game count is
+// moving): the owner wants those read every run whatever it costs, and a
+// session is exactly when a missed read loses the most.
+//
+// The wait is shortened by a quarter of a run so dispatch jitter cannot push a
+// retry back a whole extra run, the same margin the 90s interval uses.
+function errorBackoff(st, now) {
+  if (!st.errs || !st.errAt || st.hot || st.presence === "in") return false;
+  const runs = Math.min(2 ** st.errs, ERR_BACKOFF_MAX_RUNS);
+  return now - Date.parse(st.errAt) < runs * RUN_SPACING_MS - RUN_SPACING_MS / 4;
+}
+
+// Stops a run wasting requests once the proxies are plainly being refused.
+//
+// On 25 September 2026 most runs got nothing through and still attempted 40
+// to 66 players, every one of them failing. After BREAKER_AFTER failures in a
+// row the run stops reading anyone who is not in a game, publishes what it
+// has, and the next run starts fresh. In-game players are still attempted:
+// they are few, they are the ones whose numbers are moving, and they are
+// scheduled last, so a breaker that skipped them would skip them first.
+// A success or a no-data answer (tracker.gg replied) resets the count.
+function runBreaker(limit = BREAKER_AFTER) {
+  let streak = 0, tripped = false;
+  return {
+    record(failed) {
+      streak = failed ? streak + 1 : 0;
+      if (streak >= limit) tripped = true;
+    },
+    skip: (inGame) => tripped && !inGame,
+    get tripped() { return tripped; },
+  };
+}
+
 // choose which players to scrape this run: those due AND in this run's slot, most
 // overdue first, capped at perRun. Each player has a target refresh interval in
 // hours (data/priorities.json) and a slot (playerRanks) that spreads same-interval
@@ -453,7 +501,7 @@ function selectDue(players, prio, state, now) {
     // waited a whole extra cycle: up to 77 minutes against a 15-minute
     // interval in a simulated 6 hours. How many idle players one run may read
     // is capped below instead, which is what keeps them spread.
-    const due = last === 0 || (elapsed >= interval && (idle || mySlot === curSlot));
+    const due = (last === 0 || (elapsed >= interval && (idle || mySlot === curSlot))) && !errorBackoff(st, now);
     return { p, score: elapsed / interval, due, idle: idle && last > 0, interval };
   });
   scored.sort((a, b) => b.score - a.score);
@@ -535,12 +583,17 @@ async function main() {
 
   const pool = process.env.POOL ? +process.env.POOL : Math.min(DEFAULT_POOL, contexts.length);
   const rows = new Array(players.length);
+  const breaker = runBreaker();
+  const inGame = (p) => state[p.id]?.presence === "in" || !!state[p.id]?.hot;
+  let skipped = 0;
   let next = 0;
   async function worker() {
     while (true) {
       const idx = next++;
       if (idx >= players.length) break;
       const p = players[idx];
+      // Left out, not failed: state is untouched, so they are due next run.
+      if (breaker.skip(inGame(p))) { skipped++; continue; }
       const who = p.epic ? { platform: "epic", id: p.epic } : { platform: "steam", id: p.steamId64 };
       const row = { id: p.id, name: p.name, team: p.team, steamId64: p.steamId64 ?? null, epic: p.epic ?? null, status: "ok", playlists: null };
       try {
@@ -551,8 +604,9 @@ async function main() {
       }
       // update scheduling state:
       //  success -> fresh; no-data -> genuine miss (count toward backoff);
-      //  error   -> transient (leave as-is so it stays due and retries next run)
+      //  error   -> transient, retried after a backoff (see errorBackoff)
       const prev = state[p.id] ?? {};
+      breaker.record(!row.playlists && row.status !== "no-data");
       if (row.playlists) {
         const pl = row.playlists;
         const curMatches = (pl.d1?.matches ?? 0) + (pl.d2?.matches ?? 0) + (pl.d3?.matches ?? 0);
@@ -571,8 +625,8 @@ async function main() {
           state[p.id] = { last: takenAt, fails: 0, presence: prev.presence, presenceAt: prev.presenceAt ?? null, ...nextActivity(prev, curMatches) };
         }
       }
-      else if (row.status === "no-data") state[p.id] = { ...prev, last: prev.last ?? null, fails: (prev.fails ?? 0) + 1 };
-      else state[p.id] = prev;
+      else if (row.status === "no-data") state[p.id] = { ...prev, last: prev.last ?? null, fails: (prev.fails ?? 0) + 1, errs: 0, errAt: null };
+      else state[p.id] = { ...prev, errs: (prev.errs ?? 0) + 1, errAt: takenAt };
 
       const d2 = row.playlists?.d2;
       console.log(`  ${p.name.padEnd(14)} ${row.status.padEnd(12)} 2v2:${d2?.rating ?? "-"} (${d2?.matches ?? "-"} games)`);
@@ -582,6 +636,9 @@ async function main() {
   }
   console.log(`pool: ${pool} concurrent`);
   await Promise.all(Array.from({ length: pool }, () => worker()));
+  if (breaker.tripped) console.log(`breaker: ${BREAKER_AFTER} failures in a row, skipped ${skipped} players not in a game`);
+  // A skipped player leaves a hole; everything below expects only reads.
+  const read = rows.filter(Boolean);
 
   // Also written to data/proxy-use.json, because the Actions log needs auth to
   // read and the whole point is to be able to check the split without waiting
@@ -634,17 +691,17 @@ async function main() {
   const takenAtMs = Date.parse(takenAt);
   // `all` is the roster as read at the top of this run, so a player dropped
   // from the roster leaves the history on the next run rather than lingering.
-  const history = appendRows(await readJson(HISTORY_FILE, {}), takenAtMs, rows, takenAtMs, new Set(all.map((p) => p.id)));
+  const history = appendRows(await readJson(HISTORY_FILE, {}), takenAtMs, read, takenAtMs, new Set(all.map((p) => p.id)));
   await writeFile(HISTORY_FILE, JSON.stringify(history));
   await writeFile(STATE_FILE, JSON.stringify(state, null, 2));
-  const ok = rows.filter((r) => r.playlists).length;
-  console.log(`\ntracker history: ${countReadings(history)} readings / ${Object.keys(history.players).length} players\n${ok}/${rows.length} scraped ok`);
+  const ok = read.filter((r) => r.playlists).length;
+  console.log(`\ntracker history: ${countReadings(history)} readings / ${Object.keys(history.players).length} players\n${ok}/${read.length} scraped ok`);
 
   // A profile that answers 200 with no games at all is almost always the wrong
   // account rather than a player who has never queued: a mistyped Epic name, or
   // a Steam id Liquipedia attached to someone else. It cannot fail loudly on its
   // own, so say so here.
-  const empty = rows.filter((r) => {
+  const empty = read.filter((r) => {
     if (!r.playlists) return false;
     const played = Object.values(r.playlists).reduce((a, pl) => a + (pl?.matches ?? 0), 0);
     return played === 0;
@@ -660,4 +717,4 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   main().catch((e) => { console.error(e); process.exit(1); });
 }
 
-export { selectDue, playerRanks, RUN_SPACING_MS };
+export { selectDue, playerRanks, RUN_SPACING_MS, errorBackoff, runBreaker };

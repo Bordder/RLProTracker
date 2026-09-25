@@ -3,7 +3,7 @@
 // Run with: npm test
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { selectDue, playerRanks, RUN_SPACING_MS, nextActivity } from "../scripts/fetchTracker.mjs";
+import { selectDue, playerRanks, RUN_SPACING_MS, nextActivity, errorBackoff, runBreaker } from "../scripts/fetchTracker.mjs";
 
 const HOUR = 3600e3;
 const ids = (players) => players.map((p) => p.id).sort();
@@ -231,4 +231,45 @@ test("no run reads more idle players than their intervals allow", () => {
   assert.ok(total <= n * (Math.floor((end - t0) / IDLE_MS) + 1));
   // They stay spread: nothing herds everyone into one run.
   assert.ok(Math.max(...runs.map((r) => r.count)) < n / 2);
+});
+
+test("a failed read waits 2 runs, then 4, and never longer", () => {
+  const now = RUN_SPACING_MS * 1000;
+  const failed = (errs, runsAgo) => ({ errs, errAt: iso(now - runsAgo * RUN_SPACING_MS) });
+  assert.equal(errorBackoff(failed(1, 1), now), true);
+  assert.equal(errorBackoff(failed(1, 2), now), false);
+  assert.equal(errorBackoff(failed(2, 3), now), true);
+  assert.equal(errorBackoff(failed(2, 4), now), false);
+  assert.equal(errorBackoff(failed(9, 4), now), false); // capped at 4 runs
+  assert.equal(errorBackoff({}, now), false);
+});
+
+test("a player in a game is retried every run even after a failure", () => {
+  const now = RUN_SPACING_MS * 1000;
+  const errAt = iso(now - RUN_SPACING_MS);
+  assert.equal(errorBackoff({ errs: 3, errAt, presence: "in" }, now), false);
+  assert.equal(errorBackoff({ errs: 3, errAt, hot: true }, now), false);
+});
+
+test("selectDue leaves out a player backing off after a failed read", () => {
+  const players = roster(2);
+  const now = RUN_SPACING_MS * 1000;
+  const last = iso(now - 10 * 60e3);
+  const state = {
+    "t-00": { last, errs: 1, errAt: iso(now - RUN_SPACING_MS) },
+    "t-01": { last },
+  };
+  assert.deepEqual(ids(selectDue(players, fast(), state, now)), ["t-01"]);
+});
+
+test("the breaker trips after 8 failures in a row and still lets in-game players through", () => {
+  const b = runBreaker(8);
+  for (let i = 0; i < 7; i++) b.record(true);
+  b.record(false); // a success resets the streak
+  for (let i = 0; i < 7; i++) b.record(true);
+  assert.equal(b.tripped, false);
+  b.record(true);
+  assert.equal(b.tripped, true);
+  assert.equal(b.skip(false), true);
+  assert.equal(b.skip(true), false);
 });
