@@ -1268,6 +1268,7 @@ addEventListener("hashchange", () => render(location.hash.slice(1)));
 document.getElementById("yr").textContent = String(new Date().getFullYear());
 
 render(location.hash.slice(1) || defaultEvent().slug);
+document.querySelector(".page").classList.remove("boot");
 
 // ---- keep an open page current --------------------------------------------
 //

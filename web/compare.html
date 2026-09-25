@@ -43,6 +43,11 @@
   body{margin:0;background:var(--pitch);color:var(--chalk);
        font:15px/1.5 Archivo,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
   .page{max-width:980px;margin:0 auto;padding:0 20px 90px}
+  /* Holds the footer below the fold until the comparison is drawn. It used to
+     paint just under the pickers and then drop a screen as the tables filled
+     in, which scored 0.78 layout shift on its own. :empty stops matching the
+     moment #out is filled, so it never constrains the real content. */
+  #out:empty{min-height:100vh}
 
   /* ---- Site chrome: the same top bar as the bracket page ---- */
   header.top{padding:22px 0 13px;border-bottom:1px solid var(--rule);display:flex;gap:18px;

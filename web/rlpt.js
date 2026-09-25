@@ -260,7 +260,8 @@
   // (the slug in roster.json), because a free agent's name is all there is. The
   // team map wins wherever there is a team, so this never contradicts the rule
   // FAQ 6 states: region follows the team's competitive region.
-  var PLAYER_REGION={};
+  // Evoh added 25 September 2026: Trinidad and Tobago, which competes in NA.
+  var PLAYER_REGION={'evoh':'NA'};
   var REGION_CLASS={EU:'rg-eu',NA:'rg-na',SAM:'rg-sam',MENA:'rg-mena',OCE:'rg-oce',APAC:'rg-apac',SSA:'rg-ssa'};
 
   // ---- Team marks -------------------------------------------------------
@@ -1083,6 +1084,19 @@
   // one-off read so that rotating or resizing re-renders correctly.
   var PHONE=window.matchMedia('(max-width:700px)');
 
+  // Run a repaint after the browser has drawn the frame a click produced.
+  // Rebuilding the players table is about 30ms on a desktop and ten times that
+  // on a slow phone, and done inside the click handler it held the pressed
+  // button, the typed letter and everything else on screen until it finished:
+  // field data on 25 September 2026 had search at 616ms and the ordering and
+  // Playing buttons at 260 to 440ms to next paint. Deferred, the control
+  // answers at once and the table follows a frame later. A hidden page draws
+  // no frames, so there the work runs straight away.
+  var afterPaint=function(fn){
+    if(document.hidden||typeof requestAnimationFrame!=='function'){ fn(); return; }
+    requestAnimationFrame(function(){ setTimeout(fn,0); });
+  };
+
     function buildTable(mount, columns, items, accessors, rowFn, def, matchFn){
       var sk=def.k, sd=def.dir;
       var scroll=document.createElement('div'); scroll.className='scroll';
@@ -1796,7 +1810,12 @@
       showRatingHeaders();
     };
     Array.prototype.forEach.call(metricBtns,function(b){
-      b.addEventListener('click',function(){setMetric(b,true);});
+      b.addEventListener('click',function(){
+        // The pressed state now, the reorder after the frame. setMetric marks
+        // the buttons again with the key it settles on.
+        Array.prototype.forEach.call(metricBtns,function(x){ x.setAttribute('aria-pressed',x===b?'true':'false'); });
+        afterPaint(function(){ setMetric(b,true); });
+      });
     });
 
     // A header click still sorts, so the buttons drop their highlight rather
@@ -1843,7 +1862,9 @@
           Array.prototype.forEach.call(regionSeg.querySelectorAll('button'),function(x){
             x.setAttribute('aria-pressed',(x.dataset.r||'')===regionQ?'true':'false');
           });
-          renderPodium(); paintP(); paintT();
+          // Region filters the players list only (see buildTable), so the
+          // teams table has nothing to redraw.
+          afterPaint(function(){ renderPodium(); paintP(); });
         });
       });
     };
@@ -1866,7 +1887,8 @@
       document.getElementById('playingBtn').addEventListener('click',function(){
         liveOnly=!liveOnly;
         this.setAttribute('aria-pressed',liveOnly?'true':'false');
-        renderPodium(); paintP(); paintT();
+        // Players list only, like the region filter.
+        afterPaint(function(){ renderPodium(); paintP(); });
       });
     };
     buildPlaying();
@@ -1882,8 +1904,26 @@
     if(PHONE.addEventListener) PHONE.addEventListener('change',onPhoneChange);
     else if(PHONE.addListener) PHONE.addListener(onPhoneChange);
 
-    input.addEventListener('input',function(){ searchQ=input.value.trim().toLowerCase(); wrap.classList.toggle('has',!!searchQ); renderPodium(); paintP(); paintT(); });
-    document.getElementById('searchClear').addEventListener('click',function(){ input.value=''; searchQ=''; wrap.classList.remove('has'); renderPodium(); paintP(); paintT(); input.focus(); });
+    // Search redraws only the table on screen, and waits for a pause in the
+    // typing. Every letter used to rebuild the podium and both tables, one of
+    // them hidden, before the letter itself could appear. The hidden one is
+    // marked stale and drawn when its tab is opened (see show below).
+    var searchTimer=null, pStale=false, tStale=false;
+    var paintSearch=function(){
+      searchTimer=null;
+      if(tabNow==='teams'){ paintT(); pStale=true; }
+      else { renderPodium(); paintP(); tStale=true; }
+    };
+    input.addEventListener('input',function(){
+      searchQ=input.value.trim().toLowerCase(); wrap.classList.toggle('has',!!searchQ);
+      if(searchTimer)clearTimeout(searchTimer);
+      searchTimer=setTimeout(paintSearch,120);
+    });
+    document.getElementById('searchClear').addEventListener('click',function(){
+      input.value=''; searchQ=''; wrap.classList.remove('has'); input.focus();
+      if(searchTimer)clearTimeout(searchTimer);
+      afterPaint(paintSearch);
+    });
 
     // ---- view toggle ----
     var tabP=document.getElementById('tabPlayers'), tabT=document.getElementById('tabTeams'), tabR=document.getElementById('tabRatings');
@@ -1897,6 +1937,8 @@
     var show=function(which){
       if(TABS.indexOf(which)<0)which='players';
       tabNow=which;
+      if(which==='players'&&pStale){ pStale=false; renderPodium(); paintP(); }
+      if(which==='teams'&&tStale){ tStale=false; paintT(); }
       tabP.setAttribute('aria-selected',which==='players'?'true':'false');
       tabT.setAttribute('aria-selected',which==='teams'?'true':'false');
       if(tabR)tabR.setAttribute('aria-selected',which==='ratings'?'true':'false');

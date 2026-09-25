@@ -63,6 +63,11 @@
   body{margin:0;background:var(--pitch);color:var(--chalk);
        font:15px/1.5 Archivo,"Segoe UI",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
   .page{max-width:1500px;margin:0 auto;padding:0 20px 90px}
+  /* Until the first bracket is drawn, nothing below the header is shown. The
+     footer and the phone tab bar used to paint first and then jump down as the
+     event filled in above them, which was the page's whole layout-shift score.
+     brackets.js takes the class off after its first render. */
+  .boot .etabs,.boot footer.legal{display:none}
   .notice{background:var(--lower);color:#120d05;font:600 11px ui-monospace,monospace;
           padding:5px 12px;letter-spacing:.12em;text-transform:uppercase}
   .notice:empty{display:none}
@@ -819,7 +824,7 @@
 <!-- Site notice. Put a line of text in here to show a bar above the page;
      leave it empty and nothing renders. -->
 <div class="notice" id="notice"></div>
-<div class="page">
+<div class="page boot">
   <header class="top">
     <a class="brand" href="/">RL Pro Tracker<span>.</span></a>
     <nav class="seg" id="nav" aria-label="View">
@@ -879,7 +884,7 @@
     <p class="byline">Built and maintained by <b>Bordder</b>. &copy; <span id="yr">2026</span>.</p>
   </footer>
 </div>
-<script type="module" src="brackets.js?v=65031a24"></script>
+<script type="module" src="brackets.js?v=25216079"></script>
 <script src="nav.js?v=abea178b" defer></script>
 </body>
 </html>

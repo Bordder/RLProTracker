@@ -174,19 +174,23 @@
   #podium.is-ready:empty{min-height:0}
   #playersView:empty{min-height:100vh}
   /* The order-by row is present from the start; the region buttons and the
-     Playing pill are not, and adding them wraps it onto a second line. */
+     Playing pill are not, and adding them wraps it onto more lines. Heights
+     measured with all three filled on 25 September 2026, after the Playing
+     pill moved into this row: the old figures were short by up to 56px, and
+     field data showed the stats tiles and the footer moving by that much. */
   #wrow{min-height:32px}
+  @media (max-width:1179px){ #wrow{min-height:74px} }
   /* An empty segmented control is a stray 6px outline until the buttons land. */
   .wseg:empty{border-color:transparent;background:transparent}
   @media (max-width:820px){
     #podium:empty{min-height:500px}
-    #wrow{min-height:72px}
   }
   /* Two columns below 740, so two rows plus the gap; the gap narrows at 640. */
   @media (max-width:740px){ #stats:empty{min-height:256px} }
   /* The region buttons wrap onto more lines the narrower it gets. */
-  @media (max-width:640px){ #wrow{min-height:86px} }
-  @media (max-width:520px){ #wrow{min-height:120px} }
+  @media (max-width:700px){ #wrow{min-height:122px} }
+  @media (max-width:640px){ #wrow{min-height:142px} }
+  @media (max-width:520px){ #wrow{min-height:144px} }
   @media (max-width:360px){ #wrow{min-height:154px} }
   @media (max-width:640px){ #stats:empty{min-height:252px} }
 
@@ -1624,7 +1628,7 @@
   </footer>
 </div>
 
-<script src="rlpt.js?v=16c2763b" defer></script>
+<script src="rlpt.js?v=d0e03782" defer></script>
 <script src="nav.js?v=abea178b" defer></script>
 </body>
 </html>
