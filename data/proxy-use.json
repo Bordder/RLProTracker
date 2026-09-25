@@ -1,31 +1,31 @@
 {
-  "at": "2026-09-25T11:27:15.981Z",
+  "at": "2026-09-25T11:29:18.243Z",
   "proxyCount": 10,
-  "players": 32,
+  "players": 33,
   "benched": [
-    0,
-    1,
     2,
     3,
     4,
+    5,
     6,
     7,
+    8,
     9
   ],
   "use": [
     {
       "i": 0,
-      "attempts": 4,
-      "retries": 2,
-      "fails": 4,
-      "benched": true
+      "attempts": 29,
+      "retries": 8,
+      "fails": 29,
+      "benched": false
     },
     {
       "i": 1,
-      "attempts": 5,
-      "retries": 4,
-      "fails": 4,
-      "benched": true
+      "attempts": 29,
+      "retries": 25,
+      "fails": 24,
+      "benched": false
     },
     {
       "i": 2,
@@ -38,49 +38,49 @@
       "i": 3,
       "attempts": 4,
       "retries": 3,
-      "fails": 4,
+      "fails": 3,
       "benched": true
     },
     {
       "i": 4,
+      "attempts": 4,
+      "retries": 3,
+      "fails": 4,
+      "benched": true
+    },
+    {
+      "i": 5,
+      "attempts": 4,
+      "retries": 4,
+      "fails": 4,
+      "benched": true
+    },
+    {
+      "i": 6,
+      "attempts": 4,
+      "retries": 3,
+      "fails": 4,
+      "benched": true
+    },
+    {
+      "i": 7,
+      "attempts": 5,
+      "retries": 3,
+      "fails": 5,
+      "benched": true
+    },
+    {
+      "i": 8,
       "attempts": 5,
       "retries": 4,
       "fails": 5,
       "benched": true
     },
     {
-      "i": 5,
-      "attempts": 22,
-      "retries": 7,
-      "fails": 1,
-      "benched": false
-    },
-    {
-      "i": 6,
-      "attempts": 3,
-      "retries": 1,
-      "fails": 3,
-      "benched": true
-    },
-    {
-      "i": 7,
-      "attempts": 3,
-      "retries": 2,
-      "fails": 3,
-      "benched": true
-    },
-    {
-      "i": 8,
-      "attempts": 9,
-      "retries": 3,
-      "fails": 1,
-      "benched": false
-    },
-    {
       "i": 9,
-      "attempts": 3,
-      "retries": 1,
-      "fails": 3,
+      "attempts": 5,
+      "retries": 4,
+      "fails": 5,
       "benched": true
     }
   ]
