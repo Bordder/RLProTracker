@@ -1,11 +1,15 @@
 {
-  "at": "2026-09-29T18:52:34.841Z",
+  "at": "2026-09-29T18:54:38.047Z",
   "proxyCount": 10,
-  "players": 15,
+  "players": 30,
   "benched": [
     0,
+    1,
     2,
-    7
+    3,
+    6,
+    7,
+    9
   ],
   "use": [
     {
@@ -17,66 +21,66 @@
     },
     {
       "i": 1,
-      "attempts": 5,
-      "retries": 3,
-      "fails": 2,
-      "benched": false
-    },
-    {
-      "i": 2,
-      "attempts": 4,
-      "retries": 2,
-      "fails": 4,
+      "attempts": 9,
+      "retries": 5,
+      "fails": 6,
       "benched": true
     },
     {
-      "i": 3,
-      "attempts": 6,
-      "retries": 4,
-      "fails": 0,
-      "benched": false
-    },
-    {
-      "i": 4,
-      "attempts": 2,
-      "retries": 0,
-      "fails": 0,
-      "benched": false
-    },
-    {
-      "i": 5,
-      "attempts": 1,
-      "retries": 0,
-      "fails": 1,
-      "benched": false
-    },
-    {
-      "i": 6,
-      "attempts": 2,
-      "retries": 1,
-      "fails": 2,
-      "benched": false
-    },
-    {
-      "i": 7,
+      "i": 2,
       "attempts": 3,
       "retries": 2,
       "fails": 3,
       "benched": true
     },
     {
-      "i": 8,
+      "i": 3,
+      "attempts": 11,
+      "retries": 6,
+      "fails": 8,
+      "benched": true
+    },
+    {
+      "i": 4,
+      "attempts": 12,
+      "retries": 9,
+      "fails": 0,
+      "benched": false
+    },
+    {
+      "i": 5,
+      "attempts": 3,
+      "retries": 0,
+      "fails": 0,
+      "benched": false
+    },
+    {
+      "i": 6,
+      "attempts": 3,
+      "retries": 0,
+      "fails": 3,
+      "benched": true
+    },
+    {
+      "i": 7,
       "attempts": 4,
-      "retries": 3,
+      "retries": 2,
+      "fails": 4,
+      "benched": true
+    },
+    {
+      "i": 8,
+      "attempts": 9,
+      "retries": 5,
       "fails": 0,
       "benched": false
     },
     {
       "i": 9,
-      "attempts": 1,
+      "attempts": 3,
       "retries": 0,
-      "fails": 1,
-      "benched": false
+      "fails": 3,
+      "benched": true
     }
   ]
 }
