@@ -1,29 +1,29 @@
 {
   "karmine-corp-vatira": {
-    "last": "2026-10-05T05:16:58.177Z",
+    "last": "2026-10-05T05:19:00.865Z",
     "fails": 0,
     "presence": "unknown",
     "presenceAt": null,
     "matches": 101,
     "hot": false,
-    "idle": 129
+    "idle": 130
   },
   "karmine-corp-atow": {
     "last": "2026-10-05T03:57:05.656Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 13,
     "hot": false,
     "idle": 2,
-    "errs": 7,
-    "errAt": "2026-10-05T05:11:04.078Z"
+    "errs": 8,
+    "errAt": "2026-10-05T05:19:00.865Z"
   },
   "karmine-corp-juicy": {
     "last": "2026-10-05T04:09:07.432Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 139,
     "hot": false,
     "idle": 2,
@@ -34,7 +34,7 @@
     "last": "2026-10-05T05:12:58.691Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 192,
     "hot": false,
     "idle": 2
@@ -43,7 +43,7 @@
     "last": "2026-10-05T04:01:21.018Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 183,
     "hot": false,
     "idle": 2,
@@ -54,7 +54,7 @@
     "last": "2026-10-05T04:41:16.663Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 210,
     "hot": false,
     "idle": 1
@@ -63,36 +63,34 @@
     "last": "2026-10-05T04:56:58.450Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 172,
     "hot": false,
     "idle": 1
   },
   "spacestation-gaming-zach": {
-    "last": "2026-10-05T05:16:58.177Z",
+    "last": "2026-10-05T05:19:00.865Z",
     "fails": 0,
     "presence": "unknown",
     "presenceAt": null,
     "matches": 194,
     "hot": false,
-    "idle": 19
+    "idle": 20
   },
   "twisted-minds-nwpo": {
-    "last": "2026-10-05T04:41:16.663Z",
+    "last": "2026-10-05T05:19:00.865Z",
     "fails": 0,
     "presence": "unknown",
     "presenceAt": null,
     "matches": 194,
     "hot": false,
-    "idle": 44,
-    "errs": 5,
-    "errAt": "2026-10-05T05:11:04.078Z"
+    "idle": 45
   },
   "team-falcons-rw9": {
     "last": "2026-10-05T04:39:11.217Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 159,
     "hot": false,
     "idle": 1
@@ -101,7 +99,7 @@
     "last": "2026-10-05T04:39:11.217Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 184,
     "hot": false,
     "idle": 0
@@ -110,7 +108,7 @@
     "last": "2026-10-05T05:05:00.451Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 321,
     "hot": false,
     "idle": 2
@@ -119,7 +117,7 @@
     "last": "2026-10-05T03:57:05.656Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 48,
     "hot": false,
     "idle": 2,
@@ -129,11 +127,13 @@
   "spacestation-gaming-reveal": {
     "last": "2026-10-05T05:01:06.418Z",
     "fails": 0,
-    "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presence": "in",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 39,
-    "hot": false,
-    "idle": 2
+    "hot": true,
+    "idle": 0,
+    "errs": 1,
+    "errAt": "2026-10-05T05:19:00.865Z"
   },
   "shopify-rebellion-kofyr": {
     "last": "2026-10-05T05:16:58.177Z",
@@ -142,7 +142,9 @@
     "presenceAt": "2026-09-28T19:06:37.555Z",
     "matches": 222,
     "hot": false,
-    "idle": 24
+    "idle": 24,
+    "errs": 1,
+    "errAt": "2026-10-05T05:19:00.865Z"
   },
   "twisted-minds-m0nkey-m00n": {
     "last": "2026-10-05T05:16:58.177Z",
@@ -151,13 +153,15 @@
     "presenceAt": null,
     "matches": 43,
     "hot": false,
-    "idle": 1135
+    "idle": 1135,
+    "errs": 1,
+    "errAt": "2026-10-05T05:19:00.865Z"
   },
   "twisted-minds-trk511": {
     "last": "2026-10-05T04:46:54.541Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 117,
     "hot": false,
     "idle": 2
@@ -166,7 +170,7 @@
     "last": "2026-10-05T03:57:05.656Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 64,
     "hot": false,
     "idle": 0,
@@ -177,7 +181,7 @@
     "last": "2026-10-05T04:39:11.217Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 79,
     "hot": false,
     "idle": 2
@@ -186,7 +190,7 @@
     "last": "2026-10-05T04:01:21.018Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 169,
     "hot": false,
     "idle": 2,
@@ -194,10 +198,10 @@
     "errAt": "2026-10-05T05:15:02.423Z"
   },
   "team-vitality-stizzy": {
-    "last": "2026-10-05T05:16:58.177Z",
+    "last": "2026-10-05T05:19:00.865Z",
     "fails": 0,
     "presence": "in",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 331,
     "hot": true,
     "idle": 0
@@ -206,7 +210,7 @@
     "last": "2026-10-05T04:07:02.733Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 60,
     "hot": false,
     "idle": 0,
@@ -217,7 +221,7 @@
     "last": "2026-10-05T03:57:05.656Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 227,
     "hot": false,
     "idle": 0,
@@ -228,7 +232,7 @@
     "last": "2026-10-05T04:07:02.733Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 131,
     "hot": false,
     "idle": 2,
@@ -239,18 +243,18 @@
     "last": "2026-10-05T02:56:56.950Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 238,
     "hot": false,
     "idle": 2,
-    "errs": 16,
-    "errAt": "2026-10-05T05:11:04.078Z"
+    "errs": 17,
+    "errAt": "2026-10-05T05:19:00.865Z"
   },
   "virtus-pro-wahvey": {
     "last": "2026-10-05T05:15:02.423Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 214,
     "hot": false,
     "idle": 2
@@ -259,7 +263,7 @@
     "last": "2026-10-05T04:39:11.217Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 143,
     "hot": false,
     "idle": 2,
@@ -270,7 +274,7 @@
     "last": "2026-10-05T05:15:02.423Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 174,
     "hot": false,
     "idle": 0
@@ -279,7 +283,7 @@
     "last": "2026-10-05T04:12:56.315Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 184,
     "hot": false,
     "idle": 2,
@@ -290,7 +294,7 @@
     "last": "2026-10-05T05:01:06.418Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 238,
     "hot": false,
     "idle": 0
@@ -299,7 +303,7 @@
     "last": "2026-10-05T04:41:16.663Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 265,
     "hot": false,
     "idle": 0
@@ -308,7 +312,7 @@
     "last": "2026-10-05T04:41:16.663Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 208,
     "hot": false,
     "idle": 2
@@ -317,7 +321,7 @@
     "last": "2026-10-05T03:57:05.656Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 121,
     "hot": false,
     "idle": 2
@@ -326,7 +330,7 @@
     "last": "2026-10-05T04:09:07.432Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 113,
     "hot": false,
     "idle": 2
@@ -335,7 +339,7 @@
     "last": "2026-10-05T04:04:57.174Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 89,
     "hot": false,
     "idle": 2,
@@ -346,7 +350,7 @@
     "last": "2026-10-05T05:01:06.418Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 36,
     "hot": false,
     "idle": 2
@@ -355,7 +359,7 @@
     "last": "2026-10-05T04:07:02.733Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 425,
     "hot": false,
     "idle": 2,
@@ -366,7 +370,7 @@
     "last": "2026-10-05T04:41:16.663Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 135,
     "hot": false,
     "idle": 2,
@@ -377,7 +381,7 @@
     "last": "2026-10-05T04:39:11.217Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 278,
     "hot": false,
     "idle": 2
@@ -386,7 +390,7 @@
     "last": "2026-10-05T04:16:59.041Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 148,
     "hot": false,
     "idle": 2
@@ -395,7 +399,7 @@
     "last": "2026-10-05T04:52:57.594Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 227,
     "hot": false,
     "idle": 2
@@ -404,7 +408,7 @@
     "last": "2026-10-05T04:16:59.041Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 134,
     "hot": false,
     "idle": 0,
@@ -415,7 +419,7 @@
     "last": "2026-10-05T04:11:06.987Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 278,
     "hot": false,
     "idle": 2
@@ -424,7 +428,7 @@
     "last": "2026-10-05T04:18:56.625Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 174,
     "hot": false,
     "idle": 2
@@ -433,7 +437,7 @@
     "last": "2026-10-05T03:28:59.064Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 85,
     "hot": false,
     "idle": 0
@@ -442,7 +446,7 @@
     "last": "2026-10-05T03:57:05.656Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 145,
     "hot": false,
     "idle": 2
@@ -451,7 +455,7 @@
     "last": "2026-10-05T03:57:05.656Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 29,
     "hot": false,
     "idle": 2
@@ -460,16 +464,16 @@
     "last": "2026-10-05T04:11:06.987Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 101,
     "hot": false,
     "idle": 0
   },
   "tsm-sphinx": {
-    "last": "2026-10-05T05:15:02.423Z",
+    "last": "2026-10-05T05:19:00.865Z",
     "fails": 0,
     "presence": "in",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 46,
     "hot": true,
     "idle": 0
@@ -478,7 +482,7 @@
     "last": "2026-10-05T04:52:57.594Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 407,
     "hot": false,
     "idle": 2
@@ -493,10 +497,10 @@
     "idle": 35
   },
   "five-fears-gunz": {
-    "last": "2026-10-05T03:27:11.006Z",
+    "last": "2026-10-05T05:19:00.865Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 129,
     "hot": false,
     "idle": 2
@@ -514,36 +518,34 @@
     "last": "2026-10-05T04:18:56.625Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 183,
     "hot": false,
     "idle": 0
   },
   "r8-esports-abdullah": {
-    "last": "2026-10-05T05:15:02.423Z",
+    "last": "2026-10-05T05:19:00.865Z",
     "fails": 0,
     "presence": "unknown",
     "presenceAt": null,
     "matches": 60,
     "hot": false,
-    "idle": 87
+    "idle": 88
   },
   "r8-esports-m7md": {
-    "last": "2026-10-05T04:39:11.217Z",
+    "last": "2026-10-05T05:19:00.865Z",
     "fails": 0,
     "presence": "unknown",
     "presenceAt": null,
     "matches": 294,
     "hot": false,
-    "idle": 67,
-    "errs": 4,
-    "errAt": "2026-10-05T05:11:04.078Z"
+    "idle": 68
   },
   "r8-esports-ghaazi": {
     "last": "2026-10-05T03:57:05.656Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 252,
     "hot": false,
     "idle": 0
@@ -552,7 +554,7 @@
     "last": "2026-10-05T04:18:56.625Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 45,
     "hot": false,
     "idle": 2
@@ -561,7 +563,7 @@
     "last": "2026-10-05T03:57:05.656Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 298,
     "hot": false,
     "idle": 2,
@@ -572,7 +574,7 @@
     "last": "2026-10-05T03:58:58.948Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 534,
     "hot": false,
     "idle": 2,
@@ -583,7 +585,7 @@
     "last": "2026-10-05T04:20:58.322Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 140,
     "hot": false,
     "idle": 2
@@ -592,7 +594,7 @@
     "last": "2026-10-05T03:57:05.656Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 71,
     "hot": false,
     "idle": 2
@@ -601,7 +603,7 @@
     "last": "2026-10-05T04:20:58.322Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 104,
     "hot": false,
     "idle": 0
@@ -610,7 +612,7 @@
     "last": "2026-10-05T04:20:58.322Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 139,
     "hot": false,
     "idle": 0
@@ -623,32 +625,32 @@
     "matches": 180,
     "hot": false,
     "idle": 168,
-    "errs": 2,
-    "errAt": "2026-10-05T05:11:04.078Z"
+    "errs": 3,
+    "errAt": "2026-10-05T05:19:00.865Z"
   },
   "novo-esports-nico": {
     "last": "2026-10-05T04:20:58.322Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 73,
     "hot": false,
     "idle": 0
   },
   "novo-esports-giuk": {
-    "last": "2026-10-05T05:15:02.423Z",
+    "last": "2026-10-05T05:19:00.865Z",
     "fails": 0,
     "presence": "unknown",
     "presenceAt": null,
     "matches": 282,
     "hot": false,
-    "idle": 36
+    "idle": 37
   },
   "fn-scream": {
     "last": "2026-10-05T04:39:11.217Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 38,
     "hot": false,
     "idle": 2
@@ -657,7 +659,7 @@
     "last": "2026-10-05T04:39:11.217Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 110,
     "hot": false,
     "idle": 2
@@ -666,7 +668,7 @@
     "last": "2026-10-05T04:20:58.322Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 196,
     "hot": false,
     "idle": 2
@@ -675,7 +677,7 @@
     "last": "2026-10-05T04:07:02.733Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 162,
     "hot": false,
     "idle": 2
@@ -684,7 +686,7 @@
     "last": "2026-10-05T04:11:06.987Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 271,
     "hot": false,
     "idle": 2
@@ -693,7 +695,7 @@
     "last": "2026-10-05T04:12:56.315Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 73,
     "hot": false,
     "idle": 0
@@ -702,7 +704,7 @@
     "last": "2026-10-05T03:28:59.064Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 241,
     "hot": false,
     "idle": 0
@@ -711,7 +713,7 @@
     "last": "2026-10-05T03:28:59.064Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 253,
     "hot": false,
     "idle": 0
@@ -720,7 +722,7 @@
     "last": "2026-10-05T04:18:56.625Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 243,
     "hot": false,
     "idle": 2
@@ -733,37 +735,35 @@
     "matches": 218,
     "hot": false,
     "idle": 54,
-    "errs": 4,
-    "errAt": "2026-10-05T05:11:04.078Z"
+    "errs": 5,
+    "errAt": "2026-10-05T05:19:00.865Z"
   },
   "m80-mech": {
-    "last": "2026-10-05T03:27:11.006Z",
+    "last": "2026-10-05T05:19:00.865Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 256,
     "hot": false,
     "idle": 0
   },
   "m80-life": {
-    "last": "2026-10-05T05:15:02.423Z",
+    "last": "2026-10-05T05:19:00.865Z",
     "fails": 0,
     "presence": "in",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 338,
     "hot": true,
     "idle": 0
   },
   "m80-pndh": {
-    "last": "2026-10-05T03:19:02.087Z",
+    "last": "2026-10-05T05:19:00.865Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
-    "matches": 200,
+    "presenceAt": "2026-10-05T05:19:00.449Z",
+    "matches": 201,
     "hot": false,
-    "idle": 0,
-    "errs": 2,
-    "errAt": "2026-10-05T05:01:06.418Z"
+    "idle": 0
   },
   "rafha-esports-t7lm": {
     "last": "2026-10-05T05:16:58.177Z",
@@ -778,7 +778,7 @@
     "last": "2026-10-05T03:57:05.656Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 107,
     "hot": false,
     "idle": 0
@@ -787,36 +787,34 @@
     "last": "2026-10-05T04:04:57.174Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 144,
     "hot": false,
     "idle": 0
   },
   "dos-ops": {
-    "last": "2026-10-05T03:25:03.549Z",
+    "last": "2026-10-05T05:19:00.865Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 147,
     "hot": false,
     "idle": 0
   },
   "dos-suspect": {
-    "last": "2026-10-05T04:18:56.625Z",
+    "last": "2026-10-05T05:19:00.865Z",
     "fails": 0,
     "presence": "unknown",
     "presenceAt": null,
     "matches": 135,
     "hot": false,
-    "idle": 22,
-    "errs": 7,
-    "errAt": "2026-10-05T05:11:04.078Z"
+    "idle": 23
   },
   "team-stallions-nush": {
     "last": "2026-10-05T02:31:05.899Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 242,
     "hot": false,
     "idle": 2,
@@ -836,7 +834,7 @@
     "last": "2026-10-05T05:15:02.423Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 266,
     "hot": false,
     "idle": 2
@@ -845,7 +843,7 @@
     "last": "2026-10-05T03:28:59.064Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 141,
     "hot": false,
     "idle": 2
@@ -854,7 +852,7 @@
     "last": "2026-10-05T05:16:58.177Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 145,
     "hot": false,
     "idle": 0
@@ -863,7 +861,7 @@
     "last": "2026-10-05T05:16:58.177Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 162,
     "hot": false,
     "idle": 2
@@ -872,7 +870,7 @@
     "last": "2026-10-05T05:16:58.177Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 166,
     "hot": false,
     "idle": 2
@@ -881,7 +879,7 @@
     "last": "2026-10-05T04:01:21.018Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 172,
     "hot": false,
     "idle": 0
@@ -894,14 +892,14 @@
     "matches": 85,
     "hot": false,
     "idle": 4,
-    "errs": 4,
-    "errAt": "2026-10-05T05:11:04.078Z"
+    "errs": 5,
+    "errAt": "2026-10-05T05:19:00.865Z"
   },
   "canterbury-bankstown-bulldogs-caleb": {
     "last": "2026-10-05T03:57:05.656Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 111,
     "hot": false,
     "idle": 2
@@ -919,7 +917,7 @@
     "last": "2026-10-05T02:51:13.078Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 124,
     "hot": false,
     "idle": 2,
@@ -930,7 +928,7 @@
     "last": "2026-10-05T03:57:05.656Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 186,
     "hot": false,
     "idle": 2
@@ -939,16 +937,16 @@
     "last": "2026-10-05T04:20:58.322Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 92,
     "hot": false,
     "idle": 2
   },
   "pwr-gus": {
-    "last": "2026-10-05T05:15:02.423Z",
+    "last": "2026-10-05T05:19:00.865Z",
     "fails": 0,
     "presence": "in",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 255,
     "hot": true,
     "idle": 0
@@ -960,35 +958,33 @@
     "presenceAt": null,
     "matches": 307,
     "hot": false,
-    "idle": 3
+    "idle": 3,
+    "errs": 1,
+    "errAt": "2026-10-05T05:19:00.865Z"
   },
   "take-flyte-scrub": {
-    "last": "2026-10-05T04:39:11.217Z",
+    "last": "2026-10-05T05:19:00.865Z",
     "fails": 0,
     "presence": "unknown",
     "presenceAt": null,
     "matches": 162,
     "hot": false,
-    "idle": 120,
-    "errs": 4,
-    "errAt": "2026-10-05T05:11:04.078Z"
+    "idle": 121
   },
   "plot-twist-motta": {
-    "last": "2026-10-05T03:27:11.006Z",
+    "last": "2026-10-05T05:19:00.865Z",
     "fails": 0,
     "presence": "out",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
-    "matches": 299,
+    "presenceAt": "2026-10-05T05:19:00.449Z",
+    "matches": 301,
     "hot": false,
-    "idle": 2,
-    "errs": 6,
-    "errAt": "2026-10-05T03:41:07.832Z"
+    "idle": 2
   },
   "evoh": {
-    "last": "2026-10-05T05:15:02.423Z",
+    "last": "2026-10-05T05:19:00.865Z",
     "fails": 0,
     "presence": "in",
-    "presenceAt": "2026-10-05T05:16:57.796Z",
+    "presenceAt": "2026-10-05T05:19:00.449Z",
     "matches": 392,
     "hot": true,
     "idle": 0
