@@ -18,9 +18,6 @@ RL Pro Tracker collects publicly available Rocket League statistics for professi
 
 All data comes from public sources (Steam Web API, Liquipedia, and tracker.gg). The project stores only game statistics for the configured list of professional players. It keeps no visitor data of its own; page views are counted by Cloudflare Web Analytics, which sets no cookies.
 
-> [!WARNING]
-> **In development, and not finished.** The site is live and collecting real data, but it is
-> actively being built. Treat everything here as an indication rather than a record.
 
 ## Features
 
