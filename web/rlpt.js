@@ -821,6 +821,9 @@
     // is seven missed runs, so the page would keep insisting it was healthy
     // long after collection had died.
     var LATE_MS=8*60e3, HALTED_MS=30*60e3;
+    // True once collection has been switched off for good (planned for
+    // 10 October 2026). The board then shows its last data as final.
+    var FINAL=true;
 
     var ageWords=function(ms){
       var m=Math.round(ms/60000);
@@ -959,7 +962,16 @@
         return;
       }
       var when=new Date(collectedAt).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-      document.getElementById('updated').textContent='updated '+when;
+      document.getElementById('updated').textContent=(FINAL?'final update ':'updated ')+when;
+
+      // After shutdown the data is old on purpose, and the developer message
+      // already says so. The late and halted warnings would only claim
+      // something is broken.
+      if(FINAL){
+        if(dot)dot.classList.add('is-final');
+        box.innerHTML='';
+        return;
+      }
 
       // Two different problems, and telling a visitor the wrong one is worse
       // than saying nothing. If the server has newer data than this tab holds,
